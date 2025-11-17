@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}New Contact Form Submission{% endblock title %}
+
+{% block content %}
+    <h2 style="margin-top: 0; color: #2c3e50;">New Contact Form Message</h2>
+
+    <p>A new message has been submitted through the contact form .</p>
+
+    <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 16px;">
+        <tr>
+            <td style="padding: 8px 0; font-weight: bold; width: 140px; color: #2c3e50;">From:</td>
+            <td>{{ message.first_name }} {{ message.last_name }}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px 0; font-weight: bold; color: #2c3e50;">Email:</td>
+            <td>
+                <a href="mailto:{{ message.email }}" style="color: #3498db; text-decoration: none;">
+                    {{ message.email }}
+                </a>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding: 8px 0; font-weight: bold; color: #2c3e50;">Phone:</td>
+            <td>{{ message.phone|default:"<em>Not provided</em>" }}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px 0; font-weight: bold; color: #2c3e50;">Subject:</td>
+            <td>{{ message.subject }}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px 0; font-weight: bold; color: #2c3e50; vertical-align: top;">Message:</td>
+            <td style="white-space: pre-wrap; font-family: inherit;">{{ message.message }}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px 0; font-weight: bold; color: #2c3e50;">Submitted:</td>
+            <td>{{ message.created_at|date:"d M Y \a\t H:i" }} UTC</td>
+        </tr>
+    </table>
+
+    <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+
+    <p style="text-align: center;">
+        <a href="mailto:{{ message.email }}?subject=Re: {{ message.subject|urlencode }}"
+           style="background-color: #3498db; color: white; padding: 12px 28px; text-decoration: none; border-radius: 6px; font-weight: bold;">
+            Reply to {{ message.first_name }}
+        </a>
+    </p>
+
+    <p style="font-size: 14px; color: #7f8c8d; text-align: center;">
+        You can also view this message in the  Admin panel.
+    </p>
+{% endblock content %}
