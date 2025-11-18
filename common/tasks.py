@@ -1,6 +1,6 @@
 import logging
 
-from celery import shared_task
+from celery import shared_task, current_app
 from django.conf import settings
 from django.core.mail import EmailMessage
 from django.template.loader import render_to_string
@@ -46,9 +46,13 @@ class EmailService:
         try:
             context["from_email"] = "orr.com"
 
-            send_email_task.delay(subject, recipient_email, template_name, context)
+            current_app.send_task(
+                "common.tasks.send_email_task",
+                args=(subject, recipient_email, template_name, context)
+            )
 
             logger.info(f"Email queued for {recipient_email}: {subject}")
 
         except Exception as e:
             logger.error(f"Failed to queue email to {recipient_email}: {e}")
+

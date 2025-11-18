@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "drf_spectacular",
     "common",
     "contact",
 ]
@@ -57,7 +58,7 @@ ROOT_URLCONF = "core.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -123,6 +124,7 @@ REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": (
         "common.response.CustomJSONRenderer",  
     ),
+      "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 admins = config("ADMINS", "")
 
@@ -133,3 +135,36 @@ if admins:
     ]
 else:
     ADMINS = []
+
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = config("EMAIL_HOST", default="smtp.gmail.com")
+EMAIL_PORT = config("EMAIL_PORT", cast=int, default=587)
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
+
+
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "The ORR API",
+    "DESCRIPTION": "API documentation for The ORR backend",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "COMPONENT_SPLIT_REQUEST": True,
+    "SECURITY": [{"BearerAuth": []}],
+    "COMPONENTS": {
+        "securitySchemes": {
+            "BearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT",
+            },
+        }
+    },
+}
+
+CELERY_BROKER_URL = config("CELERY_BROKER_URL", "redis://localhost:6379/0")
+CELERY_RESULT_BACKEND = config("CELERY_BROKER_URL", "redis://localhost:6379/0")
+
+import os
+CELERY_WORKER_RUNNING = os.environ.get('CELERY_WORKER_RUNNING', False)

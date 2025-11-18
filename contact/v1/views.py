@@ -4,6 +4,7 @@ from rest_framework import status
 from .serializers import ContactMessageSerializer
 
 class ContactMessageView(APIView):
+    serializer_class=ContactMessageSerializer
     def post(self, request):
         serializer = ContactMessageSerializer(data=request.data)
         if serializer.is_valid():
