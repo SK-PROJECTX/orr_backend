@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     "common",
     "contact",
     "blog",
+    "client",
 ]
 
 MIDDLEWARE = [

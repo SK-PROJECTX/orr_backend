@@ -6,5 +6,5 @@ router.register(r'blogs', BlogPostViewSet)
 
 
 urlpatterns = [
-    path('blog/', include(router.urls)),
+    path('', include(router.urls)),
 ]
