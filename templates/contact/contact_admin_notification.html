@@ -11,7 +11,7 @@
     <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 16px;">
         <tr>
             <td style="padding: 8px 0; font-weight: bold; width: 140px; color: #2c3e50;">From:</td>
-            <td>{{ message.first_name }} {{ message.last_name }}</td>
+            <td>{{message.first_name}} </td>
         </tr>
         <tr>
             <td style="padding: 8px 0; font-weight: bold; color: #2c3e50;">Email:</td>
@@ -23,7 +23,7 @@
         </tr>
         <tr>
             <td style="padding: 8px 0; font-weight: bold; color: #2c3e50;">Phone:</td>
-            <td>{{ message.phone|default:"<em>Not provided</em>" }}</td>
+            <td>{{ message.phone "<em>Not provided</em>" }}</td>
         </tr>
         <tr>
             <td style="padding: 8px 0; font-weight: bold; color: #2c3e50;">Subject:</td>
@@ -35,7 +35,7 @@
         </tr>
         <tr>
             <td style="padding: 8px 0; font-weight: bold; color: #2c3e50;">Submitted:</td>
-            <td>{{ message.created_at|date:"d M Y \a\t H:i" }} UTC</td>
+            <td>{{  message.created_at.isoformat }} UTC</td>
         </tr>
     </table>
 
@@ -44,7 +44,7 @@
     <p style="text-align: center;">
         <a href="mailto:{{ message.email }}?subject=Re: {{ message.subject|urlencode }}"
            style="background-color: #3498db; color: white; padding: 12px 28px; text-decoration: none; border-radius: 6px; font-weight: bold;">
-            Reply to {{ message.first_name }}
+            Reply to {{ message.name }}
         </a>
     </p>
 

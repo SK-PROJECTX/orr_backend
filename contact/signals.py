@@ -33,10 +33,11 @@ def notify_admin_on_new_contact_message(sender, instance, created, **kwargs):
 
     context = {
        "message": {
-        "name": instance.first_name,
+        "first_name": instance.first_name,
         "email": instance.email,
         "subject": instance.subject,
-        "content": instance.message,
+        "message": instance.message,
+        "phone": instance.phone,
         "created_at": instance.created_at.isoformat(),
     },
         "site_name": "ORR",
