@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Verify Your Email{% endblock %}
+
+{% block content %}
+<h2 style="margin: 0 0 15px 0; font-size: 22px; font-weight: 600; color: #0d1b2a;">
+    Email Verification Required
+</h2>
+
+<p style="margin: 0 0 15px 0;">
+    Hi {{ name }},
+</p>
+
+<p style="margin: 0 0 15px 0;">
+    Welcome to <strong>ORR Solutions</strong>!  
+    Please verify your email address to activate your account.
+</p>
+
+<p style="margin: 0 0 25px 0;">
+    Click the button below to verify:
+</p>
+
+
+<table role="presentation" cellpadding="0" cellspacing="0" style="margin: 0 auto 25px auto;">
+    <tr>
+        <td align="center" bgcolor="#0d47a1"
+            style="border-radius: 6px; padding: 12px 24px;">
+            <a href="{{ verification_url }}" 
+               style="font-size: 16px; color: #ffffff; text-decoration: none; display: inline-block; font-weight: 600;">
+               Verify Email
+            </a>
+        </td>
+    </tr>
+</table>
+
+<p style="margin: 0 0 15px 0;">
+    If the button above does not work, copy and paste the link below into your browser:
+</p>
+
+<p style="word-break: break-all; color: #0d47a1; margin: 0 0 20px 0;">
+    {{ verification_url }}
+</p>
+
+<p style="margin: 0;">
+    If you did not create an account, please ignore this email.
+</p>
+{% endblock %}
