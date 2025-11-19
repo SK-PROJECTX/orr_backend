@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     "contact",
     "blog",
     "client",
+    "notification",
 ]
 
 MIDDLEWARE = [

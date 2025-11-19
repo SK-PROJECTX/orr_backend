@@ -1,6 +1,5 @@
 import logging
 from celery import shared_task
-from common.tasks import EmailService
 from celery import current_app
 logger = logging.getLogger(__name__)
 
