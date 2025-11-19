@@ -1,7 +1,5 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from django.contrib.auth import authenticate
-
 User = get_user_model()
 
 
@@ -26,24 +24,19 @@ class LoginSerializer(serializers.Serializer):
 
         if not identifier or not password:
             raise serializers.ValidationError(
-                "email OR username and password are required."
+                "Identifier (email or username) and password are required."
             )
 
-        user = authenticate(username=identifier, password=password)
-
-        if user is None:
-            try:
-                from django.contrib.auth import get_user_model
-
-                User = get_user_model()
-
-                user_obj = User.objects.filter(email__iexact=identifier).first()
-                if user_obj:
-                    user = authenticate(username=user_obj.username, password=password)
-            except User.DoesNotExist:
-                pass
+        User = get_user_model()
+        user = (
+            User.objects.filter(username__iexact=identifier).first()
+            or User.objects.filter(email__iexact=identifier).first()
+        )
 
         if not user:
+            raise serializers.ValidationError("Invalid login credentials.")
+
+        if not user.check_password(password):
             raise serializers.ValidationError("Invalid login credentials.")
 
         attrs["user"] = user

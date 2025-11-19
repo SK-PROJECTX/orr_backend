@@ -13,6 +13,7 @@ from django.contrib.auth.tokens import (
     default_token_generator,
 )
 User = get_user_model()
+from rest_framework.views import APIView
 
 
 class SignupView(views.APIView):
@@ -103,45 +104,41 @@ class VerifyEmailView(views.APIView):
             status=status.HTTP_200_OK,
         )
 
-class LoginView(views.APIView):
+class LoginView(APIView):
     permission_classes = [AllowAny]
     serializer_class = LoginSerializer
 
     def post(self, request):
-        serializer = self.serializer_class(data=request.data)
+        serializer = self.serializer_class(
+            data=request.data, 
+            context={"request": request}
+        )
+        serializer.is_valid(raise_exception=True)
 
-        if serializer.is_valid():
-            user = serializer.validated_data["user"]
+        user = serializer.validated_data["user"]
 
-            if not user.is_active:
-                send_email_verification_notification(user)
-
-                return Response(
-                    {
-                        "message": "Account not verified. A new verification email has been sent to your inbox.",
-                        "data": {},
-                    },
-                    status=status.HTTP_403_FORBIDDEN,
-                )
-
-            refresh = RefreshToken.for_user(user)
-
+      
+        if not user.is_active:
+            send_email_verification_notification(user)
             return Response(
                 {
-                    "status": status.HTTP_200_OK,
-                    "message": "Login successful",
-                    "data": {
-                        "accessToken": str(refresh.access_token),
-                        "refreshToken": str(refresh),
-                    },
+                    "message": "Account not verified. A new verification email has been sent.",
+                    "data": {},
                 },
-                status=status.HTTP_200_OK,
+                status=status.HTTP_403_FORBIDDEN,
             )
+
+        # JWT generation
+        refresh = RefreshToken.for_user(user)
 
         return Response(
             {
-                "message": "Invalid data provided",
-                "data": serializer.errors,
+                "status": status.HTTP_200_OK,
+                "message": "Login successful",
+                "data": {
+                    "accessToken": str(refresh.access_token),
+                    "refreshToken": str(refresh),
+                },
             },
-            status=status.HTTP_400_BAD_REQUEST,
+            status=status.HTTP_200_OK,
         )
