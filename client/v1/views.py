@@ -4,7 +4,7 @@ from django.contrib.auth.password_validation import validate_password
 from rest_framework import status, views
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from .serializers import SignUpSerializer, VerifyEmailSerializer, LoginSerializer
+from .serializers import SignUpSerializer, VerifyEmailSerializer, LoginSerializer, PasswordResetConfirmSerializer, PasswordResetRequestSerializer
 from services.notifications.email_verification import send_email_verification_notification
 from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
@@ -12,6 +12,9 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.tokens import (
     default_token_generator,
 )
+from rest_framework import generics
+
+
 User = get_user_model()
 from rest_framework.views import APIView
 
@@ -142,3 +145,43 @@ class LoginView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+    
+class PasswordResetRequestView(generics.GenericAPIView):
+    serializer_class = PasswordResetRequestSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        email = serializer.validated_data["email"]
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response(
+                {"error": "No user found with this email."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        try:
+            send_password_reset_notification(user)
+        except Exception as e:
+            return Response(
+                {"error": f"Failed to send reset email: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        return Response(
+            {"message": "Password reset link sent."}, status=status.HTTP_200_OK
+        )
+class PasswordResetConfirmView(generics.GenericAPIView):
+    serializer_class = PasswordResetConfirmSerializer
+
+    def post(self, request, uidb64, token, *args, **kwargs):
+        serializer = self.get_serializer(
+            data={**request.data, "uid": uidb64, "token": token}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(
+            {"message": "Password reset successful."}, status=status.HTTP_200_OK
+        )
+

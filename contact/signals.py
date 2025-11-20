@@ -3,7 +3,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.conf import settings
 from .models import ContactMessage
-from celery import current_app
+from .tasks import send_contact_notification_email
 logger = logging.getLogger(__name__)  
 
 @receiver(post_save, sender=ContactMessage)
@@ -47,12 +47,7 @@ def notify_admin_on_new_contact_message(sender, instance, created, **kwargs):
 
     for admin_email in admin_emails:
         logger.info(f"Queueing Celery task for {admin_email}")
-        current_app.send_task(
-            name="contact.tasks.send_contact_notification_email",  
-            args=(subject, admin_email, context),
-           
-        )
-
+        send_contact_notification_email.delay(subject, admin_email, context)
 
 
         

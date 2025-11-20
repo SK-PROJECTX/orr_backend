@@ -11,3 +11,11 @@ def build_verify_password_url(user):
     token = token_generator.make_token(user)
     base = settings.FRONTEND_VERIFY_EMAIL_URL
     return f"{base}?uid={uid}&token={token}&email={user.email}"
+
+def create_password_reset_url(user):
+    uid = urlsafe_base64_encode(force_bytes(user.pk))
+    token = token_generator.make_token(user)
+    base = settings.FRONTEND_RESET_PASSWORD_URL
+    return f"{base}?uid={uid}&token={token}"
+
+    
