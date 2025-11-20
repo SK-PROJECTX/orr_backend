@@ -1,6 +1,6 @@
 import logging
 
-from celery import shared_task, current_app
+from celery import shared_task
 from django.conf import settings
 from django.core.mail import EmailMessage
 from django.template.loader import render_to_string
@@ -8,8 +8,8 @@ from django.template.loader import render_to_string
 logger = logging.getLogger(__name__)
 
 
-@shared_task(bind=True, max_retries=3)
-def send_email_task(self, subject, recipient_email, template_name, context):
+@shared_task(max_retries=3, default_retry_delay=10)
+def send_email_task(subject, recipient_email, template_name, context):
     """
     Send email using Gmail SMTP only
     """
@@ -22,7 +22,6 @@ def send_email_task(self, subject, recipient_email, template_name, context):
 
     except Exception as e:
         logger.error(f"[Gmail SMTP] Failed: {e}")
-        return False
 
 
 def send_email_with_gmail(subject, recipient_email, html_content):
@@ -46,10 +45,7 @@ class EmailService:
         try:
             context["from_email"] = "orr.com"
 
-            current_app.send_task(
-                "common.tasks.send_email_task",
-                args=(subject, recipient_email, template_name, context)
-            )
+            send_email_task.delay(subject, recipient_email, template_name, context)
 
             logger.info(f"Email queued for {recipient_email}: {subject}")
 

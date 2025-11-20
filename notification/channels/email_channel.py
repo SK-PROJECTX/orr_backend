@@ -1,6 +1,6 @@
 import logging
 
-from ..tasks import EmailService
+from ..tasks import send_email_task
 from .base_channel import BaseChannel
 
 logger = logging.getLogger(__name__)
@@ -8,9 +8,6 @@ logger = logging.getLogger(__name__)
 
 class EmailChannel(BaseChannel):
     """Email channel that delegates to the existing EmailService."""
-
-    def __init__(self):
-        self.email_service = EmailService()
 
     def send(self, user, title, message, metadata=None):
         if not user.email:
@@ -33,7 +30,7 @@ class EmailChannel(BaseChannel):
             return
 
         try:
-            self.email_service.send_email(
+            send_email_task(
                 subject=title,
                 recipient_email=user.email,
                 template_name=template_name,

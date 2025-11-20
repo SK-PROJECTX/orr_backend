@@ -23,7 +23,7 @@
         </tr>
         <tr>
             <td style="padding: 8px 0; font-weight: bold; color: #2c3e50;">Phone:</td>
-            <td>{{ message.phone "<em>Not provided</em>" }}</td>
+            <td>{{message.phone }}</td>
         </tr>
         <tr>
             <td style="padding: 8px 0; font-weight: bold; color: #2c3e50;">Subject:</td>
@@ -35,7 +35,7 @@
         </tr>
         <tr>
             <td style="padding: 8px 0; font-weight: bold; color: #2c3e50;">Submitted:</td>
-            <td>{{  message.created_at.isoformat }} UTC</td>
+            <td>{{  message.created_at}} UTC</td>
         </tr>
     </table>
 
