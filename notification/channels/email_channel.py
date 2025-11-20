@@ -30,7 +30,7 @@ class EmailChannel(BaseChannel):
             return
 
         try:
-            send_email_task(
+            send_email_task.delay(
                 subject=title,
                 recipient_email=user.email,
                 template_name=template_name,
