@@ -1,4 +1,4 @@
-from ..common.models import Audit
+from common.models import Audit
 from django.contrib.auth.models import User
 from django.db import models
 

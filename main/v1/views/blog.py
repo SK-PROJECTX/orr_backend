@@ -1,6 +1,6 @@
 from rest_framework import viewsets
-from .serializers import BlogPostSerializer
-from ..models import BlogPost
+from ..serializers.blog import BlogPostSerializer
+from ...models import BlogPost
 from django.utils import timezone
 
 class BlogPostViewSet(viewsets.ReadOnlyModelViewSet):
@@ -8,5 +8,4 @@ class BlogPostViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = BlogPostSerializer
     lookup_field = 'slug'
     ordering_fields = ['published_at', 'title']
-
 

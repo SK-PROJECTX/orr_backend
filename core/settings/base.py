@@ -40,10 +40,9 @@ INSTALLED_APPS = [
     "rest_framework",
     "drf_spectacular",
     "common",
-    "contact",
-    "blog",
     "client",
     "notification",
+    "main",
 ]
 
 MIDDLEWARE = [

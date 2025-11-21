@@ -1,10 +1,9 @@
 from django.apps import AppConfig
 
 
-class ContactConfig(AppConfig):
+class MainConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
-    name = "contact"
+    name = "main"
     def ready(self):
-        import contact.tasks
-        import contact.signals
-
+        import main.tasks
+        import main.signals

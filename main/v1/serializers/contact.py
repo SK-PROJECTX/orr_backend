@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from ..models import ContactMessage
+from ...models import ContactMessage
 
 
 class ContactMessageSerializer(serializers.ModelSerializer):
