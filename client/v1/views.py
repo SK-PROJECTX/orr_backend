@@ -4,7 +4,7 @@ from django.contrib.auth.password_validation import validate_password
 from rest_framework import status, views
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from .serializers import SignUpSerializer, VerifyEmailSerializer, LoginSerializer, PasswordResetConfirmSerializer, PasswordResetRequestSerializer
+from .serializers import SignUpSerializer, VerifyEmailSerializer, LoginSerializer, PasswordResetConfirmSerializer, PasswordResetRequestSerializer, ChangePasswordSerializer
 from services.notifications.email_verification import send_email_verification_notification
 from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
@@ -12,7 +12,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.tokens import (
     default_token_generator,
 )
-from rest_framework import generics
+from rest_framework import generics, permissions
 
 
 User = get_user_model()
@@ -185,3 +185,22 @@ class PasswordResetConfirmView(generics.GenericAPIView):
             {"message": "Password reset successful."}, status=status.HTTP_200_OK
         )
 
+class ChangePasswordView(generics.UpdateAPIView):
+    serializer_class = ChangePasswordSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self, queryset=None):
+        return self.request.user
+
+    def update(self, request, *args, **kwargs):
+        serializer = self.get_serializer(
+            data=request.data, context={"request": request}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(
+            {
+                "message": "Password updated successfully",
+            },
+            status=status.HTTP_200_OK,
+        )
