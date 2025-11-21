@@ -1,10 +1,11 @@
-from rest_framework.views import APIView
+from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework.views import APIView
 
 from ...models import Profile
 from ..serializers.profile import ProfileCreateSerializer
+
 
 class CreateOrUpdateProfileView(APIView):
     permission_classes = [IsAuthenticated]
@@ -19,8 +20,12 @@ class CreateOrUpdateProfileView(APIView):
 
         return Response(
             {
-                "message": "Profile created successfully" if created else "Profile updated successfully",
-                "profile": serializer.data
+                "message": (
+                    "Profile created successfully"
+                    if created
+                    else "Profile updated successfully"
+                ),
+                "profile": serializer.data,
             },
-            status=status.HTTP_200_OK
+            status=status.HTTP_200_OK,
         )

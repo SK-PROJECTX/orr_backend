@@ -1,16 +1,16 @@
-from rest_framework import serializers
 from django.contrib.auth import get_user_model
+from rest_framework import serializers
+
 User = get_user_model()
 from django.contrib.auth.password_validation import validate_password
-from django.utils.encoding import force_str
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
 
 
 class VerifyEmailSerializer(serializers.Serializer):
     uid = serializers.CharField(help_text="User UID from email")
     token = serializers.CharField(help_text="Email verification token")
-
 
 
 class PasswordResetRequestSerializer(serializers.Serializer):
@@ -46,7 +46,8 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
         user.set_password(new_password)
         user.save()
         return user
-    
+
+
 class ChangePasswordSerializer(serializers.Serializer):
     old_password = serializers.CharField(required=True, write_only=True)
     new_password = serializers.CharField(required=True, write_only=True)
@@ -66,13 +67,14 @@ class ChangePasswordSerializer(serializers.Serializer):
 
         validate_password(data["new_password"])
         return data
-    
+
+
 class AccountSettingsDetailsSerializer(serializers.Serializer):
     first_name = serializers.CharField(required=False)
     last_name = serializers.CharField(required=False)
     username = serializers.CharField(required=False)
     email = serializers.EmailField(required=False)
-    
+
     country = serializers.CharField(required=False, allow_blank=True)
     city = serializers.CharField(required=False, allow_blank=True)
     zip_code = serializers.CharField(required=False, allow_blank=True)

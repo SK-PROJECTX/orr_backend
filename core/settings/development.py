@@ -1,6 +1,9 @@
-from decouple import config
-from .base import *
 import os
+
+from decouple import config
+
+from .base import *
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
@@ -14,7 +17,6 @@ DATABASES = {
 
 LOGGING = {
     "version": 1,
-
     "disable_existing_loggers": False,
     # ==== FORMATTERS ====
     "formatters": {

@@ -1,14 +1,21 @@
-from django.contrib.auth.password_validation import validate_password
-from rest_framework.permissions import AllowAny
-from rest_framework import status, views
-from rest_framework.response import Response
-from services.notifications.email_verification import send_email_verification_notification
-from ..serializers.auth import SignUpSerializer, LoginSerializer
 import logging
+
 from django.contrib.auth import get_user_model
-from rest_framework_simplejwt.tokens import RefreshToken
+from django.contrib.auth.password_validation import validate_password
+from rest_framework import status, views
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
+
+from services.notifications.email_verification import (
+    send_email_verification_notification,
+)
+
+from ..serializers.auth import LoginSerializer, SignUpSerializer
+
 User = get_user_model()
+
 
 class SignupView(views.APIView):
     permission_classes = [AllowAny]
@@ -68,14 +75,12 @@ class LoginView(APIView):
 
     def post(self, request):
         serializer = self.serializer_class(
-            data=request.data, 
-            context={"request": request}
+            data=request.data, context={"request": request}
         )
         serializer.is_valid(raise_exception=True)
 
         user = serializer.validated_data["user"]
 
-      
         if not user.is_active:
             send_email_verification_notification(user)
             return Response(
@@ -99,4 +104,3 @@ class LoginView(APIView):
             },
             status=status.HTTP_200_OK,
         )
-    

@@ -1,18 +1,21 @@
-from django.contrib.auth.tokens import (
-    default_token_generator,
-)
-from rest_framework import generics, permissions
-from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
-from rest_framework import status, views
-from ..serializers.account import VerifyEmailSerializer,PasswordResetConfirmSerializer, PasswordResetRequestSerializer, ChangePasswordSerializer, AccountSettingsDetailsSerializer
+from django.contrib.auth import get_user_model
+from django.contrib.auth.tokens import default_token_generator
 from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
-from django.contrib.auth import get_user_model
+from rest_framework import generics, permissions, status, views
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.permissions import  IsAuthenticated
-User = get_user_model()
 
+from ..serializers.account import (
+    AccountSettingsDetailsSerializer,
+    ChangePasswordSerializer,
+    PasswordResetConfirmSerializer,
+    PasswordResetRequestSerializer,
+    VerifyEmailSerializer,
+)
+
+User = get_user_model()
 
 
 class VerifyEmailView(views.APIView):
@@ -51,6 +54,8 @@ class VerifyEmailView(views.APIView):
             {"message": "Email verified successfully. You may now log in."},
             status=status.HTTP_200_OK,
         )
+
+
 class PasswordResetRequestView(generics.GenericAPIView):
     serializer_class = PasswordResetRequestSerializer
 
@@ -77,6 +82,8 @@ class PasswordResetRequestView(generics.GenericAPIView):
         return Response(
             {"message": "Password reset link sent."}, status=status.HTTP_200_OK
         )
+
+
 class PasswordResetConfirmView(generics.GenericAPIView):
     serializer_class = PasswordResetConfirmSerializer
 
@@ -89,6 +96,7 @@ class PasswordResetConfirmView(generics.GenericAPIView):
         return Response(
             {"message": "Password reset successful."}, status=status.HTTP_200_OK
         )
+
 
 class ChangePasswordView(generics.UpdateAPIView):
     serializer_class = ChangePasswordSerializer
@@ -109,6 +117,7 @@ class ChangePasswordView(generics.UpdateAPIView):
             },
             status=status.HTTP_200_OK,
         )
+
 
 class AccountSettingsView(APIView):
     permission_classes = [IsAuthenticated]
@@ -163,7 +172,9 @@ class AccountSettingsView(APIView):
                     "zip_code": profile.zip_code,
                     "bio": profile.bio_text,
                     "profile_pic": profile.profile_pic if profile.profile_pic else None,
-                    "bio_as_file": profile.bio_attachment.url if profile.bio_as_file else None,
+                    "bio_as_file": (
+                        profile.bio_attachment.url if profile.bio_as_file else None
+                    ),
                     "timezone": profile.timezone,
                 },
             },

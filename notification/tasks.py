@@ -51,4 +51,3 @@ class EmailService:
 
         except Exception as e:
             logger.error(f"Failed to queue email to {recipient_email}: {e}")
-

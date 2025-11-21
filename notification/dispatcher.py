@@ -1,6 +1,6 @@
 from .channels.email_channel import EmailChannel
 from .channels.inapp_channel import InAppChannel
-from .channels.push_channel import  PushChannel
+from .channels.push_channel import PushChannel
 
 
 class NotificationService:

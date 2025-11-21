@@ -1,6 +1,8 @@
-from common.models import Audit
 from django.contrib.auth.models import User
 from django.db import models
+
+from common.models import Audit
+
 
 class Profile(Audit):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
@@ -14,7 +16,7 @@ class Profile(Audit):
             ("other", "Other"),
             ("prefer_not_say", "Prefer not to say"),
         ],
-        blank=True
+        blank=True,
     )
     country = models.CharField(max_length=100, blank=True)
     city = models.CharField(max_length=100, blank=True)
@@ -24,10 +26,8 @@ class Profile(Audit):
     profile_pic = models.ImageField(upload_to="profile_pics/", blank=True, null=True)
     bio_text = models.TextField(blank=True)
     bio_attachment = models.FileField(
-        upload_to="profile_bio_attachments/",
-        blank=True,
-        null=True
+        upload_to="profile_bio_attachments/", blank=True, null=True
     )
+
     def __str__(self):
         return f"{self.user.username}'s Profile"
-   
