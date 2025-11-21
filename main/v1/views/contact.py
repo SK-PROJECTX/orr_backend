@@ -2,8 +2,10 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from ..serializers.contact import ContactMessageSerializer
+from drf_spectacular.utils import extend_schema
 
 
+@extend_schema(tags=["main page"])
 class ContactMessageView(APIView):
     serializer_class = ContactMessageSerializer
 

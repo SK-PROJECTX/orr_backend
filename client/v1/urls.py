@@ -15,9 +15,9 @@ urlpatterns = [
     path("register/", SignupView.as_view(), name="reqister"),
     path("login/", LoginView.as_view(), name="reqister"),
     path(
-        "reset-password/",
+        "forget-password/",
         PasswordResetRequestView.as_view(),
-        name="reset-password",
+        name="forget-password",
     ),
     path(
         "verify-reset-password/<uidb64>/<token>/",

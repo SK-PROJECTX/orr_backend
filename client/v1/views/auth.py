@@ -13,10 +13,11 @@ from services.notifications.email_verification import (
 )
 
 from ..serializers.auth import LoginSerializer, SignUpSerializer
-
+from drf_spectacular.utils import extend_schema
 User = get_user_model()
 
 
+@extend_schema(tags=["auth"])
 class SignupView(views.APIView):
     permission_classes = [AllowAny]
     serializer_class = SignUpSerializer
@@ -68,7 +69,7 @@ class SignupView(views.APIView):
             status=status.HTTP_201_CREATED,
         )
 
-
+@extend_schema(tags=["auth"])
 class LoginView(APIView):
     permission_classes = [AllowAny]
     serializer_class = LoginSerializer

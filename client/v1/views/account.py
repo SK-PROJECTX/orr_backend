@@ -14,10 +14,11 @@ from ..serializers.account import (
     PasswordResetRequestSerializer,
     VerifyEmailSerializer,
 )
-
+from drf_spectacular.utils import extend_schema
+from services.notifications.password_reset import send_password_reset_notification
 User = get_user_model()
 
-
+@extend_schema(tags=["account"])
 class VerifyEmailView(views.APIView):
     permission_classes = [AllowAny]
     serializer_class = VerifyEmailSerializer
@@ -55,7 +56,7 @@ class VerifyEmailView(views.APIView):
             status=status.HTTP_200_OK,
         )
 
-
+@extend_schema(tags=["account"])
 class PasswordResetRequestView(generics.GenericAPIView):
     serializer_class = PasswordResetRequestSerializer
 
@@ -83,7 +84,7 @@ class PasswordResetRequestView(generics.GenericAPIView):
             {"message": "Password reset link sent."}, status=status.HTTP_200_OK
         )
 
-
+@extend_schema(tags=["account"])
 class PasswordResetConfirmView(generics.GenericAPIView):
     serializer_class = PasswordResetConfirmSerializer
 
@@ -97,7 +98,7 @@ class PasswordResetConfirmView(generics.GenericAPIView):
             {"message": "Password reset successful."}, status=status.HTTP_200_OK
         )
 
-
+@extend_schema(tags=["account-setting"])
 class ChangePasswordView(generics.UpdateAPIView):
     serializer_class = ChangePasswordSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -110,7 +111,9 @@ class ChangePasswordView(generics.UpdateAPIView):
             data=request.data, context={"request": request}
         )
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        user = request.user
+        user.set_password(serializer.validated_data["new_password"])
+        user.save()
         return Response(
             {
                 "message": "Password updated successfully",
@@ -118,13 +121,16 @@ class ChangePasswordView(generics.UpdateAPIView):
             status=status.HTTP_200_OK,
         )
 
-
+@extend_schema(tags=["account-setting"])
 class AccountSettingsView(APIView):
     permission_classes = [IsAuthenticated]
-    serializerclass = AccountSettingsDetailsSerializer
+    serializer_class = AccountSettingsDetailsSerializer
 
     def patch(self, request):
-        serializer = self.get_serializer(data=request.data)
+        serializer = AccountSettingsDetailsSerializer(
+            data=request.data,
+            context={"request": request}
+        )
         serializer.is_valid(raise_exception=True)
 
         user = request.user
@@ -172,8 +178,8 @@ class AccountSettingsView(APIView):
                     "zip_code": profile.zip_code,
                     "bio": profile.bio_text,
                     "profile_pic": profile.profile_pic if profile.profile_pic else None,
-                    "bio_as_file": (
-                        profile.bio_attachment.url if profile.bio_as_file else None
+                    "bio_attachment": (
+                        profile.bio_attachment.url if profile.bio_attachment else None
                     ),
                     "timezone": profile.timezone,
                 },
