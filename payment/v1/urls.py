@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import CreateCheckoutSession, ChangePlanView, PauseSubscriptionView, BillingPortalView, StripeWebhookView, InvoiceListView, BillingHistoryView
+from .views import CreateCheckoutSession, ChangePlanView, PauseSubscriptionView, BillingPortalView, StripeWebhookView,BillingHistoryView, stripe_webhook
 
 urlpatterns = [
     path("payments/create-checkout/", CreateCheckoutSession.as_view()),
@@ -8,4 +8,5 @@ urlpatterns = [
     path("subscriptions/portal/", BillingPortalView.as_view(), name="billing-portal"),
     path("webhook/", StripeWebhookView.as_view()),
     path("billing-history/", BillingHistoryView.as_view()),
+    path("stripe/webhook/", stripe_webhook, name="stripe-webhook"),
 ]
