@@ -40,6 +40,7 @@ urlpatterns = [
     path("", include("main.v1.urls")),
     path("", include("client.v1.urls")),
     path("", include("scheduling.v1.urls")),
+    path("", include("notification.v1.urls")),
 ]
 
 if settings.DEBUG:
