@@ -1,6 +1,6 @@
 
 from rest_framework import serializers
-from ..models import  MEETING_TYPE_CHOICES, Calendar
+from ..models import  MEETING_TYPE_CHOICES, Calendar, Event
 from django.utils.dateparse import parse_datetime
 from django.utils import timezone
 
@@ -33,3 +33,17 @@ class MeetingRequestCreateSerializer(serializers.Serializer):
                 raise serializers.ValidationError("All preferred slots must be in the future.")
             parsed.append(dt)
         return parsed
+
+class EventSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Event
+        fields = [
+            "id", "title", "description",
+            "start", "end", "cancelled",
+            "recurrence_rule", "recurrence_end",
+            "metadata"
+        ]
+
+class DayEventsSerializer(serializers.Serializer):
+    date = serializers.DateField()
+    events = EventSerializer(many=True)
