@@ -45,6 +45,9 @@ INSTALLED_APPS = [
     "client",
     "notification",
     "main",
+    "scheduling",
+    "organization",
+
 ]
 
 MIDDLEWARE = [

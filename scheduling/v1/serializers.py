@@ -1,9 +1,16 @@
-# scheduling/serializers.py
+
 from rest_framework import serializers
-from ..models import MeetingRequest, MEETING_TYPE_CHOICES
+from ..models import  MEETING_TYPE_CHOICES, Calendar
 from django.utils.dateparse import parse_datetime
-from django.core.exceptions import ValidationError
 from django.utils import timezone
+
+
+class CalendarSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Calendar
+        fields = ["id", "name", "owner_user"]
+
+
 
 class MeetingRequestCreateSerializer(serializers.Serializer):
     calendar = serializers.IntegerField() 

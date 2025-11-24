@@ -2,11 +2,14 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from .serializers import MeetingRequestCreateSerializer
+from .serializers import MeetingRequestCreateSerializer, CalendarSerializer
 from ..models import MeetingRequest, Calendar
 from ..utils import slot_conflicts
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+
+from rest_framework.views import APIView
+
 
 class MeetingRequestViewSet(viewsets.GenericViewSet):
     permission_classes = [IsAuthenticated]
@@ -101,3 +104,14 @@ class MeetingRequestViewSet(viewsets.GenericViewSet):
 
 
         return Response({"message": "Meeting confirmed", "event_id": event.id}, status=status.HTTP_200_OK)
+    
+class MyCalendarView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        calendar, created = Calendar.objects.get_or_create(
+            owner_user=request.user,
+            defaults={"name": f"{request.user.username}'s Calendar"}
+        )
+        serializer = CalendarSerializer(calendar)
+        return Response(serializer.data)
