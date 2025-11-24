@@ -57,11 +57,10 @@ class MeetingRequestViewSet(viewsets.GenericViewSet):
             "status": mr.status
         }, status=status.HTTP_201_CREATED)
 
-    @action(detail=True, methods=["post"], url_path="confirm")
+    @action(detail=True, methods=["post"], url_path="confirm")  #TODO: remove latter just for testing
     def confirm(self, request, pk=None):
         """
         Admin or owner confirms a request and schedules an Event.
-        Payload (optional): {"chosen_slot": "2025-09-18T17:30:00+01:00", "duration_minutes": 60}
         """
         mr = self.get_object()
         cal = mr.calendar
