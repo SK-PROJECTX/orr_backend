@@ -11,3 +11,17 @@ class ContactMessageSerializer(serializers.ModelSerializer):
             "message": {"required": True},
             "website": {"required": False, "allow_null": True, "allow_blank": True},
         }
+    
+class SupportMessageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ContactMessage
+        fields = [
+            "id",
+            "name",
+            "email",
+            "website",
+            "message",
+            "is_read",
+            "created_at",
+        ]
+        read_only_fields = ["id", "created_at"]
