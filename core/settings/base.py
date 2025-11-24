@@ -47,7 +47,7 @@ INSTALLED_APPS = [
     "main",
     "scheduling",
     "organization",
-
+    "payment",
 ]
 
 MIDDLEWARE = [
