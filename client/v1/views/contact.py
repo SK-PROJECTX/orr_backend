@@ -2,12 +2,13 @@ from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from ...models import ContactMessage
-from ..serializers.contact import ContactMessageSerializer, SupportMessageSerializer
+from ..serializers.contact import SupportMessageSerializer, CreateSupportMessageSerializer
 from rest_framework import generics, permissions
 
 class ContactRequestView(APIView):
+    serializer_class = CreateSupportMessageSerializer
     def post(self, request):
-        serializer = ContactMessageSerializer(data=request.data)
+        serializer = CreateSupportMessageSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
         

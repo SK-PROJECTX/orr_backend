@@ -9,7 +9,7 @@ from .views.account import (
 )
 from .views.auth import LoginView, SignupView
 from .views.profile import CreateOrUpdateProfileView
-from views.contact import ContactRequestView, SupportHistoryListView, SupportMessageUpdateView
+from .views.contact import ContactRequestView, SupportHistoryListView, SupportMessageUpdateView
 
 urlpatterns = [
     path("verify-email/", VerifyEmailView.as_view(), name="verify-email"),
