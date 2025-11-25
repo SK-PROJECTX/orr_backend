@@ -1,6 +1,6 @@
 from django.contrib.auth.models import User
 from django.db import models
-
+from django.conf import settings
 from common.models import Audit
 
 
@@ -42,3 +42,25 @@ class ContactMessage(Audit):
 
     def __str__(self):
         return f"Message from {self.name} ({self.email})"
+    
+class Activity(Audit):
+    ACTIVITY_TYPES = [
+        ("DOCUMENT", "Document Uploaded"),
+        ("TICKET", "Support Ticket Activity"),
+        ("MEETING", "Meeting Activity"),
+        ("CHECKLIST", "Checklist Update"),
+        ("REPORT", "Report Update"),
+        ("USER", "General User Activity"),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="activities",
+        null=True,
+        blank=True,
+    )
+    activity_type = models.CharField(max_length=20, choices=ACTIVITY_TYPES)
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    metadata = models.JSONField(blank=True, null=True)

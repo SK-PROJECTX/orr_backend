@@ -12,8 +12,10 @@ from ..serializers.account import (
     ChangePasswordSerializer,
     PasswordResetConfirmSerializer,
     PasswordResetRequestSerializer,
-    VerifyEmailSerializer,
+    VerifyEmailSerializer, ActivitySerializer
 )
+
+from client.models import Activity
 from drf_spectacular.utils import extend_schema
 from services.notifications.password_reset import send_password_reset_notification
 User = get_user_model()
@@ -186,3 +188,13 @@ class AccountSettingsView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+class ActivityFeedView(generics.ListAPIView):
+    serializer_class = ActivitySerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Activity.objects.filter(user=self.request.user).order_by("-created_at")[:20]
+
+
