@@ -7,6 +7,8 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 
 from services.notifications.email_verification import (
     send_email_verification_notification,
@@ -18,6 +20,7 @@ User = get_user_model()
 
 
 @extend_schema(tags=["auth"])
+@method_decorator(csrf_exempt, name='dispatch')
 class SignupView(views.APIView):
     permission_classes = [AllowAny]
     serializer_class = SignUpSerializer
@@ -34,6 +37,10 @@ class SignupView(views.APIView):
         username = serializer.validated_data["username"]
         email = serializer.validated_data["email"]
         password = serializer.validated_data["password"]
+        first_name = serializer.validated_data["first_name"]
+        last_name = serializer.validated_data["last_name"]
+        user_type = serializer.validated_data.get("user_type", "client")
+        admin_role = serializer.validated_data.get("admin_role")
 
         try:
             validate_password(password)
@@ -55,9 +62,28 @@ class SignupView(views.APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        user = User(username=username, email=email, is_active=False)
+        user = User(
+            username=username, 
+            email=email, 
+            first_name=first_name,
+            last_name=last_name,
+            is_active=False
+        )
         user.set_password(password)
         user.save()
+        
+        # Create appropriate profile based on user type
+        if user_type == 'admin' and admin_role:
+            from admin_portal.models import AdminProfile
+            from admin_portal.models import AdminRole
+            role_instance = AdminRole.objects.get(name=admin_role)
+            AdminProfile.objects.create(
+                user=user,
+                role=role_instance
+            )
+        else:
+            # Create client profile (handled by signals)  
+            pass
 
         try:
             send_email_verification_notification(user)
@@ -70,6 +96,7 @@ class SignupView(views.APIView):
         )
 
 @extend_schema(tags=["auth"])
+@method_decorator(csrf_exempt, name='dispatch')
 class LoginView(APIView):
     permission_classes = [AllowAny]
     serializer_class = LoginSerializer
@@ -81,6 +108,7 @@ class LoginView(APIView):
         serializer.is_valid(raise_exception=True)
 
         user = serializer.validated_data["user"]
+        role_info = serializer.validated_data["role_info"]
 
         if not user.is_active:
             send_email_verification_notification(user)
@@ -101,6 +129,14 @@ class LoginView(APIView):
                 "data": {
                     "accessToken": str(refresh.access_token),
                     "refreshToken": str(refresh),
+                    "user": {
+                        "id": user.id,
+                        "username": user.username,
+                        "email": user.email,
+                        "first_name": user.first_name,
+                        "last_name": user.last_name,
+                        **role_info
+                    }
                 },
             },
             status=status.HTTP_200_OK,
