@@ -39,6 +39,8 @@ urlpatterns = [
     ),
     path("", include("main.v1.urls")),
     path("", include("client.v1.urls")),
+    path("admin-portal/", include("admin_portal.urls")),
+    path("api/", include("common.urls")),
 ]
 
 if settings.DEBUG:

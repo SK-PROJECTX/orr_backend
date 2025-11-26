@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     "client",
     "notification",
     "main",
+    "admin_portal",
 ]
 
 MIDDLEWARE = [
