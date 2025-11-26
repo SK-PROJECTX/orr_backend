@@ -6,6 +6,7 @@ from .views.account import (
     PasswordResetConfirmView,
     PasswordResetRequestView,
     VerifyEmailView,
+    DashboardOverviewView
 )
 from .views.auth import LoginView, SignupView
 from .views.profile import CreateOrUpdateProfileView
@@ -39,4 +40,5 @@ urlpatterns = [
         name="support-message-update",
     ),
     path("support", ContactRequestView.as_view(), name="support",),
+    path('activities/', DashboardOverviewView.as_view(), name='activities'),
 ]

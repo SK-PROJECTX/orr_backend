@@ -89,4 +89,4 @@ class AccountSettingsDetailsSerializer(serializers.Serializer):
 class ActivitySerializer(serializers.ModelSerializer):
     class Meta:
         model = Activity
-        fields = ["id", "activity_type", "title", "description", "metadata", "created_at"]
+        fields = ["id", "activity_type", "title", "description", "metadata",'is_read', "created_at"]

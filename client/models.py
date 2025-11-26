@@ -34,6 +34,13 @@ class Profile(Audit):
 
 
 class ContactMessage(Audit):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="supports",
+        null=True,
+        blank=True,
+    )
     name = models.CharField(max_length=255)
     email = models.EmailField()
     website = models.URLField(blank=True, null=True)
@@ -62,5 +69,13 @@ class Activity(Audit):
     )
     activity_type = models.CharField(max_length=20, choices=ACTIVITY_TYPES)
     title = models.CharField(max_length=255)
-    description = models.TextField(blank=True)
+    message = models.TextField(blank=True)
+    is_read = models.BooleanField(default=False)
     metadata = models.JSONField(blank=True, null=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [models.Index(fields=['-created_at']), models.Index(fields=['user'])]
+
+    def __str__(self):
+        return f"{self.title} - {self.user}"

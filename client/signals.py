@@ -2,10 +2,10 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.contrib.auth import get_user_model
 from notification.utils import notify_user
-from .models import ContactMessage
-
+from .models import ContactMessage, Activity
+from scheduling.models import MeetingRequest
 User = get_user_model()
-
+from client.tasks.activities import invalidate_recommendations_cache
 
 @receiver(post_save, sender=ContactMessage)
 def send_contact_notifications(sender, instance, created, **kwargs):
@@ -40,3 +40,19 @@ def send_contact_notifications(sender, instance, created, **kwargs):
         ["inapp"], 
        
     )
+
+
+@receiver(post_save)
+def auto_create_activity(sender, instance, created, **kwargs):
+    """Auto-create activities for key models"""
+    if sender == MeetingRequest and created:
+        user = getattr(instance, 'requester', None)
+        if not user:
+            return
+        Activity.objects.create(
+                user=user,
+                action_type='Meeting Activity',
+                title="Upcoming meeting scheduled",
+                message="Meeting on {instance.preferred_slots}",
+            )
+        invalidate_recommendations_cache.delay(user.id)

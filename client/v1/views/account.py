@@ -6,6 +6,10 @@ from rest_framework import generics, permissions, status, views
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from tasks.activities import rebuild_recommendations_cache
+from services.activities.recommendation import get_recommended_steps
+from django.core.cache import cache
+
 
 from ..serializers.account import (
     AccountSettingsDetailsSerializer,
@@ -190,11 +194,27 @@ class AccountSettingsView(APIView):
         )
 
 
-class ActivityFeedView(generics.ListAPIView):
-    serializer_class = ActivitySerializer
+class DashboardOverviewView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get_queryset(self):
-        return Activity.objects.filter(user=self.request.user).order_by("-created_at")[:20]
+    def get(self, request):
+        user = request.user
+        cache_key = f"dashboard_overview_{user.id}"
+        data = cache.get(cache_key)
 
+        if not data:
+           
+            rebuild_recommendations_cache.delay(user.id)
+
+            recent = Activity.objects.filter(user=user)[:15]
+            recommendations = get_recommended_steps(user)
+
+            data = {
+                "recent_activities": ActivitySerializer(recent, many=True).data,
+                "recommendations": recommendations,
+                "cached": False
+            }
+            cache.set(cache_key, data, timeout=60 * 30)
+
+        return Response(data)
 
