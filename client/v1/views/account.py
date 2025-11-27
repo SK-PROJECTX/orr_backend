@@ -6,7 +6,7 @@ from rest_framework import generics, permissions, status, views
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from tasks.activities import rebuild_recommendations_cache
+from client.tasks.activities import rebuild_recommendations_cache
 from services.activities.recommendation import get_recommended_steps
 from django.core.cache import cache
 

@@ -47,3 +47,8 @@ class EventSerializer(serializers.ModelSerializer):
 class DayEventsSerializer(serializers.Serializer):
     date = serializers.DateField()
     events = EventSerializer(many=True)
+
+class MeetingPrepSerializer(serializers.Serializer):
+    basic_context = serializers.CharField(required=True)
+    goals = serializers.CharField(required=True)
+    pain_points = serializers.CharField(required=True)

@@ -6,7 +6,7 @@ from .views.account import (
     PasswordResetConfirmView,
     PasswordResetRequestView,
     VerifyEmailView,
-    DashboardOverviewView
+    DashboardOverviewView,
 )
 from .views.auth import LoginView, SignupView
 from .views.profile import CreateOrUpdateProfileView

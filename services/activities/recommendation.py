@@ -12,6 +12,17 @@ def get_recommended_steps(user) -> List[Dict]:
             "action_type": "Meeting Activity",
             "priority": 1
         })
+    latest_request = user.meeting_requests.order_by("-created_at").first()
+
+    if latest_request:
+        if not (latest_request.basic_context and latest_request.goals and latest_request.pain_points):
+            recommendations.append({
+                "title": "Complete pre-meeting checklist",
+                "message": "Help your consultant understand your needs before the meeting.",
+                "action_type": "Meeting Preparation",
+                "priority": 2,
+                "meeting_request_id": latest_request.id
+            })
 
    
 

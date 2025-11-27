@@ -2,8 +2,9 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from .serializers import MeetingRequestCreateSerializer, CalendarSerializer, EventSerializer
+from .serializers import MeetingRequestCreateSerializer, CalendarSerializer, EventSerializer, MeetingPrepSerializer
 from ..models import MeetingRequest, Calendar, Event
+from client.models import Activity
 from ..utils import slot_conflicts
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -167,3 +168,33 @@ class CalendarMonthView(APIView):
             "month": month,
             "days": days_data
         })
+    
+
+
+class UpdateMeetingPrepView(APIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = MeetingPrepSerializer
+    def patch(self, request, pk):
+        meeting_request = get_object_or_404(
+            MeetingRequest, pk=pk, requester=request.user
+        )
+
+        serializer = MeetingPrepSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        data = serializer.validated_data
+
+        meeting_request.basic_context = data["basic_context"]
+        meeting_request.goals = data["goals"]
+        meeting_request.pain_points = data["pain_points"]
+        meeting_request.save()
+
+        Activity.objects.create(
+            user=request.user,
+            activity_type="Meeting Activity",
+            title="Completed first meeting preparation",
+            description="User submitted their meeting preparation details.",
+            metadata={"meeting_request_id": meeting_request.id},
+        )
+
+        return Response({"message": "Meeting preparation updated successfully."})
