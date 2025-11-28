@@ -1,28 +1,30 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
+from django.core.cache import cache
 from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
+from drf_spectacular.utils import extend_schema
 from rest_framework import generics, permissions, status, views
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+from client.models import Activity
 from client.tasks.activities import rebuild_recommendations_cache
 from services.activities.recommendation import get_recommended_steps
-from django.core.cache import cache
-
+from services.notifications.password_reset import send_password_reset_notification
 
 from ..serializers.account import (
     AccountSettingsDetailsSerializer,
+    ActivitySerializer,
     ChangePasswordSerializer,
     PasswordResetConfirmSerializer,
     PasswordResetRequestSerializer,
-    VerifyEmailSerializer, ActivitySerializer
+    VerifyEmailSerializer,
 )
 
-from client.models import Activity
-from drf_spectacular.utils import extend_schema
-from services.notifications.password_reset import send_password_reset_notification
 User = get_user_model()
+
 
 @extend_schema(tags=["account"])
 class VerifyEmailView(views.APIView):
@@ -62,6 +64,7 @@ class VerifyEmailView(views.APIView):
             status=status.HTTP_200_OK,
         )
 
+
 @extend_schema(tags=["account"])
 class PasswordResetRequestView(generics.GenericAPIView):
     serializer_class = PasswordResetRequestSerializer
@@ -90,6 +93,7 @@ class PasswordResetRequestView(generics.GenericAPIView):
             {"message": "Password reset link sent."}, status=status.HTTP_200_OK
         )
 
+
 @extend_schema(tags=["account"])
 class PasswordResetConfirmView(generics.GenericAPIView):
     serializer_class = PasswordResetConfirmSerializer
@@ -103,6 +107,7 @@ class PasswordResetConfirmView(generics.GenericAPIView):
         return Response(
             {"message": "Password reset successful."}, status=status.HTTP_200_OK
         )
+
 
 @extend_schema(tags=["account-setting"])
 class ChangePasswordView(generics.UpdateAPIView):
@@ -127,6 +132,7 @@ class ChangePasswordView(generics.UpdateAPIView):
             status=status.HTTP_200_OK,
         )
 
+
 @extend_schema(tags=["account-setting"])
 class AccountSettingsView(APIView):
     permission_classes = [IsAuthenticated]
@@ -134,8 +140,7 @@ class AccountSettingsView(APIView):
 
     def patch(self, request):
         serializer = AccountSettingsDetailsSerializer(
-            data=request.data,
-            context={"request": request}
+            data=request.data, context={"request": request}
         )
         serializer.is_valid(raise_exception=True)
 
@@ -203,7 +208,7 @@ class DashboardOverviewView(APIView):
         data = cache.get(cache_key)
 
         if not data:
-           
+
             rebuild_recommendations_cache.delay(user.id)
 
             recent = Activity.objects.filter(user=user)[:15]
@@ -212,9 +217,8 @@ class DashboardOverviewView(APIView):
             data = {
                 "recent_activities": ActivitySerializer(recent, many=True).data,
                 "recommendations": recommendations,
-                "cached": False
+                "cached": False,
             }
             cache.set(cache_key, data, timeout=60 * 30)
 
         return Response(data)
-

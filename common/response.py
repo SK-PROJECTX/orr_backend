@@ -20,8 +20,11 @@ class CustomJSONRenderer(JSONRenderer):
         response = renderer_context.get("response", None)
         status_code = getattr(response, "status_code", 200)
 
-        message = "Request successful"
         success = 200 <= status_code < 400
+        if success:
+            message = "Request successful"
+        else:
+            message = "Validation error" if status_code == 400 else "Request failed"
 
         if isinstance(data, dict):
             if "message" in data:

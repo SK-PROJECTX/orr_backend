@@ -1,6 +1,7 @@
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import models
-from django.conf import settings
+
 from common.models import Audit
 
 
@@ -29,6 +30,7 @@ class Profile(Audit):
         upload_to="profile_bio_attachments/", blank=True, null=True
     )
     phone_number = models.CharField(max_length=20, blank=True)
+
     def __str__(self):
         return f"{self.user.username}'s Profile"
 
@@ -49,7 +51,8 @@ class ContactMessage(Audit):
 
     def __str__(self):
         return f"Message from {self.name} ({self.email})"
-    
+
+
 class Activity(Audit):
     ACTIVITY_TYPES = [
         ("DOCUMENT", "Document Uploaded"),
@@ -74,8 +77,8 @@ class Activity(Audit):
     metadata = models.JSONField(blank=True, null=True)
 
     class Meta:
-        ordering = ['-created_at']
-        indexes = [models.Index(fields=['-created_at']), models.Index(fields=['user'])]
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["-created_at"]), models.Index(fields=["user"])]
 
     def __str__(self):
         return f"{self.title} - {self.user}"

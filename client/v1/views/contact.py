@@ -1,18 +1,24 @@
-from rest_framework import generics, status
+from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
 from ...models import ContactMessage
-from ..serializers.contact import SupportMessageSerializer, CreateSupportMessageSerializer
-from rest_framework import generics, permissions
+from ..serializers.contact import (
+    CreateSupportMessageSerializer,
+    SupportMessageSerializer,
+)
+
 
 class ContactRequestView(APIView):
     serializer_class = CreateSupportMessageSerializer
+
     def post(self, request):
         serializer = CreateSupportMessageSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
-        
+
         contact = ContactMessage.objects.create(
+            user=request.user,
             name=data["name"],
             email=data["email"],
             website=data.get("website", ""),
@@ -24,13 +30,15 @@ class ContactRequestView(APIView):
             status=status.HTTP_201_CREATED,
         )
 
+
 class SupportHistoryListView(generics.ListAPIView):
     serializer_class = SupportMessageSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         return ContactMessage.objects.all().order_by("-created_at")
-    
+
+
 class SupportMessageUpdateView(generics.UpdateAPIView):
     serializer_class = SupportMessageSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -46,7 +54,7 @@ class SupportMessageUpdateView(generics.UpdateAPIView):
         if is_read is None:
             return Response(
                 {"error": "is_read field is required"},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         message.is_read = bool(is_read)
@@ -54,5 +62,5 @@ class SupportMessageUpdateView(generics.UpdateAPIView):
 
         return Response(
             {"message": "Support message updated", "is_read": message.is_read},
-            status=status.HTTP_200_OK
+            status=status.HTTP_200_OK,
         )

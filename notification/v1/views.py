@@ -1,7 +1,9 @@
 from rest_framework import generics, permissions
-from ..models import Notification
 from rest_framework.response import Response
+
+from ..models import Notification
 from .serializers import NotificationSerializer
+
 
 class NotificationListView(generics.ListAPIView):
     serializer_class = NotificationSerializer
@@ -9,6 +11,7 @@ class NotificationListView(generics.ListAPIView):
 
     def get_queryset(self):
         return Notification.objects.filter(user=self.request.user)
+
 
 class NotificationUpdateView(generics.UpdateAPIView):
     serializer_class = NotificationSerializer
@@ -30,5 +33,5 @@ class NotificationUpdateView(generics.UpdateAPIView):
 
         return Response(
             {"message": "Notification updated", "is_read": notification.is_read},
-            status=status.HTTP_200_OK
+            status=status.HTTP_200_OK,
         )

@@ -1,19 +1,27 @@
-from rest_framework import viewsets, status
+from calendar import monthrange
+from datetime import date, timedelta
+
+from django.db.models import Q
+from django.shortcuts import get_object_or_404
+from django.utils import timezone
+from drf_spectacular.utils import OpenApiParameter, extend_schema
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from .serializers import MeetingRequestCreateSerializer, CalendarSerializer, EventSerializer, MeetingPrepSerializer
-from ..models import MeetingRequest, Calendar, Event
-from client.models import Activity
-from ..utils import slot_conflicts
-from django.shortcuts import get_object_or_404
-from django.utils import timezone
-from django.utils import timezone
-from django.db.models import Q
-from datetime import date, timedelta
-from calendar import monthrange
 from rest_framework.views import APIView
-from drf_spectacular.utils import extend_schema, OpenApiParameter
+
+from client.models import Activity
+
+from ..models import Calendar, Event, MeetingRequest
+from ..utils import slot_conflicts
+from .serializers import (
+    CalendarSerializer,
+    EventSerializer,
+    MeetingPrepSerializer,
+    MeetingRequestCreateSerializer,
+)
+
 
 @extend_schema(tags=["shedulling"])
 class MeetingRequestViewSet(viewsets.GenericViewSet):
@@ -35,7 +43,9 @@ class MeetingRequestViewSet(viewsets.GenericViewSet):
         free_slots = []
         busy_slots = []
         for dt in data["preferred_slots"]:
-            has_conflict = slot_conflicts(calendar.id, dt, duration_minutes=duration_minutes)
+            has_conflict = slot_conflicts(
+                calendar.id, dt, duration_minutes=duration_minutes
+            )
             if not has_conflict:
                 free_slots.append(dt.isoformat())
             else:
@@ -50,26 +60,35 @@ class MeetingRequestViewSet(viewsets.GenericViewSet):
             status="requested",
         )
 
-        return Response({
-            "message": "Meeting request created",
-            "meeting_request_id": mr.id,
-            "free_slots": free_slots,
-            "busy_slots": busy_slots,
-            "status": mr.status
-        }, status=status.HTTP_201_CREATED)
+        return Response(
+            {
+                "message": "Meeting request created",
+                "meeting_request_id": mr.id,
+                "free_slots": free_slots,
+                "busy_slots": busy_slots,
+                "status": mr.status,
+            },
+            status=status.HTTP_201_CREATED,
+        )
 
-    @action(detail=True, methods=["post"], url_path="confirm")  #TODO: remove latter just for testing
+    @action(
+        detail=True, methods=["post"], url_path="confirm"
+    )  # TODO: remove latter just for testing
     def confirm(self, request, pk=None):
         """
         Admin or owner confirms a request and schedules an Event.
         """
         mr = self.get_object()
         cal = mr.calendar
-        if not (request.user.is_staff or (hasattr(cal, "owner_user") and cal.owner_user == request.user)):
+        if not (
+            request.user.is_staff
+            or (hasattr(cal, "owner_user") and cal.owner_user == request.user)
+        ):
             return Response({"detail": "Not allowed"}, status=status.HTTP_403_FORBIDDEN)
 
         chosen_iso = request.data.get("chosen_slot")
         from django.utils.dateparse import parse_datetime
+
         chosen_dt = parse_datetime(chosen_iso) if chosen_iso else None
         if chosen_dt is None:
             duration_minutes = request.data.get("duration_minutes", 60)
@@ -80,14 +99,21 @@ class MeetingRequestViewSet(viewsets.GenericViewSet):
                     picked = s_dt
                     break
             if not picked:
-                return Response({"detail": "No available preferred slots"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {"detail": "No available preferred slots"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             chosen_dt = picked
             duration_minutes = request.data.get("duration_minutes", 60)
         else:
             duration_minutes = request.data.get("duration_minutes", 60)
             if slot_conflicts(cal.id, chosen_dt, duration_minutes):
-                return Response({"detail": "Chosen slot conflicts"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {"detail": "Chosen slot conflicts"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
         from ..models import Event
+
         end_dt = chosen_dt + timezone.timedelta(minutes=duration_minutes)
         event = Event.objects.create(
             calendar=cal,
@@ -95,7 +121,7 @@ class MeetingRequestViewSet(viewsets.GenericViewSet):
             description=mr.agenda,
             start=chosen_dt,
             end=end_dt,
-            created_by=request.user
+            created_by=request.user,
         )
         event.attendees.add(mr.requester)
 
@@ -106,33 +132,39 @@ class MeetingRequestViewSet(viewsets.GenericViewSet):
         mr.processed_at = timezone.now()
         mr.save()
 
+        return Response(
+            {"message": "Meeting confirmed", "event_id": event.id},
+            status=status.HTTP_200_OK,
+        )
 
-        return Response({"message": "Meeting confirmed", "event_id": event.id}, status=status.HTTP_200_OK)
-    
+
 class MyCalendarView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         calendar, created = Calendar.objects.get_or_create(
             owner_user=request.user,
-            defaults={"name": f"{request.user.username}'s Calendar"}
+            defaults={"name": f"{request.user.username}'s Calendar"},
         )
         serializer = CalendarSerializer(calendar)
         return Response(serializer.data)
 
 
-
-
 @extend_schema(tags=["shedulling"])
 class CalendarMonthView(APIView):
     permission_classes = [IsAuthenticated]
-    serilizer_class= EventSerializer
+    serilizer_class = EventSerializer
+
     @extend_schema(
         parameters=[
-            OpenApiParameter(name="year", type=int, location=OpenApiParameter.QUERY, required=True),
-            OpenApiParameter(name="month", type=int, location=OpenApiParameter.QUERY, required=True),
+            OpenApiParameter(
+                name="year", type=int, location=OpenApiParameter.QUERY, required=True
+            ),
+            OpenApiParameter(
+                name="month", type=int, location=OpenApiParameter.QUERY, required=True
+            ),
         ],
-        responses={200: dict}
+        responses={200: dict},
     )
     def get(self, request, calendar_id):
         year = int(request.GET.get("year"))
@@ -142,38 +174,35 @@ class CalendarMonthView(APIView):
         last_day = monthrange(year, month)[1]
         end_date = date(year, month, last_day)
 
-        events = Event.objects.filter(
-            calendar_id=calendar_id
-        ).filter(
-            Q(start__date__lte=end_date) &
-            Q(end__date__gte=start_date)
+        events = Event.objects.filter(calendar_id=calendar_id).filter(
+            Q(start__date__lte=end_date) & Q(end__date__gte=start_date)
         )
 
         days_data = []
         current = start_date
         while current <= end_date:
             day_events = [
-                e for e in events
-                if e.start.date() <= current <= e.end.date()
+                e for e in events if e.start.date() <= current <= e.end.date()
             ]
-            days_data.append({
-                "date": current,
-                "events": EventSerializer(day_events, many=True).data
-            })
+            days_data.append(
+                {"date": current, "events": EventSerializer(day_events, many=True).data}
+            )
             current += timedelta(days=1)
 
-        return Response({
-            "calendar_id": calendar_id,
-            "year": year,
-            "month": month,
-            "days": days_data
-        })
-    
+        return Response(
+            {
+                "calendar_id": calendar_id,
+                "year": year,
+                "month": month,
+                "days": days_data,
+            }
+        )
 
 
 class UpdateMeetingPrepView(APIView):
     permission_classes = [IsAuthenticated]
     serializer_class = MeetingPrepSerializer
+
     def patch(self, request, pk):
         meeting_request = get_object_or_404(
             MeetingRequest, pk=pk, requester=request.user

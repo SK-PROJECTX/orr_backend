@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import Calendar, Event, Availability, MeetingRequest
+
+from .models import Availability, Calendar, Event, MeetingRequest
 
 
 class EventInline(admin.TabularInline):
@@ -18,7 +19,6 @@ class CalendarAdmin(admin.ModelAdmin):
     readonly_fields = ("created_at", "updated_at")
 
 
-
 @admin.register(Event)
 class EventAdmin(admin.ModelAdmin):
     list_display = (
@@ -34,6 +34,7 @@ class EventAdmin(admin.ModelAdmin):
     search_fields = ("title", "description", "calendar__name", "created_by__username")
     readonly_fields = ("created_at", "updated_at")
     filter_horizontal = ("attendees",)
+
 
 @admin.register(Availability)
 class AvailabilityAdmin(admin.ModelAdmin):

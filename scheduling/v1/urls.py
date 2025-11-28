@@ -1,6 +1,12 @@
-from django.urls import path, include
+from django.urls import include, path
 from rest_framework.routers import DefaultRouter
-from .views import MeetingRequestViewSet, MyCalendarView, CalendarMonthView,  UpdateMeetingPrepView
+
+from .views import (
+    CalendarMonthView,
+    MeetingRequestViewSet,
+    MyCalendarView,
+    UpdateMeetingPrepView,
+)
 
 router = DefaultRouter()
 router.register(r"meeting-requests", MeetingRequestViewSet, basename="meetingrequest")
