@@ -45,7 +45,7 @@ INSTALLED_APPS = [
     "client",
     "notification",
     "main",
-    "admin_portal"
+    "admin_portal",
     "scheduling",
     "organization",
     "payment",
