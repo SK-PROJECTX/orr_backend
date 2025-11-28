@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, include
 
 from .views.account import (
     AccountSettingsView,
@@ -19,8 +19,14 @@ from .views.contact import (
 )
 from .views.profile import CreateOrUpdateProfileView
 from .views.role_check import RoleCheckView
+from .views.onboarding import OnboardingQuestionnaireViewSet
+from rest_framework.routers import DefaultRouter
+router = DefaultRouter()
+router.register(r'onboarding', OnboardingQuestionnaireViewSet, basename='onboarding')
+
 
 urlpatterns = [
+    path('', include(router.urls)),
     path("verify-email/", VerifyEmailView.as_view(), name="verify-email"),
     path("register/", SignupView.as_view(), name="register"),
     path("client/register/", ClientSignupView.as_view(), name="client-register"),
@@ -57,4 +63,5 @@ urlpatterns = [
     path("activities/", DashboardOverviewView.as_view(), name="activities"),
     path("role-check/", RoleCheckView.as_view(), name="role-check"),
     path("admin-roles/", AdminRolesView.as_view(), name="admin-roles"),
+
 ]
