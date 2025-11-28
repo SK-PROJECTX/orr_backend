@@ -6,7 +6,7 @@ from django.dispatch import receiver
 
 from .models import ContactMessage
 from .tasks import send_contact_notification_email
-
+from admin_portal.models import AdminProfile
 logger = logging.getLogger(__name__)
 
 
@@ -23,19 +23,19 @@ def notify_admin_on_new_contact_message(sender, instance, created, **kwargs):
         f"New ContactMessage created (ID={instance.id}). Preparing admin notifications..."
     )
 
-    try:
-        admin_emails = list({email for name, email in settings.ADMINS})
-    except Exception as e:
-        logger.error(f"Failed to load settings.ADMINS: {e}")
-        return
+    admin_profiles = AdminProfile.objects.exclude(role__name="content_editor")
+
+    admin_emails = [
+        profile.user.email
+        for profile in admin_profiles
+        if profile.user.email  
+    ]
 
     if not admin_emails:
-        logger.warning(
-            "No admin emails found in settings.ADMINS — skipping notifications."
-        )
+        logger.warning("No admin emails found (excluding content editors) — skipping notifications.")
         return
 
-    logger.info(f"Admin emails resolved: {admin_emails}")
+    logger.info(f"Resolved admin emails (excluding content editors): {admin_emails}")
 
     subject = f"New Contact Form Submission: {instance.subject}"
 

@@ -6,7 +6,7 @@ from notification.utils import notify_user
 from scheduling.models import MeetingRequest
 
 from .models import Activity, ContactMessage
-
+from admin_portal.models import AdminProfile
 User = get_user_model()
 from client.tasks.activities import invalidate_recommendations_cache
 
@@ -19,7 +19,8 @@ def send_contact_notifications(sender, instance, created, **kwargs):
         return
 
     contact = instance
-    admin_users = User.objects.filter(is_staff=True)
+    admin_profiles = AdminProfile.objects.exclude(role__name="content_editor")
+    admin_users = [profile.user for profile in admin_profiles]
 
     for admin in admin_users:
         notify_user(

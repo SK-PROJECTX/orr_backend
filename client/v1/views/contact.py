@@ -7,7 +7,7 @@ from ..serializers.contact import (
     CreateSupportMessageSerializer,
     SupportMessageSerializer,
 )
-
+from admin_portal.permissions import IsAdminExceptContentEditor
 
 class ContactRequestView(APIView):
     serializer_class = CreateSupportMessageSerializer
@@ -33,7 +33,7 @@ class ContactRequestView(APIView):
 
 class SupportHistoryListView(generics.ListAPIView):
     serializer_class = SupportMessageSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsAdminExceptContentEditor]
 
     def get_queryset(self):
         return ContactMessage.objects.all().order_by("-created_at")

@@ -120,3 +120,27 @@ class CanViewAILogs(BasePermission):
             and hasattr(request.user, "admin_profile")
             and request.user.admin_profile.role.can_view_ai_logs
         )
+
+
+class IsAdminExceptContentEditor(BasePermission):
+    """
+    Allows access ONLY to authenticated admin users
+    EXCEPT those with the 'content_editor' role.
+    """
+
+    def has_permission(self, request, view):
+        user = request.user
+
+        if not user.is_authenticated:
+            return False
+        if not hasattr(user, "admin_profile"):
+            return False
+
+        profile = user.admin_profile
+        if not profile.is_active:
+            return False
+
+        if profile.role and profile.role.name == "content_editor":
+            return False
+
+        return True
