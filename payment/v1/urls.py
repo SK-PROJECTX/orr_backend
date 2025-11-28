@@ -1,5 +1,5 @@
 from django.urls import path
-
+from rest_framework.routers import DefaultRouter
 from .views import (
     BillingHistoryView,
     BillingPortalView,
@@ -8,7 +8,11 @@ from .views import (
     PauseSubscriptionView,
     StripeWebhookView,
     stripe_webhook,
+    PricingPlanViewSet
 )
+
+router = DefaultRouter()
+router.register("pricing-plans", PricingPlanViewSet, basename="pricing-plan")
 
 urlpatterns = [
     path("payments/create-checkout/", CreateCheckoutSession.as_view()),
@@ -23,3 +27,5 @@ urlpatterns = [
     path("billing-history/", BillingHistoryView.as_view()),
     path("stripe/webhook/", stripe_webhook, name="stripe-webhook"),
 ]
+
+urlpatterns += router.urls

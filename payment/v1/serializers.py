@@ -1,12 +1,11 @@
 from rest_framework import serializers
 
-from ..models import Invoice
+from ..models import Invoice, PricingPlan
 
 
 class CreateCheckoutSerializer(serializers.Serializer):
     price_id = serializers.CharField()
-    success_url = serializers.URLField()
-    cancel_url = serializers.URLField()
+   
 
 
 class ChangePlanSerializer(serializers.Serializer):
@@ -41,3 +40,10 @@ class InvoiceHistorySerializer(serializers.ModelSerializer):
             "invoice_pdf",
             "hosted_invoice_url",
         ]
+
+
+class PricingPlanSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PricingPlan
+        fields = "__all__"
+        read_only_fields = ("stripe_price_id",)

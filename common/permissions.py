@@ -30,3 +30,34 @@ class IsClientOrAdmin(BasePermission):
             hasattr(request.user, "admin_profile")
             and request.user.admin_profile.is_active
         )
+class HasActiveSubscription(BasePermission):
+    """
+    Allows access only to users with an active subscription.
+    """
+
+    def has_permission(self, request, view):
+        user = request.user
+
+        return (
+            user.is_authenticated
+            and hasattr(user, "subscription")
+            and user.subscription.is_active
+        )
+class HasSubscriptionPlan(BasePermission):
+    """
+    Allows access only to users whose plan_name matches allowed plans.
+    """
+
+    allowed_plans = [] # e.g  allowed_plans = ["pro"]
+
+    def has_permission(self, request, view):
+        user = request.user
+
+        if not (
+            user.is_authenticated and hasattr(user, "subscription") and user.subscription.is_active
+        ):
+            return False
+
+        return user.subscription.plan_name.lower() in [
+            plan.lower() for plan in self.allowed_plans
+        ]
