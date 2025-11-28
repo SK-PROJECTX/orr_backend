@@ -42,6 +42,7 @@ urlpatterns = [
     path("", include("scheduling.v1.urls")),
     path("", include("notification.v1.urls")),
     path("admin-portal/", include("admin_portal.urls")),
+    path("", include("payment.v1.urls")),
     path("api/", include("common.urls")),
 ]
 

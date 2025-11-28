@@ -1,5 +1,5 @@
 import datetime
-
+from rest_framework import viewsets, status
 import stripe
 from django.conf import settings
 from django.http import HttpResponse
@@ -10,47 +10,46 @@ from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
-from ..models import Invoice, Subscription
+from drf_spectacular.utils import extend_schema
+from rest_framework.permissions import AllowAny
+from ..models import Invoice, Subscription, PricingPlan
 from .serializers import (
     BillingPortalSerializer,
     ChangePlanSerializer,
     CreateCheckoutSerializer,
     InvoiceHistorySerializer,
     PauseSubscriptionSerializer,
+    PricingPlanSerializer,
 )
-
+from common.permissions import IsAdminUser
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
 User = settings.AUTH_USER_MODEL
 
-
+@extend_schema(
+    tags=["payment"],)
 class CreateCheckoutSession(APIView):
-    serilaizer_class = CreateCheckoutSerializer
-
+    serializer_class = CreateCheckoutSerializer
+    permission_classes = [IsAuthenticated]
     def post(self, request):
         price_id = request.data.get("price_id")
-        success_url = request.data.get("success_url")
-        cancel_url = request.data.get("cancel_url")
+
+        if not price_id:
+            return Response({"error": "price_id is required"}, status=400)
 
         try:
             session = stripe.checkout.Session.create(
                 mode="subscription",
                 payment_method_types=["card"],
-                line_items=[
-                    {
-                        "price": price_id,
-                        "quantity": 1,
-                    }
-                ],
-                success_url=success_url,
-                cancel_url=cancel_url,
+                line_items=[{"price": price_id, "quantity": 1}],
+                success_url=settings.STRIPE_SUCCESS_URL + "?session_id={CHECKOUT_SESSION_ID}",
+                cancel_url=settings.STRIPE_CANCEL_URL,
             )
+
             return Response({"checkout_url": session.url})
 
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
 
 @csrf_exempt
 def stripe_webhook(request):
@@ -92,7 +91,7 @@ def stripe_webhook(request):
                 "current_period_end": current_period_end,
             },
         )
-        # TODO: make us_suscribe = true for user
+        # TODO: make is_suscribe = true for user
         if event["type"] == "customer.subscription.deleted":
             data = event["data"]["object"]
             subscription_id = data["id"]
@@ -110,7 +109,8 @@ def stripe_webhook(request):
 
     return HttpResponse(status=200)
 
-
+@extend_schema(
+    tags=["payment"],)
 class ChangePlanView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -154,6 +154,8 @@ class ChangePlanView(APIView):
             return Response({"error": str(e)}, status=400)
 
 
+@extend_schema(
+    tags=["payment"],)
 class PauseSubscriptionView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -198,6 +200,8 @@ class PauseSubscriptionView(APIView):
             return Response({"error": str(e)}, status=400)
 
 
+@extend_schema(
+    tags=["payment"],)
 class BillingPortalView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -220,6 +224,8 @@ class BillingPortalView(APIView):
             return Response({"error": str(e)}, status=400)
 
 
+@extend_schema(
+    tags=["payment"],)
 class StripeWebhookView(APIView):
 
     def post(self, request):
@@ -267,11 +273,40 @@ class StripeWebhookView(APIView):
             )
 
         return HttpResponse(status=200)
-
-
+    
+@extend_schema(
+    tags=["payment"],)
 class BillingHistoryView(ListAPIView):
     serializer_class = InvoiceHistorySerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         return Invoice.objects.filter(user=self.request.user).order_by("-created_at")
+
+
+@extend_schema(
+    tags=["payment"],)
+class PricingPlanViewSet(viewsets.ModelViewSet):
+    queryset = PricingPlan.objects.all()
+    serializer_class = PricingPlanSerializer
+    def get_permissions(self):
+        
+        if self.request.method in ("GET", "HEAD", "OPTIONS"):
+            return [AllowAny()]
+        return [IsAdminUser()]
+
+    def perform_create(self, serializer):
+        name = serializer.validated_data["name"]
+        amount = serializer.validated_data["amount"]
+        description = serializer.validated_data.get("description", "")
+        product = stripe.Product.create(
+            name=name,
+            description=description,
+        )
+        price = stripe.Price.create(
+            product=product.id,
+            unit_amount=amount,
+            currency="usd",   
+            recurring={"interval": "month"},
+        )
+        serializer.save(stripe_price_id=price.id)

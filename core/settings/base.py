@@ -146,14 +146,7 @@ SIMPLE_JWT = {
     "BLACKLIST_AFTER_ROTATION": True,
 }
 
-admins = config("ADMINS", "")
 
-if admins:
-    ADMINS = [
-        tuple(admin.split(":")) for admin in admins.split(",")  # ('Name', 'email')
-    ]
-else:
-    ADMINS = []
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = config("EMAIL_HOST", default="smtp.gmail.com")
@@ -188,3 +181,11 @@ CELERY_RESULT_BACKEND = config("CELERY_BROKER_URL", "redis://localhost:6379/0")
 
 FRONTEND_VERIFY_EMAIL_URL = config("FRONTEND_VERIFY_EMAIL_URL")
 FRONTEND_RESET_PASSWORD_URL = config("FRONTEND_RESET_PASSWORD_URL")
+
+
+STRIPE_SECRET_KEY=config("STRIPE_SECRET_KEY")
+STRIPE_PUBLISHABLE_KEY=config("STRIPE_PUBLISHABLE_KEY")
+
+
+STRIPE_SUCCESS_URL=config("STRIPE_SUCCESS_URL")
+STRIPE_CANCEL_URL=config("STRIPE_CANCEL_URL")
