@@ -7,6 +7,7 @@ from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import extend_schema
 
 from admin_portal.models import Meeting
+from admin_portal.services import CalendarService, NotificationService
 from ..serializers.meeting import (
     MeetingListSerializer, MeetingDetailSerializer, MeetingUpdateSerializer,
     MeetingActionSerializer, MeetingStatsSerializer
@@ -112,16 +113,17 @@ class MeetingActionsView(APIView):
                         meeting.confirmed_datetime = meeting.requested_datetime
                     
                     meeting.status = 'confirmed'
+                    
+                    # Create calendar event
+                    event_id = CalendarService.create_calendar_event(meeting)
+                    if event_id:
+                        meeting.calendar_event_id = event_id
+                    
                     meeting.save()
                     
-                    # Create notification for client
-                    from admin_portal.models import SystemNotification
-                    SystemNotification.objects.create(
-                        notification_type='meeting_updated',
-                        title='Meeting Confirmed',
-                        message=f'Your meeting has been confirmed for {meeting.confirmed_datetime}',
-                        recipient=meeting.client.user,
-                        related_meeting=meeting
+                    # Send notification
+                    NotificationService.send_meeting_notification(
+                        meeting, 'confirmed', meeting.client.user
                     )
                     
                     return Response({'message': 'Meeting confirmed successfully'})
