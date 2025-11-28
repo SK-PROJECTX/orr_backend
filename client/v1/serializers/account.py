@@ -6,7 +6,9 @@ from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
+
 from client.models import Activity
+
 
 class VerifyEmailSerializer(serializers.Serializer):
     uid = serializers.CharField(help_text="User UID from email")
@@ -85,8 +87,15 @@ class AccountSettingsDetailsSerializer(serializers.Serializer):
     phone_number = serializers.CharField(required=False, allow_blank=True)
 
 
-
 class ActivitySerializer(serializers.ModelSerializer):
     class Meta:
         model = Activity
-        fields = ["id", "activity_type", "title", "description", "metadata",'is_read', "created_at"]
+        fields = [
+            "id",
+            "activity_type",
+            "title",
+            "description",
+            "metadata",
+            "is_read",
+            "created_at",
+        ]

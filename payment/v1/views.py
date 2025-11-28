@@ -1,25 +1,33 @@
-import stripe
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from django.conf import settings
-from rest_framework import status
-from django.http import HttpResponse
-from django.views.decorators.csrf import csrf_exempt
-from ..models import Subscription, Invoice
-from django.utils import timezone
-from .serializers import  CreateCheckoutSerializer, PauseSubscriptionSerializer, BillingPortalSerializer, ChangePlanSerializer, InvoiceHistorySerializer
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.generics import ListAPIView
-from rest_framework.permissions import IsAuthenticated
 import datetime
 
+import stripe
+from django.conf import settings
+from django.http import HttpResponse
+from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
+from rest_framework import status
+from rest_framework.generics import ListAPIView
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from ..models import Invoice, Subscription
+from .serializers import (
+    BillingPortalSerializer,
+    ChangePlanSerializer,
+    CreateCheckoutSerializer,
+    InvoiceHistorySerializer,
+    PauseSubscriptionSerializer,
+)
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
 User = settings.AUTH_USER_MODEL
 
+
 class CreateCheckoutSession(APIView):
     serilaizer_class = CreateCheckoutSerializer
+
     def post(self, request):
         price_id = request.data.get("price_id")
         success_url = request.data.get("success_url")
@@ -29,15 +37,17 @@ class CreateCheckoutSession(APIView):
             session = stripe.checkout.Session.create(
                 mode="subscription",
                 payment_method_types=["card"],
-                line_items=[{
-                    "price": price_id,
-                    "quantity": 1,
-                }],
+                line_items=[
+                    {
+                        "price": price_id,
+                        "quantity": 1,
+                    }
+                ],
                 success_url=success_url,
                 cancel_url=cancel_url,
             )
             return Response({"checkout_url": session.url})
-            
+
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -65,7 +75,7 @@ def stripe_webhook(request):
             user = User.objects.get(email=email)
         except User.DoesNotExist:
             return HttpResponse(status=200)
-        
+
         stripe_sub = stripe.Subscription.retrieve(subscription_id)
 
         plan_name = stripe_sub["items"]["data"][0]["plan"]["nickname"]
@@ -79,10 +89,10 @@ def stripe_webhook(request):
                 "stripe_customer_id": customer_id,
                 "plan_name": plan_name,
                 "is_active": True,
-                "current_period_end": current_period_end
-            }
+                "current_period_end": current_period_end,
+            },
         )
-        #TODO: make us_suscribe = true for user
+        # TODO: make us_suscribe = true for user
         if event["type"] == "customer.subscription.deleted":
             data = event["data"]["object"]
             subscription_id = data["id"]
@@ -92,7 +102,7 @@ def stripe_webhook(request):
                 sub.is_active = False
                 sub.save()
 
-                sub.user.is_active = False  
+                sub.user.is_active = False
                 sub.user.save()
 
             except Subscription.DoesNotExist:
@@ -118,20 +128,22 @@ class ChangePlanView(APIView):
         try:
             stripe_sub = stripe.Subscription.retrieve(sub.stripe_subscription_id)
 
-
             item_id = stripe_sub["items"]["data"][0]["id"]
-
 
             updated = stripe.Subscription.modify(
                 sub.stripe_subscription_id,
-                items=[{
-                    "id": item_id,
-                    "price": price_id,
-                }],
+                items=[
+                    {
+                        "id": item_id,
+                        "price": price_id,
+                    }
+                ],
                 proration_behavior="create_prorations" if prorate else "none",
             )
 
-            sub.plan_name = updated["items"]["data"][0]["plan"].get("nickname") or sub.plan_name
+            sub.plan_name = (
+                updated["items"]["data"][0]["plan"].get("nickname") or sub.plan_name
+            )
             sub.current_period_end = timezone.datetime.fromtimestamp(
                 updated["current_period_end"], tz=timezone.utc
             )
@@ -140,6 +152,7 @@ class ChangePlanView(APIView):
             return Response({"stripe_subscription": updated})
         except Exception as e:
             return Response({"error": str(e)}, status=400)
+
 
 class PauseSubscriptionView(APIView):
     permission_classes = [IsAuthenticated]
@@ -159,7 +172,9 @@ class PauseSubscriptionView(APIView):
             if action == "pause":
                 body = {
                     "pause_collection": {
-                        "behavior": serializer.validated_data.get("behavior", "keep_as_draft")
+                        "behavior": serializer.validated_data.get(
+                            "behavior", "keep_as_draft"
+                        )
                     }
                 }
                 if "resumes_at" in serializer.validated_data:
@@ -171,10 +186,9 @@ class PauseSubscriptionView(APIView):
                 sub.save()
                 return Response({"paused_subscription": updated})
 
-            else: 
+            else:
                 updated = stripe.Subscription.modify(
-                    sub.stripe_subscription_id,
-                    pause_collection=""
+                    sub.stripe_subscription_id, pause_collection=""
                 )
                 sub.is_active = True
                 sub.save()
@@ -182,7 +196,7 @@ class PauseSubscriptionView(APIView):
 
         except Exception as e:
             return Response({"error": str(e)}, status=400)
-        
+
 
 class BillingPortalView(APIView):
     permission_classes = [IsAuthenticated]
@@ -205,6 +219,7 @@ class BillingPortalView(APIView):
         except Exception as e:
             return Response({"error": str(e)}, status=400)
 
+
 class StripeWebhookView(APIView):
 
     def post(self, request):
@@ -213,9 +228,7 @@ class StripeWebhookView(APIView):
 
         try:
             event = stripe.Webhook.construct_event(
-                payload,
-                sig,
-                settings.STRIPE_WEBHOOK_SECRET
+                payload, sig, settings.STRIPE_WEBHOOK_SECRET
             )
         except Exception:
             return HttpResponse(status=400)
@@ -234,22 +247,24 @@ class StripeWebhookView(APIView):
                 defaults={
                     "user": user,
                     "billing_title": f"Billing #{invoice_number} – {billing_date.strftime('%b %Y')}",
-                    "status": data["status"].capitalize(),  
+                    "status": data["status"].capitalize(),
                     "billing_date": billing_date,
                     "amount": data["amount_paid"] / 100,
                     "currency": data["currency"].upper(),
-
-                    "plan": data["lines"]["data"][0]["plan"]["nickname"] 
-                            if data["lines"]["data"] else "Unknown",
-                    "users": data["lines"]["data"][0]["quantity"]
-                            if data["lines"]["data"] else 1,
-
+                    "plan": (
+                        data["lines"]["data"][0]["plan"]["nickname"]
+                        if data["lines"]["data"]
+                        else "Unknown"
+                    ),
+                    "users": (
+                        data["lines"]["data"][0]["quantity"]
+                        if data["lines"]["data"]
+                        else 1
+                    ),
                     "invoice_pdf": data.get("invoice_pdf"),
                     "hosted_invoice_url": data.get("hosted_invoice_url"),
-                }
+                },
             )
-    
-        
 
         return HttpResponse(status=200)
 

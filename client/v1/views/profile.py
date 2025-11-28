@@ -9,7 +9,8 @@ from ..serializers.profile import ProfileCreateSerializer
 
 class CreateOrUpdateProfileView(APIView):
     permission_classes = [IsAuthenticated]
-    serializer_class =  ProfileCreateSerializer
+    serializer_class = ProfileCreateSerializer
+
     def post(self, request):
         user = request.user
         profile, created = Profile.objects.get_or_create(user=user)

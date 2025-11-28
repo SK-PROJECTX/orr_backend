@@ -1,21 +1,25 @@
 import logging
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+from drf_spectacular.utils import extend_schema
 from rest_framework import status, views
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from drf_spectacular.utils import extend_schema
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
 
-from services.notifications.email_verification import send_email_verification_notification
+from services.notifications.email_verification import (
+    send_email_verification_notification,
+)
+
 from ..serializers.client_auth import ClientSignUpSerializer
 
 User = get_user_model()
 
 
 @extend_schema(tags=["Client Authentication"])
-@method_decorator(csrf_exempt, name='dispatch')
+@method_decorator(csrf_exempt, name="dispatch")
 class ClientSignupView(views.APIView):
     permission_classes = [AllowAny]
     serializer_class = ClientSignUpSerializer
@@ -56,11 +60,11 @@ class ClientSignupView(views.APIView):
             )
 
         user = User(
-            username=username, 
-            email=email, 
+            username=username,
+            email=email,
             first_name=first_name,
             last_name=last_name,
-            is_active=False
+            is_active=False,
         )
         user.set_password(password)
         user.save()

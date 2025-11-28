@@ -3,18 +3,22 @@ from django.urls import path
 from .views.account import (
     AccountSettingsView,
     ChangePasswordView,
+    DashboardOverviewView,
     PasswordResetConfirmView,
     PasswordResetRequestView,
     VerifyEmailView,
-    DashboardOverviewView,
 )
+from .views.admin_auth import AdminSignupView
+from .views.admin_roles import AdminRolesView
 from .views.auth import LoginView, SignupView
 from .views.client_auth import ClientSignupView
-from .views.admin_auth import AdminSignupView
+from .views.contact import (
+    ContactRequestView,
+    SupportHistoryListView,
+    SupportMessageUpdateView,
+)
 from .views.profile import CreateOrUpdateProfileView
-from .views.contact import ContactRequestView, SupportHistoryListView, SupportMessageUpdateView
 from .views.role_check import RoleCheckView
-from .views.admin_roles import AdminRolesView
 
 urlpatterns = [
     path("verify-email/", VerifyEmailView.as_view(), name="verify-email"),
@@ -45,8 +49,12 @@ urlpatterns = [
         SupportMessageUpdateView.as_view(),
         name="support-message-update",
     ),
-    path("support", ContactRequestView.as_view(), name="support",),
-    path('activities/', DashboardOverviewView.as_view(), name='activities'),
+    path(
+        "support",
+        ContactRequestView.as_view(),
+        name="support",
+    ),
+    path("activities/", DashboardOverviewView.as_view(), name="activities"),
     path("role-check/", RoleCheckView.as_view(), name="role-check"),
     path("admin-roles/", AdminRolesView.as_view(), name="admin-roles"),
 ]
