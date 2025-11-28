@@ -5,12 +5,14 @@ from admin_portal.models import Client, Ticket, Meeting, SystemNotification
 class DashboardStatsSerializer(serializers.Serializer):
     """Dashboard overview statistics"""
     active_clients = serializers.IntegerField()
+    active_clients_link = serializers.CharField()
     pending_tickets = serializers.DictField()
     upcoming_meetings = serializers.IntegerField()
     system_notifications = serializers.IntegerField()
     portal_logins_7days = serializers.IntegerField()
     ai_chat_sessions = serializers.IntegerField()
     escalation_rate = serializers.FloatField()
+    most_used_resources = serializers.ListField()
 
 
 class QuickClientSerializer(serializers.ModelSerializer):
