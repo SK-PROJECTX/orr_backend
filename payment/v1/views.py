@@ -91,7 +91,6 @@ def stripe_webhook(request):
                 "current_period_end": current_period_end,
             },
         )
-        # TODO: make is_suscribe = true for user
         if event["type"] == "customer.subscription.deleted":
             data = event["data"]["object"]
             subscription_id = data["id"]
