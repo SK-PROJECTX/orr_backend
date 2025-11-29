@@ -2,7 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
 from .views import (
-    dashboard, client, ticket, content, meeting, analytics, notifications, ai_oversight, settings, auth, search, compliance
+    dashboard, client, ticket, content, meeting, analytics, notifications, ai_oversight, settings, auth, search, compliance, role_management, client_profile, system_health
 )
 
 # Authentication URLs
@@ -16,12 +16,14 @@ dashboard_patterns = [
     path('overview/', dashboard.DashboardOverviewView.as_view(), name='dashboard-overview'),
     path('recent-activity/', dashboard.RecentActivityView.as_view(), name='dashboard-recent-activity'),
     path('quick-stats/', dashboard.QuickStatsView.as_view(), name='dashboard-quick-stats'),
+    path('client-widgets/', dashboard.ClientDashboardWidgetsView.as_view(), name='dashboard-client-widgets'),
 ]
 
 # Client Management URLs
 client_patterns = [
     path('', client.ClientListView.as_view(), name='client-list'),
     path('<int:pk>/', client.ClientDetailView.as_view(), name='client-detail'),
+    path('<int:pk>/complete-profile/', client_profile.ClientCompleteProfileView.as_view(), name='client-complete-profile'),
     path('<int:pk>/engagement-history/', client.ClientEngagementHistoryView.as_view(), name='client-engagement-history'),
     path('<int:pk>/actions/', client.ClientActionsView.as_view(), name='client-actions'),
     path('<int:client_id>/documents/', client.ClientDocumentListView.as_view(), name='client-documents'),
@@ -98,6 +100,12 @@ settings_patterns = [
     path('audit-logs/', settings.AuditLogListView.as_view(), name='audit-log-list'),
 ]
 
+# System Health URLs
+system_health_patterns = [
+    path('health/', system_health.SystemHealthView.as_view(), name='system-health'),
+    path('performance/', system_health.SystemPerformanceView.as_view(), name='system-performance'),
+]
+
 # Search & Navigation URLs
 search_patterns = [
     path('global/', search.GlobalSearchView.as_view(), name='global-search'),
@@ -109,6 +117,13 @@ compliance_patterns = [
     path('export-client-data/', compliance.ClientDataExportView.as_view(), name='export-client-data'),
     path('delete-client-data/', compliance.ClientDataDeletionView.as_view(), name='delete-client-data'),
     path('compliance-report/', compliance.ComplianceReportView.as_view(), name='compliance-report'),
+]
+
+# Role Management URLs (Super Admin only)
+role_management_patterns = [
+    path('roles/<int:role_id>/permissions/', role_management.UpdateRolePermissionsView.as_view(), name='update-role-permissions'),
+    path('users/<int:user_id>/deactivate/', role_management.DeactivateUserView.as_view(), name='deactivate-user'),
+    path('users/<int:user_id>/edit/', role_management.EditUserView.as_view(), name='edit-user'),
 ]
 
 urlpatterns = [
@@ -124,4 +139,6 @@ urlpatterns = [
     path('settings/', include(settings_patterns)),
     path('search/', include(search_patterns)),
     path('compliance/', include(compliance_patterns)),
+    path('role-management/', include(role_management_patterns)),
+    path('system/', include(system_health_patterns)),
 ]
