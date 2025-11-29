@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}New Support Message{% endblock title %}
+
+{% block content %}
+<h2 style="margin: 0 0 15px 0; font-size: 22px; font-weight: 600; color: #0d1b2a;">
+    New Support Message Received
+</h2>
+
+<p style="margin: 0 0 15px 0;">
+    Hello Admin,
+</p>
+
+<p style="margin: 0 0 20px 0;">
+    A new support message has been submitted through the ORR Solutions contact form.
+    Below are the details:
+</p>
+
+<table cellpadding="0" cellspacing="0" 
+       style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 15px;">
+
+    <tr>
+        <td style="padding: 6px 0; font-weight: 600; width: 150px;">Name:</td>
+        <td style="padding: 6px 0;">{{ name }}</td>
+    </tr>
+
+    <tr>
+        <td style="padding: 6px 0; font-weight: 600;">Email:</td>
+        <td style="padding: 6px 0;">
+            <a href="mailto:{{ email }}" style="color: #0d47a1; text-decoration: none;">
+                {{ email }}
+            </a>
+        </td>
+    </tr>
+
+    {% if website %}
+    <tr>
+        <td style="padding: 6px 0; font-weight: 600;">Website:</td>
+        <td style="padding: 6px 0;">
+            <a href="{{ website }}" style="color: #0d47a1; text-decoration: none;">
+                {{ website }}
+            </a>
+        </td>
+    </tr>
+    {% endif %}
+
+    <tr>
+        <td style="padding: 6px 0; font-weight: 600; vertical-align: top;">Message:</td>
+        <td style="padding: 6px 0;">{{ message }}</td>
+    </tr>
+
+    <tr>
+        <td style="padding: 6px 0; font-weight: 600;">Submitted:</td>
+        <td style="padding: 6px 0;">{{ submitted_at }}</td>
+    </tr>
+</table>
+
+<p style="margin: 0 0 10px 0;">
+    Please follow up with the user if necessary.
+</p>
+
+{% endblock content %}

@@ -3,18 +3,18 @@ from rest_framework.permissions import BasePermission
 
 class IsAdminUser(BasePermission):
     """Base permission for admin portal access"""
-    
+
     def has_permission(self, request, view):
         return (
-            request.user.is_authenticated and 
-            hasattr(request.user, 'admin_profile') and
-            request.user.admin_profile.is_active
+            request.user.is_authenticated
+            and hasattr(request.user, "admin_profile")
+            and request.user.admin_profile.is_active
         )
 
 
 class CanManageUsers(BasePermission):
     """Permission for user management"""
-    
+
     def has_permission(self, request, view):
         if not (request.user.is_authenticated and hasattr(request.user, 'admin_profile')):
             return False
@@ -26,7 +26,7 @@ class CanManageUsers(BasePermission):
 
 class CanViewAllClients(BasePermission):
     """Permission to view all clients"""
-    
+
     def has_permission(self, request, view):
         if not (request.user.is_authenticated and hasattr(request.user, 'admin_profile')):
             return False
@@ -41,7 +41,7 @@ class CanViewAllClients(BasePermission):
 
 class CanEditClients(BasePermission):
     """Permission to edit client data"""
-    
+
     def has_permission(self, request, view):
         if not (request.user.is_authenticated and hasattr(request.user, 'admin_profile')):
             return False
@@ -56,7 +56,7 @@ class CanEditClients(BasePermission):
 
 class CanManageTickets(BasePermission):
     """Permission for ticket management"""
-    
+
     def has_permission(self, request, view):
         if not (request.user.is_authenticated and hasattr(request.user, 'admin_profile')):
             return False
@@ -68,7 +68,7 @@ class CanManageTickets(BasePermission):
 
 class CanManageMeetings(BasePermission):
     """Permission for meeting management"""
-    
+
     def has_permission(self, request, view):
         if not (request.user.is_authenticated and hasattr(request.user, 'admin_profile')):
             return False
@@ -80,7 +80,7 @@ class CanManageMeetings(BasePermission):
 
 class CanCreateContent(BasePermission):
     """Permission to create content"""
-    
+
     def has_permission(self, request, view):
         if not (request.user.is_authenticated and hasattr(request.user, 'admin_profile')):
             return False
@@ -92,7 +92,7 @@ class CanCreateContent(BasePermission):
 
 class CanPublishContent(BasePermission):
     """Permission to publish content"""
-    
+
     def has_permission(self, request, view):
         if not (request.user.is_authenticated and hasattr(request.user, 'admin_profile')):
             return False
@@ -104,7 +104,7 @@ class CanPublishContent(BasePermission):
 
 class CanViewAnalytics(BasePermission):
     """Permission to view analytics"""
-    
+
     def has_permission(self, request, view):
         if not (request.user.is_authenticated and hasattr(request.user, 'admin_profile')):
             return False
@@ -116,7 +116,7 @@ class CanViewAnalytics(BasePermission):
 
 class CanManageSettings(BasePermission):
     """Permission for system settings"""
-    
+
     def has_permission(self, request, view):
         if not (request.user.is_authenticated and hasattr(request.user, 'admin_profile')):
             return False
@@ -128,7 +128,7 @@ class CanManageSettings(BasePermission):
 
 class CanViewAILogs(BasePermission):
     """Permission to view AI conversation logs"""
-    
+
     def has_permission(self, request, view):
         if not (request.user.is_authenticated and hasattr(request.user, 'admin_profile')):
             return False
