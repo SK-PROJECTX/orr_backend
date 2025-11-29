@@ -16,15 +16,15 @@ def send_email_task(subject, recipient_email, template_name, context):
     html_content = render_to_string(template_name, context)
 
     try:
-        send_email_with_gmail(subject, recipient_email, html_content)
-        logger.info(f"[Gmail SMTP] Email sent to {recipient_email}")
+        send_smtp_email(subject, recipient_email, html_content)
+        logger.info(f"[ SMTP] Email sent to {recipient_email}")
         return True
 
     except Exception as e:
-        logger.error(f"[Gmail SMTP] Failed: {e}")
+        logger.error(f"[ SMTP] Failed: {e}")
 
 
-def send_email_with_gmail(subject, recipient_email, html_content):
+def send_smtp_email(subject, recipient_email, html_content):
     email = EmailMessage(
         subject=subject,
         body=html_content,

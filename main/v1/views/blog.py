@@ -1,9 +1,10 @@
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema
 from rest_framework import viewsets
 
 from ...models import BlogPost
 from ..serializers.blog import BlogPostSerializer
-from drf_spectacular.utils import extend_schema
+
 
 @extend_schema(tags=["main page"])
 class BlogPostViewSet(viewsets.ReadOnlyModelViewSet):

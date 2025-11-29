@@ -2,25 +2,26 @@ import logging
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+from drf_spectacular.utils import extend_schema
 from rest_framework import status, views
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
 
 from services.notifications.email_verification import (
     send_email_verification_notification,
 )
 
 from ..serializers.auth import LoginSerializer, SignUpSerializer
-from drf_spectacular.utils import extend_schema
+
 User = get_user_model()
 
 
 @extend_schema(tags=["auth"])
-@method_decorator(csrf_exempt, name='dispatch')
+@method_decorator(csrf_exempt, name="dispatch")
 class SignupView(views.APIView):
     permission_classes = [AllowAny]
     serializer_class = SignUpSerializer
@@ -63,26 +64,23 @@ class SignupView(views.APIView):
             )
 
         user = User(
-            username=username, 
-            email=email, 
+            username=username,
+            email=email,
             first_name=first_name,
             last_name=last_name,
-            is_active=False
+            is_active=False,
         )
         user.set_password(password)
         user.save()
-        
+
         # Create appropriate profile based on user type
-        if user_type == 'admin' and admin_role:
-            from admin_portal.models import AdminProfile
-            from admin_portal.models import AdminRole
+        if user_type == "admin" and admin_role:
+            from admin_portal.models import AdminProfile, AdminRole
+
             role_instance = AdminRole.objects.get(name=admin_role)
-            AdminProfile.objects.create(
-                user=user,
-                role=role_instance
-            )
+            AdminProfile.objects.create(user=user, role=role_instance)
         else:
-            # Create client profile (handled by signals)  
+            # Create client profile (handled by signals)
             pass
 
         try:
@@ -95,8 +93,9 @@ class SignupView(views.APIView):
             status=status.HTTP_201_CREATED,
         )
 
+
 @extend_schema(tags=["auth"])
-@method_decorator(csrf_exempt, name='dispatch')
+@method_decorator(csrf_exempt, name="dispatch")
 class LoginView(APIView):
     permission_classes = [AllowAny]
     serializer_class = LoginSerializer
@@ -135,8 +134,8 @@ class LoginView(APIView):
                         "email": user.email,
                         "first_name": user.first_name,
                         "last_name": user.last_name,
-                        **role_info
-                    }
+                        **role_info,
+                    },
                 },
             },
             status=status.HTTP_200_OK,
