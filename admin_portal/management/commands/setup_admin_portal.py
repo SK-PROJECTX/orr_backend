@@ -22,6 +22,9 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.SUCCESS("Admin portal setup completed successfully!")
         )
+        self.stdout.write(
+            self.style.WARNING('Default login: admin / admin123 (CHANGE IN PRODUCTION!)')
+        )
 
     def create_admin_roles(self):
         """Create default admin roles"""
@@ -140,7 +143,65 @@ class Command(BaseCommand):
             AdminProfile.objects.create(
                 user=user, role=super_admin_role, department="Administration"
             )
-
-            self.stdout.write("Created superuser: admin/admin123")
+            
+            self.stdout.write('Created superuser: admin/admin123')
+            
+            # Create sample data
+            self.create_sample_data(user)
         else:
-            self.stdout.write("Superuser already exists")
+            self.stdout.write('Superuser already exists')
+    
+    def create_sample_data(self, admin_user):
+        """Create sample data for testing"""
+        from admin_portal.models import Content, SystemNotification
+        from django.utils.text import slugify
+        
+        # Sample content
+        sample_content = [
+            {
+                'title': 'Getting Started with ORR',
+                'content_type': 'guide',
+                'stage': 'discover',
+                'pillars': ['strategic'],
+                'summary': 'A comprehensive guide to getting started with ORR services.',
+                'content': 'This guide will help you understand the basics of ORR and how to get started with our services.'
+            },
+            {
+                'title': 'Digital Transformation FAQ',
+                'content_type': 'faq',
+                'stage': 'design',
+                'pillars': ['digital'],
+                'summary': 'Frequently asked questions about digital transformation.',
+                'content': 'Common questions and answers about digital transformation processes.'
+            }
+        ]
+        
+        for content_data in sample_content:
+            content, created = Content.objects.get_or_create(
+                title=content_data['title'],
+                defaults={
+                    'slug': slugify(content_data['title']),
+                    'content_type': content_data['content_type'],
+                    'stage': content_data['stage'],
+                    'pillars': content_data['pillars'],
+                    'summary': content_data['summary'],
+                    'content': content_data['content'],
+                    'status': 'published',
+                    'author': admin_user
+                }
+            )
+            
+            if created:
+                self.stdout.write(f'Created sample content: {content.title}')
+        
+        # Welcome notification
+        SystemNotification.objects.get_or_create(
+            recipient=admin_user,
+            title='Welcome to ORR Admin Portal',
+            defaults={
+                'notification_type': 'system_error',
+                'message': 'Welcome to the ORR Admin Portal! Your system is ready to use.',
+            }
+        )
+        
+        self.stdout.write('Created sample data')
