@@ -30,8 +30,14 @@ class ClientListView(generics.ListAPIView):
     permission_classes = [CanViewAllClients]
 
     def get_queryset(self):
-        queryset = Client.objects.select_related("user", "assigned_admin").all()
-
+        queryset = Client.objects.select_related('user', 'assigned_admin').all()
+        
+        # Role-based filtering
+        user_role = self.request.user.admin_profile.role
+        if user_role.name == 'admin' and not user_role.can_view_all_clients:
+            # Admin can only see clients assigned to them
+            queryset = queryset.filter(assigned_admin=self.request.user)
+        
         # Search functionality
         search = self.request.query_params.get("search", None)
         if search:
@@ -220,12 +226,65 @@ class ClientActionsView(APIView):
                     return Response(
                         {"error": "Invalid stage"}, status=status.HTTP_400_BAD_REQUEST
                     )
-
+            
+            elif action == 'update_pillar':
+                new_pillar = request.data.get('primary_pillar')
+                secondary_pillars = request.data.get('secondary_pillars', [])
+                
+                if new_pillar in dict(Client.PILLAR_CHOICES):
+                    client.primary_pillar = new_pillar
+                    client.secondary_pillars = secondary_pillars
+                    client.save()
+                    return Response({
+                        'message': f'Client pillar updated to {new_pillar}',
+                        'primary_pillar': client.primary_pillar,
+                        'secondary_pillars': client.secondary_pillars
+                    })
+                else:
+                    return Response(
+                        {'error': 'Invalid pillar'}, 
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            
+            elif action == 'update_contact_details':
+                user_data = request.data.get('user_data', {})
+                if 'first_name' in user_data:
+                    client.user.first_name = user_data['first_name']
+                if 'last_name' in user_data:
+                    client.user.last_name = user_data['last_name']
+                if 'email' in user_data:
+                    client.user.email = user_data['email']
+                client.user.save()
+                
+                client_data = request.data.get('client_data', {})
+                if 'company' in client_data:
+                    client.company = client_data['company']
+                if 'role' in client_data:
+                    client.role = client_data['role']
+                client.save()
+                
+                return Response({'message': 'Contact details updated successfully'})
+            
+            elif action == 'add_internal_note':
+                note = request.data.get('note', '')
+                if note:
+                    from django.utils import timezone
+                    timestamp = timezone.now().strftime('%Y-%m-%d %H:%M')
+                    new_note = f"[{timestamp}] {request.user.get_full_name()}: {note}"
+                    
+                    if client.internal_notes:
+                        client.internal_notes += f"\n\n{new_note}"
+                    else:
+                        client.internal_notes = new_note
+                    
+                    client.save()
+                    return Response({'message': 'Internal note added successfully'})
+                else:
+                    return Response({'error': 'Note content is required'}, status=status.HTTP_400_BAD_REQUEST)
+            
             else:
-                return Response(
-                    {"error": "Invalid action"}, status=status.HTTP_400_BAD_REQUEST
-                )
-
+                return Response({'error': 'Invalid action'}, status=status.HTTP_400_BAD_REQUEST)
+                
         except Client.DoesNotExist:
             return Response(
                 {"error": "Client not found"}, status=status.HTTP_404_NOT_FOUND
