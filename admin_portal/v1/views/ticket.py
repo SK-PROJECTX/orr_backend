@@ -8,6 +8,7 @@ from admin_portal.permissions import CanManageTickets
 from drf_spectacular.utils import extend_schema
 
 from admin_portal.models import Ticket, TicketMessage
+from admin_portal.services import NotificationService
 from ..serializers.ticket import (
     TicketListSerializer, TicketDetailSerializer, TicketUpdateSerializer,
     TicketMessageSerializer, TicketCreateSerializer, TicketStatsSerializer
@@ -137,14 +138,9 @@ class TicketActionsView(APIView):
                         ticket.assigned_to = assigned_user
                         ticket.save()
                         
-                        # Create notification
-                        from admin_portal.models import SystemNotification
-                        SystemNotification.objects.create(
-                            notification_type='ticket_assigned',
-                            title=f'Ticket {ticket.ticket_id} assigned to you',
-                            message=f'You have been assigned ticket: {ticket.subject}',
-                            recipient=assigned_user,
-                            related_ticket=ticket
+                        # Send notification
+                        NotificationService.send_ticket_notification(
+                            ticket, 'assigned', assigned_user
                         )
                         
                         return Response({'message': 'Ticket assigned successfully'})
