@@ -125,12 +125,17 @@ class Command(BaseCommand):
             self.stdout.write("System settings already exist")
 
     def create_superuser(self):
-        """Create superuser with admin profile"""
-        if not User.objects.filter(is_superuser=True).exists():
+        """Create superuser with admin profile safely"""
+        username = "admin"
+        email = "admin@orr.com"
+        password = "admin123"
+
+        # Check if user with this username exists
+        if not User.objects.filter(username=username).exists():
             user = User.objects.create_superuser(
-                username="admin",
-                email="admin@orr.com",
-                password="admin123",
+                username=username,
+                email=email,
+                password=password,
                 first_name="Admin",
                 last_name="User",
             )
@@ -141,6 +146,6 @@ class Command(BaseCommand):
                 user=user, role=super_admin_role, department="Administration"
             )
 
-            self.stdout.write("Created superuser: admin/admin123")
+            self.stdout.write(f"Created superuser: {username}/{password}")
         else:
-            self.stdout.write("Superuser already exists")
+            self.stdout.write(f"Superuser '{username}' already exists")
