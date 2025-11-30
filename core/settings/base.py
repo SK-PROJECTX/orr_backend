@@ -27,7 +27,7 @@ SECRET_KEY = config("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['orr-backend-web-latest.onrender.com','localhost','127.0.0.1', 'orr-backend-web-latest.onrender.com']
 
 # Application definition
 
