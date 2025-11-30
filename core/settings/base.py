@@ -200,3 +200,14 @@ STRIPE_CANCEL_URL=config("STRIPE_CANCEL_URL")
 CELERY_TIMEZONE = "Africa/Lagos"
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 30 * 60
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost",
+    "http://127.0.0.1",
+   " http://localhost:3000",
+    "http://localhost:5173",
+    "http://localhost:8000",
+]
+
+CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOW_CREDENTIALS = True
