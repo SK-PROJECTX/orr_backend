@@ -79,3 +79,13 @@ class MeetingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Meeting
         fields = "__all__"
+
+class MeetingStatusChangeSerializer(serializers.Serializer):
+    status = serializers.CharField(
+        help_text="New status value. Must be one of the allowed status choices."
+    )
+    class Meta:
+        model = Meeting
+        fields = [
+            "status",
+        ]

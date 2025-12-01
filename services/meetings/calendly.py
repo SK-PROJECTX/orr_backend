@@ -2,6 +2,8 @@ import requests
 import logging
 from django.conf import settings
 from rest_framework.exceptions import APIException
+from datetime import timedelta
+
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +16,13 @@ class CalendlyAPIException(APIException):
 
 class CalendlyAPI:
     BASE_URL = "https://api.calendly.com"
+    CALENDLY_API_V2  = "https://api.calendly.com/api/v2"
+    EVENT_TYPE_MAPPING = {
+        "discovery": "https://api.calendly.com/event_types/EVENT_UUID_DISCOVERY",
+        "follow_up": "https://api.calendly.com/event_types/EVENT_UUID_FOLLOWUP",
+        "report_review": "https://api.calendly.com/event_types/EVENT_UUID_REPORT",
+        "consultation": "https://api.calendly.com/event_types/EVENT_UUID_CONSULT",
+    }
 
     def __init__(self):
         self.headers = {
@@ -109,3 +118,47 @@ class CalendlyAPI:
         url = f"{self.BASE_URL}/scheduled_events/{event_uuid}/cancellation"
         payload = {"reason": reason}
         return self._request("POST", url, json=payload)
+    
+    def get_event_type_by_name(self, name_slug: str):
+        """Map your internal meeting type to Calendly Event Type URI"""
+        return self.EVENT_TYPE_MAPPING.get(name_slug)
+    
+    def schedule_event(self, meeting):
+        """
+        Schedule a meeting in Calendly and return event details
+        `meeting` must have: meeting_type, requested_datetime, duration_minutes, client.user.email, client.user.get_full_name()
+        """
+        event_type_uri = self.get_event_type_by_name(meeting.meeting_type)
+        if not event_type_uri:
+            raise ValueError("Invalid meeting type")
+
+        start_time = meeting.requested_datetime
+        end_time = start_time + timedelta(minutes=meeting.duration_minutes)
+
+        payload = {
+            "event_type": event_type_uri,
+            "start_time": start_time.isoformat(),
+            "end_time": end_time.isoformat(),
+            "invitees": [
+                {
+                    "email": meeting.client.user.email,
+                    "name": meeting.client.user.get_full_name(),
+                }
+            ],
+            "location": {"type": "google_meet"}, 
+            "metadata": {
+                "meeting_id": str(meeting.id),
+                "client_id": str(meeting.client.id),
+            },
+        }
+
+        response = self._request("POST", f"{self.CALENDLY_API_V2}/scheduled_events", json=payload)
+        data = response["resource"]
+
+        return {
+            "event_uri": data["uri"],
+            "event_uuid": data["uuid"],
+            "invite_link": data["invitees"][0].get("reschedule_url"),  
+            "join_url": data.get("location", {}).get("join_url"),
+            "status": data["status"],
+        }
