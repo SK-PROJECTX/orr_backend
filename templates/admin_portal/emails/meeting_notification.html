@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>ORR Admin - Meeting Notification</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #28a745; color: white; padding: 20px; text-align: center; }
+        .content { padding: 20px; background: #f9f9f9; }
+        .meeting-info { background: white; padding: 15px; border-left: 4px solid #28a745; margin: 15px 0; }
+        .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>ORR Admin Portal</h1>
+            <p>Meeting Notification</p>
+        </div>
+        
+        <div class="content">
+            <p>Hello {{ recipient.get_full_name }},</p>
+            
+            <p>A meeting has been <strong>{{ notification_type }}</strong>:</p>
+            
+            <div class="meeting-info">
+                <h3>{{ meeting.get_meeting_type_display }}</h3>
+                <p><strong>Client:</strong> {{ meeting.client.user.get_full_name }} ({{ meeting.client.company }})</p>
+                <p><strong>Status:</strong> {{ meeting.get_status_display }}</p>
+                {% if meeting.confirmed_datetime %}
+                <p><strong>Scheduled:</strong> {{ meeting.confirmed_datetime|date:"F j, Y g:i A" }}</p>
+                {% endif %}
+                {% if meeting.agenda %}
+                <p><strong>Agenda:</strong></p>
+                <p>{{ meeting.agenda|truncatewords:50 }}</p>
+                {% endif %}
+            </div>
+            
+            <p>Please log into the admin portal to view full details and manage the meeting.</p>
+        </div>
+        
+        <div class="footer">
+            <p>This is an automated notification from ORR Admin Portal</p>
+        </div>
+    </div>
+</body>
+</html>

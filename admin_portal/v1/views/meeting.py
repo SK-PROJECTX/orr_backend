@@ -7,7 +7,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from admin_portal.models import Meeting
-
+from admin_portal.permissions import CanManageMeetings
+from admin_portal.services import CalendarService, NotificationService
 from ..serializers.meeting import (
     MeetingActionSerializer,
     MeetingDetailSerializer,
@@ -26,7 +27,7 @@ class MeetingListView(generics.ListAPIView):
     """List all meeting requests"""
 
     serializer_class = MeetingListSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [CanManageMeetings]
 
     def get_queryset(self):
         queryset = Meeting.objects.select_related("client__user", "host").all()
@@ -84,7 +85,7 @@ class MeetingDetailView(generics.RetrieveUpdateAPIView):
     """Get and update meeting details"""
 
     queryset = Meeting.objects.select_related("client__user", "host").all()
-    permission_classes = [IsAuthenticated]
+    permission_classes = [CanManageMeetings]
 
     def get_serializer_class(self):
         if self.request.method == "GET":
@@ -100,7 +101,7 @@ class MeetingDetailView(generics.RetrieveUpdateAPIView):
 class MeetingActionsView(APIView):
     """Meeting management actions"""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [CanManageMeetings]
 
     def post(self, request, pk):
         try:
@@ -118,23 +119,23 @@ class MeetingActionsView(APIView):
                         meeting.confirmed_datetime = confirmed_datetime
                     else:
                         meeting.confirmed_datetime = meeting.requested_datetime
-
-                    meeting.status = "confirmed"
+                    
+                    meeting.status = 'confirmed'
+                    
+                    # Create calendar event
+                    event_id = CalendarService.create_calendar_event(meeting)
+                    if event_id:
+                        meeting.calendar_event_id = event_id
+                    
                     meeting.save()
-
-                    # Create notification for client
-                    from admin_portal.models import SystemNotification
-
-                    SystemNotification.objects.create(
-                        notification_type="meeting_updated",
-                        title="Meeting Confirmed",
-                        message=f"Your meeting has been confirmed for {meeting.confirmed_datetime}",
-                        recipient=meeting.client.user,
-                        related_meeting=meeting,
+                    
+                    # Send notification
+                    NotificationService.send_meeting_notification(
+                        meeting, 'confirmed', meeting.client.user
                     )
-
+                    
                     return Response({"message": "Meeting confirmed successfully"})
-
+                
                 elif action == "reschedule":
                     confirmed_datetime = serializer.validated_data.get(
                         "confirmed_datetime"
