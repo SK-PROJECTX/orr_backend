@@ -6,6 +6,9 @@ from .views import (
     MeetingRequestViewSet,
     MyCalendarView,
     UpdateMeetingPrepView,
+    CreateMeetingView,
+    AvailableSlotsView,
+    EventTypesView,
 )
 
 router = DefaultRouter()
@@ -15,6 +18,9 @@ urlpatterns = [
     path("mycalender", MyCalendarView.as_view(), name="mycalender"),
     path("calendar/<int:calendar_id>/month/", CalendarMonthView.as_view()),
     path("meeting-preform", UpdateMeetingPrepView.as_view(), name="meeting-preform"),
+    path("meeting-slots/", AvailableSlotsView.as_view()),
+    path("create-meeting/", CreateMeetingView.as_view()),
+    path("event-type/", EventTypesView.as_view()),
 ]
 
 urlpatterns += router.urls

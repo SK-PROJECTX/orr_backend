@@ -11,7 +11,7 @@ User = get_user_model()
 from client.tasks.activities import invalidate_recommendations_cache
 
 from .models import Profile
-
+from admin_portal.models import Client
 
 @receiver(post_save, sender=ContactMessage)
 def send_contact_notifications(sender, instance, created, **kwargs):
@@ -65,13 +65,21 @@ def auto_create_activity(sender, instance, created, **kwargs):
 
 
 @receiver(post_save, sender=User)
-def create_client_profile(sender, instance, created, **kwargs):
-    """Create client profile when user is created via registration"""
+def create_profiles(sender, instance, created, **kwargs):
+    """Create client and profile for new users"""
     if created:
-        # Check if user already has admin profile
-        from admin_portal.models import AdminProfile
-
+        # Skip users who already have an admin profile
         if not AdminProfile.objects.filter(user=instance).exists():
-            # Create client profile if no admin profile exists
+
+            # Create a general Profile if it doesn't exist
             if not Profile.objects.filter(user=instance).exists():
                 Profile.objects.create(user=instance)
+
+            # Create Client if it doesn't exist
+            if not Client.objects.filter(user=instance).exists():
+                # Provide defaults for required fields
+                Client.objects.create(
+                    user=instance,
+                    company="N/A",  # or get from registration data
+                    primary_pillar="strategic",  # default
+                )

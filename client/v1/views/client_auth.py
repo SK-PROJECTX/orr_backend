@@ -14,7 +14,7 @@ from services.notifications.email_verification import (
 )
 
 from ..serializers.client_auth import ClientSignUpSerializer
-
+from admin_portal.models import Client
 User = get_user_model()
 
 
@@ -68,7 +68,6 @@ class ClientSignupView(views.APIView):
         )
         user.set_password(password)
         user.save()
-
         try:
             send_email_verification_notification(user)
         except Exception as e:

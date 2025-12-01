@@ -1,6 +1,7 @@
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from rest_framework import serializers
+from admin_portal.models import Meeting
 
 from ..models import MEETING_TYPE_CHOICES, Calendar, Event
 
@@ -61,3 +62,20 @@ class MeetingPrepSerializer(serializers.Serializer):
     basic_context = serializers.CharField(required=True)
     goals = serializers.CharField(required=True)
     pain_points = serializers.CharField(required=True)
+
+
+
+
+class MeetingRequestSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Meeting
+        fields = [
+            "meeting_type",
+            "requested_datetime",
+            "agenda",
+        ]
+
+class MeetingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Meeting
+        fields = "__all__"

@@ -10,6 +10,9 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from datetime import datetime, timedelta
+from services.meetings.calendly import CalendlyAPI
+from .serializers import MeetingRequestSerializer, MeetingSerializer
 
 from client.models import Activity
 
@@ -21,7 +24,7 @@ from .serializers import (
     MeetingPrepSerializer,
     MeetingRequestCreateSerializer,
 )
-
+from admin_portal.models import Client
 
 @extend_schema(tags=["shedulling"])
 class MeetingRequestViewSet(viewsets.GenericViewSet):
@@ -227,3 +230,55 @@ class UpdateMeetingPrepView(APIView):
         )
 
         return Response({"message": "Meeting preparation updated successfully."})
+
+
+@extend_schema(tags=["shedulling"])
+class EventTypesView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request):
+        calendly = CalendlyAPI()
+        event_types = calendly.get_event_types()  
+        data = [
+            {"name": et["name"], "uri": et["uri"]} for et in event_types["collection"]
+        ]
+        return Response(data)
+
+
+
+@extend_schema(
+        tags=["shedulling"],
+        parameters=[
+            OpenApiParameter(
+                name="event_type_uri",
+                type=str,
+                required=True,
+                description="Full Calendly event_type URL (e.g., https://api.calendly.com/event_types/XXXX)"
+            )
+        ]
+    )
+class AvailableSlotsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        meeting_type_uri = request.query_params.get("event_type_uri")
+        start = datetime.now() + timedelta(hours=1)
+        end = start + timedelta(days=7)
+
+        calendly = CalendlyAPI()
+        slots = calendly.get_available_slots(meeting_type_uri, start, end)
+
+        return Response(slots)
+
+@extend_schema(tags=["shedulling"])
+class CreateMeetingView(APIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = MeetingRequestSerializer
+
+    def post(self, request):
+        serializer = MeetingRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = request.user
+        client = Client.objects.get(user=user)
+        meeting = serializer.save(client=client)
+
+        return Response(MeetingSerializer(meeting).data)
