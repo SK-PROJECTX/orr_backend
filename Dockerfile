@@ -26,9 +26,24 @@ COPY pyproject.toml poetry.lock* /app/
 # Install dependencies
 RUN poetry install --no-root
 
-# Copy project code
-COPY . /app/
+COPY manage.py /app/manage.py
+COPY wait-for-it.sh /app/wait-for-it.sh
+COPY entrypoint.sh /app/entrypoint.sh
 
+COPY core/ /app/core/
+COPY templates/ /app/templates/
+COPY staticfiles/ /app/staticfiles/
+
+
+COPY admin_portal/ /app/admin_portal/
+COPY client/ /app/client/
+COPY common/ /app/common/
+COPY main/ /app/main/
+COPY notification/ /app/notification/
+COPY organization/ /app/organization/
+COPY payment/ /app/payment/
+COPY scheduling/ /app/scheduling/
+COPY services/ /app/services/
 
 
 # Make entrypoint executable
