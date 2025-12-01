@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from admin_portal.models import Meeting
+from admin_portal.permissions import CanManageMeetings
 from admin_portal.services import CalendarService, NotificationService
 from ..serializers.meeting import (
     MeetingActionSerializer,
@@ -26,7 +27,7 @@ class MeetingListView(generics.ListAPIView):
     """List all meeting requests"""
 
     serializer_class = MeetingListSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [CanManageMeetings]
 
     def get_queryset(self):
         queryset = Meeting.objects.select_related("client__user", "host").all()
@@ -84,7 +85,7 @@ class MeetingDetailView(generics.RetrieveUpdateAPIView):
     """Get and update meeting details"""
 
     queryset = Meeting.objects.select_related("client__user", "host").all()
-    permission_classes = [IsAuthenticated]
+    permission_classes = [CanManageMeetings]
 
     def get_serializer_class(self):
         if self.request.method == "GET":
@@ -100,7 +101,7 @@ class MeetingDetailView(generics.RetrieveUpdateAPIView):
 class MeetingActionsView(APIView):
     """Meeting management actions"""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [CanManageMeetings]
 
     def post(self, request, pk):
         try:
@@ -131,6 +132,13 @@ class MeetingActionsView(APIView):
                     # Send notification
                     NotificationService.send_meeting_notification(
                         meeting, 'confirmed', meeting.client.user
+                    )
+                    
+                    return Response({"message": "Meeting confirmed successfully"})
+                
+                elif action == "reschedule":
+                    confirmed_datetime = serializer.validated_data.get(
+                        "confirmed_datetime"
                     )
                     if not confirmed_datetime:
                         return Response(

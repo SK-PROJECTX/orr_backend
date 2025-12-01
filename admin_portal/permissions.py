@@ -136,3 +136,14 @@ class CanViewAILogs(BasePermission):
         role = request.user.admin_profile.role
         # Super admin and admin can view AI logs
         return role.name in ['super_admin', 'admin'] and role.can_view_ai_logs
+
+
+class IsAdminExceptContentEditor(BasePermission):
+    """Permission for admin users except content editors"""
+
+    def has_permission(self, request, view):
+        if not (request.user.is_authenticated and hasattr(request.user, 'admin_profile')):
+            return False
+        
+        role = request.user.admin_profile.role
+        return role.name in ['super_admin', 'admin', 'operator']

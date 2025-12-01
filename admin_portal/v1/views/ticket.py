@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from admin_portal.models import Ticket, TicketMessage
+from admin_portal.permissions import CanManageTickets
 from admin_portal.services import NotificationService
 from ..serializers.ticket import (
     TicketCreateSerializer,

@@ -4,8 +4,9 @@ from django.db.models import Count, Q
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
+from rest_framework.response import Response
 from admin_portal.permissions import IsAdminUser
-from drf_spectacular.utils import extend_schema
 
 from admin_portal.models import Client, Ticket, Meeting, SystemNotification, AIConversation, Content
 from admin_portal.services import SystemHealthService, AnalyticsService
@@ -52,9 +53,9 @@ class DashboardOverviewView(APIView):
         ).count()
 
         # System notifications (unread)
-        system_notifications = SystemNotification.objects.filter(
-            recipient=request.user, is_read=False
-        ).count()
+        system_notifications = 0  # SystemNotification.objects.filter(
+            # recipient=request.user, is_read=False
+        # ).count()
 
         # Portal logins in last 7 days
         portal_logins_7days = Client.objects.filter(
@@ -62,13 +63,13 @@ class DashboardOverviewView(APIView):
         ).count()
 
         # AI chat sessions and escalation rate
-        ai_sessions = AIConversation.objects.filter(
-            created_at__gte=seven_days_ago
-        ).count()
+        ai_sessions = 0  # AIConversation.objects.filter(
+            # created_at__gte=seven_days_ago
+        # ).count()
 
-        escalated_sessions = AIConversation.objects.filter(
-            created_at__gte=seven_days_ago, escalated_to_ticket=True
-        ).count()
+        escalated_sessions = 0  # AIConversation.objects.filter(
+            # created_at__gte=seven_days_ago, escalated_to_ticket=True
+        # ).count()
         
         escalation_rate = (escalated_sessions / ai_sessions * 100) if ai_sessions > 0 else 0
         
@@ -167,9 +168,9 @@ class QuickStatsView(APIView):
                     "meetings_scheduled": Meeting.objects.filter(
                         confirmed_datetime__date=now.date(), status="confirmed"
                     ).count(),
-                    "ai_conversations": AIConversation.objects.filter(
-                        created_at__gte=today_start
-                    ).count(),
+                    "ai_conversations": 0,  # AIConversation.objects.filter(
+                        # created_at__gte=today_start
+                    # ).count(),
                 },
                 "this_week": {
                     "tickets_resolved": Ticket.objects.filter(
@@ -183,7 +184,7 @@ class QuickStatsView(APIView):
                     ).count(),
                 },
             }
-        })
+        )
 
 
 @extend_schema(
