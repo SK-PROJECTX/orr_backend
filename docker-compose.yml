@@ -1,0 +1,29 @@
+version: "3.9"
+
+services:
+  web:
+    build: .
+    container_name: orr_backend_web
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=${DEBUG}
+      - DATABASE_URL=${DATABASE_URL}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - SECRET_KEY=${SECRET_KEY}
+    command: >
+      sh -c "./wait-for-it.sh $(echo ${DATABASE_URL} | sed -E 's|.*@([^:/]+).*|\1|'):5432 --
+             python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             gunicorn core.wsgi:application --bind 0.0.0.0:8000"
+
+  worker:
+    build: .
+    container_name: orr_backend_worker
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - SECRET_KEY=${SECRET_KEY}
+    command: >
+      sh -c "./wait-for-it.sh $(echo ${DATABASE_URL} | sed -E 's|.*@([^:/]+).*|\1|'):5432 --
+             celery -A core worker --loglevel=info"

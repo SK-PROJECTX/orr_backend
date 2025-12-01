@@ -22,13 +22,12 @@ from datetime import timedelta
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-ucl&2#lpd5@ohv$d6)b#+igt42!@1g5ztz(0x-23z7d108h&+u"
+SECRET_KEY = config("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
-
+ALLOWED_HOSTS = ['orr-backend-web-latest.onrender.com','localhost','127.0.0.1', 'orr-backend-web-latest.onrender.com']
 
 # Application definition
 
@@ -52,6 +51,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -61,6 +61,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 ROOT_URLCONF = "core.urls"
 
 TEMPLATES = [
@@ -119,6 +120,11 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
+
+STATIC_ROOT = "/app/staticfiles"      
+STATICFILES_DIRS = [
+    BASE_DIR / "static",  
+]
 STATIC_URL = "static/"
 
 # Default primary key field type
@@ -194,3 +200,14 @@ STRIPE_CANCEL_URL=config("STRIPE_CANCEL_URL")
 CELERY_TIMEZONE = "Africa/Lagos"
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 30 * 60
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost",
+    "http://127.0.0.1",
+   " http://localhost:3000",
+    "http://localhost:5173",
+    "http://localhost:8000",
+]
+
+CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOW_CREDENTIALS = True
