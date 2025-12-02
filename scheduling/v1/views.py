@@ -22,7 +22,8 @@ from .serializers import (
     CalendarSerializer,
     EventSerializer,
     MeetingPrepSerializer,
-    MeetingStatusChangeSerializer
+    MeetingStatusChangeSerializer,
+    MeetingCalendarSerializer
 )
 import requests
 from django.conf import settings
@@ -252,3 +253,66 @@ class MyMeetingsView(APIView):
         meetings = Meeting.objects.filter(client=client).order_by("-id")
         serializer = MeetingSerializer(meetings, many=True)
         return Response(serializer.data)
+    
+
+
+
+@extend_schema(
+        tags=["scheduling"],
+        parameters=[
+            OpenApiParameter(
+                name="month",
+                type=int,
+                required=True,
+                location=OpenApiParameter.QUERY,
+                description="Month number (1-12)"
+            ),
+            OpenApiParameter(
+                name="year",
+                type=int,
+                required=True,
+                location=OpenApiParameter.QUERY,
+                description="4-digit year, e.g. 2025"
+            ),
+        ],
+        summary="Get monthly calendar overview",
+        description="Returns all meetings for the selected month formatted for a calendar UI"
+    )
+class CalendarView(APIView):
+    def get(self, request):
+        month = int(request.query_params.get("month"))
+        year = int(request.query_params.get("year"))
+
+        start_date = date(year, month, 1)
+        last_day = monthrange(year, month)[1]
+        end_date = date(year, month, last_day)
+
+        meetings = Meeting.objects.filter(
+            confirmed_datetime__date__gte=start_date,
+            confirmed_datetime__date__lte=end_date
+        )
+
+        sidebar_events = MeetingCalendarSerializer(meetings, many=True).data
+
+        calendar_days = []
+        for day in range(1, last_day + 1):
+            d = date(year, month, day)
+            day_meetings = meetings.filter(confirmed_datetime__date=d)
+
+            calendar_days.append({
+                "date": str(d),
+                "events": [
+                    {
+                        "id": m.id,
+                        "title": m.title,
+                        "color": m.color
+                    }
+                    for m in day_meetings
+                ]
+            })
+
+        return Response({
+            "month": start_date.strftime("%B %Y"),
+            "sidebar_events": sidebar_events,
+            "calendar_days": calendar_days
+        })

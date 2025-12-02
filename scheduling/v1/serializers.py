@@ -89,3 +89,24 @@ class MeetingStatusChangeSerializer(serializers.Serializer):
         fields = [
             "status",
         ]
+
+
+class MeetingCalendarSerializer(serializers.ModelSerializer):
+    date = serializers.DateField(source="event_date")
+    time = serializers.CharField(source="event_time")
+    title = serializers.CharField()
+    label = serializers.CharField()
+    color = serializers.CharField()
+
+    class Meta:
+        model = Meeting
+        fields = [
+            "id",
+            "title",
+            "date",
+            "time",
+            "status",
+            "label",
+            "color",
+            "meeting_link",
+        ]

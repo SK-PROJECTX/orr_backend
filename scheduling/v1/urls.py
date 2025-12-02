@@ -9,7 +9,8 @@ from .views import (
     AvailableSlotsView,
     EventTypesView,
     MeetingChangeStatusView,
-    MyMeetingsView
+    MyMeetingsView,
+    CalendarView
 )
 
 
@@ -22,4 +23,5 @@ urlpatterns = [
     path("meeting-slots/", AvailableSlotsView.as_view()),
     path("create-meeting/", CreateMeetingView.as_view()),
     path("event-type/", EventTypesView.as_view()),
+    path("calendar/", CalendarView.as_view(), name="calendar-month"),
 ]

@@ -289,6 +289,44 @@ class Meeting(Audit):
     calendar_event_id = models.CharField(max_length=200, blank=True)
     meeting_link = models.URLField(blank=True)
 
+    @property
+    def event_date(self):
+        dt = self.confirmed_datetime or self.requested_datetime
+        return dt.date()
+    
+    @property
+    def event_time(self):
+        dt = self.confirmed_datetime or self.requested_datetime
+        return dt.strftime("%H:%M")
+    
+    @property
+    def label(self):
+        today = timezone.now().date()
+        diff = (self.event_date - today).days
+
+        if diff < 0:
+            return "Completed"
+        if diff == 0:
+            return "Today"
+        if diff == 1:
+            return "Tomorrow"
+        return f"{diff} days left"
+    
+    @property
+    def color(self):
+        mapping = {
+            "requested": "#60A5FA",     # blue
+            "confirmed": "#4ADE80",     # green
+            "rescheduled": "#FACC15",   # yellow
+            "declined": "#F87171",      # red
+            "completed": "#9CA3AF",     # gray
+            "cancelled": "#EF4444",     # red
+        }
+        return mapping.get(self.status, "#6B7280")
+    @property
+    def title(self):
+        return self.get_meeting_type_display()
+    
     def __str__(self):
         return f"{self.client.user.get_full_name()} - {self.get_meeting_type_display()}"
 
