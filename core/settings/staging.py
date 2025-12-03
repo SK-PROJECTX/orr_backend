@@ -1,7 +1,9 @@
 import os
 from urllib.parse import urlparse
-from .base import *
+
 from decouple import config
+
+from .base import *
 
 DATABASE_URL = config("DATABASE_URL")
 
@@ -10,7 +12,7 @@ if DATABASE_URL:
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
-            "NAME": url.path[1:], 
+            "NAME": url.path[1:],
             "USER": url.username,
             "PASSWORD": url.password,
             "HOST": url.hostname,
@@ -21,14 +23,19 @@ else:
     raise ValueError("DATABASE_URL is not set")
 
 
-
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
         "simple": {"format": "[{levelname}] {message}", "style": "{"},
-        "verbose": {"format": "{asctime} [{levelname}] {name} — {message}", "style": "{"},
-        "celery": {"format": "{asctime} [CELERY:{levelname}] {name} — {message}", "style": "{"},
+        "verbose": {
+            "format": "{asctime} [{levelname}] {name} — {message}",
+            "style": "{",
+        },
+        "celery": {
+            "format": "{asctime} [CELERY:{levelname}] {name} — {message}",
+            "style": "{",
+        },
     },
     "handlers": {
         "console": {"class": "logging.StreamHandler", "level": "DEBUG"},
@@ -69,10 +76,13 @@ LOGGING = {
         "": {"handlers": ["console"], "level": "DEBUG", "propagate": True},
         "django": {"handlers": ["django_file"], "level": "INFO", "propagate": False},
         "celery": {"handlers": ["celery_file"], "level": "INFO", "propagate": False},
-        "core": {"handlers": ["app_info_file", "app_error_file"], "level": "INFO", "propagate": False},
+        "core": {
+            "handlers": ["app_info_file", "app_error_file"],
+            "level": "INFO",
+            "propagate": False,
+        },
     },
 }
-
 
 
 CELERY_ACCEPT_CONTENT = ["json"]

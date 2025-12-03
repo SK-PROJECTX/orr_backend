@@ -9,12 +9,13 @@ from rest_framework import status, views
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
+from admin_portal.models import Client
 from services.notifications.email_verification import (
     send_email_verification_notification,
 )
 
 from ..serializers.client_auth import ClientSignUpSerializer
-from admin_portal.models import Client
+
 User = get_user_model()
 
 

@@ -23,7 +23,9 @@ class Command(BaseCommand):
             self.style.SUCCESS("Admin portal setup completed successfully!")
         )
         self.stdout.write(
-            self.style.WARNING('Default login: admin / admin123 (CHANGE IN PRODUCTION!)')
+            self.style.WARNING(
+                "Default login: admin / admin123 (CHANGE IN PRODUCTION!)"
+            )
         )
 
     def create_admin_roles(self):
@@ -150,63 +152,64 @@ class Command(BaseCommand):
             )
 
             self.stdout.write(f"Created superuser: {username}/{password}")
-            
+
             # Create sample data
             self.create_sample_data(user)
         else:
             self.stdout.write(f"Superuser '{username}' already exists")
-    
+
     def create_sample_data(self, admin_user):
         """Create sample data for testing"""
-        from admin_portal.models import Content, SystemNotification
         from django.utils.text import slugify
-        
+
+        from admin_portal.models import Content, SystemNotification
+
         # Sample content
         sample_content = [
             {
-                'title': 'Getting Started with ORR',
-                'content_type': 'guide',
-                'stage': 'discover',
-                'pillars': ['strategic'],
-                'summary': 'A comprehensive guide to getting started with ORR services.',
-                'content': 'This guide will help you understand the basics of ORR and how to get started with our services.'
+                "title": "Getting Started with ORR",
+                "content_type": "guide",
+                "stage": "discover",
+                "pillars": ["strategic"],
+                "summary": "A comprehensive guide to getting started with ORR services.",
+                "content": "This guide will help you understand the basics of ORR and how to get started with our services.",
             },
             {
-                'title': 'Digital Transformation FAQ',
-                'content_type': 'faq',
-                'stage': 'design',
-                'pillars': ['digital'],
-                'summary': 'Frequently asked questions about digital transformation.',
-                'content': 'Common questions and answers about digital transformation processes.'
-            }
+                "title": "Digital Transformation FAQ",
+                "content_type": "faq",
+                "stage": "design",
+                "pillars": ["digital"],
+                "summary": "Frequently asked questions about digital transformation.",
+                "content": "Common questions and answers about digital transformation processes.",
+            },
         ]
-        
+
         for content_data in sample_content:
             content, created = Content.objects.get_or_create(
-                title=content_data['title'],
+                title=content_data["title"],
                 defaults={
-                    'slug': slugify(content_data['title']),
-                    'content_type': content_data['content_type'],
-                    'stage': content_data['stage'],
-                    'pillars': content_data['pillars'],
-                    'summary': content_data['summary'],
-                    'content': content_data['content'],
-                    'status': 'published',
-                    'author': admin_user
-                }
+                    "slug": slugify(content_data["title"]),
+                    "content_type": content_data["content_type"],
+                    "stage": content_data["stage"],
+                    "pillars": content_data["pillars"],
+                    "summary": content_data["summary"],
+                    "content": content_data["content"],
+                    "status": "published",
+                    "author": admin_user,
+                },
             )
-            
+
             if created:
-                self.stdout.write(f'Created sample content: {content.title}')
-        
+                self.stdout.write(f"Created sample content: {content.title}")
+
         # Welcome notification
         SystemNotification.objects.get_or_create(
             recipient=admin_user,
-            title='Welcome to ORR Admin Portal',
+            title="Welcome to ORR Admin Portal",
             defaults={
-                'notification_type': 'system_error',
-                'message': 'Welcome to the ORR Admin Portal! Your system is ready to use.',
-            }
+                "notification_type": "system_error",
+                "message": "Welcome to the ORR Admin Portal! Your system is ready to use.",
+            },
         )
-        
-        self.stdout.write('Created sample data')
+
+        self.stdout.write("Created sample data")

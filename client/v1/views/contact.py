@@ -2,12 +2,14 @@ from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from admin_portal.permissions import IsAdminExceptContentEditor
+
 from ...models import ContactMessage
 from ..serializers.contact import (
     CreateSupportMessageSerializer,
     SupportMessageSerializer,
 )
-from admin_portal.permissions import IsAdminExceptContentEditor
+
 
 class ContactRequestView(APIView):
     serializer_class = CreateSupportMessageSerializer

@@ -1,6 +1,6 @@
 from django.contrib import admin
-from .models import PricingPlan, Subscription, Invoice
 
+from .models import Invoice, PricingPlan, Subscription
 
 
 @admin.register(PricingPlan)
@@ -9,7 +9,6 @@ class PricingPlanAdmin(admin.ModelAdmin):
     search_fields = ("name", "stripe_price_id")
     list_filter = ("created_at",)
     readonly_fields = ("created_at", "updated_at")
-
 
 
 @admin.register(Subscription)
@@ -21,10 +20,14 @@ class SubscriptionAdmin(admin.ModelAdmin):
         "current_period_end",
         "stripe_subscription_id",
     )
-    search_fields = ("user__username", "user__email", "plan_name", "stripe_subscription_id")
+    search_fields = (
+        "user__username",
+        "user__email",
+        "plan_name",
+        "stripe_subscription_id",
+    )
     list_filter = ("is_active", "plan_name", "current_period_end", "created_at")
     readonly_fields = ("created_at", "updated_at")
-
 
 
 # -----------------------
@@ -51,4 +54,3 @@ class InvoiceAdmin(admin.ModelAdmin):
     )
     list_filter = ("status", "billing_date", "currency", "plan", "created_at")
     readonly_fields = ("created_at", "updated_at")
-

@@ -27,7 +27,12 @@ SECRET_KEY = config("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['orr-backend-web-latest.onrender.com','localhost','127.0.0.1', 'orr-backend-web-latest.onrender.com']
+ALLOWED_HOSTS = [
+    "orr-backend-web-latest.onrender.com",
+    "localhost",
+    "127.0.0.1",
+    "orr-backend-web-latest.onrender.com",
+]
 
 # Application definition
 
@@ -123,9 +128,9 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 
-STATIC_ROOT = "/app/staticfiles"      
+STATIC_ROOT = "/app/staticfiles"
 STATICFILES_DIRS = [
-    BASE_DIR / "static",  
+    BASE_DIR / "static",
 ]
 STATIC_URL = "static/"
 
@@ -153,7 +158,6 @@ SIMPLE_JWT = {
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
 }
-
 
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
@@ -191,12 +195,12 @@ FRONTEND_VERIFY_EMAIL_URL = config("FRONTEND_VERIFY_EMAIL_URL")
 FRONTEND_RESET_PASSWORD_URL = config("FRONTEND_RESET_PASSWORD_URL")
 
 
-STRIPE_SECRET_KEY=config("STRIPE_SECRET_KEY")
-STRIPE_PUBLISHABLE_KEY=config("STRIPE_PUBLISHABLE_KEY")
+STRIPE_SECRET_KEY = config("STRIPE_SECRET_KEY")
+STRIPE_PUBLISHABLE_KEY = config("STRIPE_PUBLISHABLE_KEY")
 
 
-STRIPE_SUCCESS_URL=config("STRIPE_SUCCESS_URL")
-STRIPE_CANCEL_URL=config("STRIPE_CANCEL_URL")
+STRIPE_SUCCESS_URL = config("STRIPE_SUCCESS_URL")
+STRIPE_CANCEL_URL = config("STRIPE_CANCEL_URL")
 
 
 CELERY_TIMEZONE = "Africa/Lagos"
@@ -206,7 +210,7 @@ CELERY_TASK_TIME_LIMIT = 30 * 60
 CORS_ALLOWED_ORIGINS = [
     "http://localhost",
     "http://127.0.0.1",
-   "http://localhost:3000",
+    "http://localhost:3000",
     "http://localhost:5173",
     "http://localhost:8000",
 ]
@@ -229,4 +233,4 @@ CSRF_TRUSTED_ORIGINS = [
 CORS_ALLOW_CREDENTIALS = True
 
 
-CALENDLY_API_KEY=config("CALENDLY_API_KEY")
+CALENDLY_API_KEY = config("CALENDLY_API_KEY")

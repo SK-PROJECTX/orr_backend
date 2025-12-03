@@ -4,9 +4,11 @@ from django.conf import settings
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
+from admin_portal.models import AdminProfile
+
 from .models import ContactMessage
 from .tasks import send_contact_notification_email
-from admin_portal.models import AdminProfile
+
 logger = logging.getLogger(__name__)
 
 
@@ -26,13 +28,13 @@ def notify_admin_on_new_contact_message(sender, instance, created, **kwargs):
     admin_profiles = AdminProfile.objects.exclude(role__name="content_editor")
 
     admin_emails = [
-        profile.user.email
-        for profile in admin_profiles
-        if profile.user.email  
+        profile.user.email for profile in admin_profiles if profile.user.email
     ]
 
     if not admin_emails:
-        logger.warning("No admin emails found (excluding content editors) — skipping notifications.")
+        logger.warning(
+            "No admin emails found (excluding content editors) — skipping notifications."
+        )
         return
 
     logger.info(f"Resolved admin emails (excluding content editors): {admin_emails}")

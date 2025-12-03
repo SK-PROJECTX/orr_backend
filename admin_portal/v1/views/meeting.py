@@ -9,6 +9,7 @@ from rest_framework.views import APIView
 from admin_portal.models import Meeting
 from admin_portal.permissions import CanManageMeetings
 from admin_portal.services import CalendarService, NotificationService
+
 from ..serializers.meeting import (
     MeetingActionSerializer,
     MeetingDetailSerializer,
@@ -119,23 +120,23 @@ class MeetingActionsView(APIView):
                         meeting.confirmed_datetime = confirmed_datetime
                     else:
                         meeting.confirmed_datetime = meeting.requested_datetime
-                    
-                    meeting.status = 'confirmed'
-                    
+
+                    meeting.status = "confirmed"
+
                     # Create calendar event
                     event_id = CalendarService.create_calendar_event(meeting)
                     if event_id:
                         meeting.calendar_event_id = event_id
-                    
+
                     meeting.save()
-                    
+
                     # Send notification
                     NotificationService.send_meeting_notification(
-                        meeting, 'confirmed', meeting.client.user
+                        meeting, "confirmed", meeting.client.user
                     )
-                    
+
                     return Response({"message": "Meeting confirmed successfully"})
-                
+
                 elif action == "reschedule":
                     confirmed_datetime = serializer.validated_data.get(
                         "confirmed_datetime"

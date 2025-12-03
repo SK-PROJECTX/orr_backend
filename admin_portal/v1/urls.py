@@ -2,7 +2,21 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from .views import (
-    dashboard, client, ticket, content, meeting, analytics, notifications, ai_oversight, settings, auth, search, compliance, role_management, client_profile, system_health
+    ai_oversight,
+    analytics,
+    auth,
+    client,
+    client_profile,
+    compliance,
+    content,
+    dashboard,
+    meeting,
+    notifications,
+    role_management,
+    search,
+    settings,
+    system_health,
+    ticket,
 )
 
 # Authentication URLs
@@ -15,22 +29,54 @@ auth_patterns = [
 
 # Dashboard URLs
 dashboard_patterns = [
-    path('overview/', dashboard.DashboardOverviewView.as_view(), name='dashboard-overview'),
-    path('recent-activity/', dashboard.RecentActivityView.as_view(), name='dashboard-recent-activity'),
-    path('quick-stats/', dashboard.QuickStatsView.as_view(), name='dashboard-quick-stats'),
-    path('client-widgets/', dashboard.ClientDashboardWidgetsView.as_view(), name='dashboard-client-widgets'),
+    path(
+        "overview/",
+        dashboard.DashboardOverviewView.as_view(),
+        name="dashboard-overview",
+    ),
+    path(
+        "recent-activity/",
+        dashboard.RecentActivityView.as_view(),
+        name="dashboard-recent-activity",
+    ),
+    path(
+        "quick-stats/", dashboard.QuickStatsView.as_view(), name="dashboard-quick-stats"
+    ),
+    path(
+        "client-widgets/",
+        dashboard.ClientDashboardWidgetsView.as_view(),
+        name="dashboard-client-widgets",
+    ),
 ]
 
 # Client Management URLs
 client_patterns = [
-    path('', client.ClientListView.as_view(), name='client-list'),
-    path('<int:pk>/', client.ClientDetailView.as_view(), name='client-detail'),
-    path('<int:pk>/complete-profile/', client_profile.ClientCompleteProfileView.as_view(), name='client-complete-profile'),
-    path('<int:pk>/engagement-history/', client.ClientEngagementHistoryView.as_view(), name='client-engagement-history'),
-    path('<int:pk>/actions/', client.ClientActionsView.as_view(), name='client-actions'),
-    path('<int:client_id>/documents/', client.ClientDocumentListView.as_view(), name='client-documents'),
-    path('<int:client_id>/documents/<int:pk>/', client.ClientDocumentDetailView.as_view(), name='client-document-detail'),
-    path('stats/', client.ClientStatsView.as_view(), name='client-stats'),
+    path("", client.ClientListView.as_view(), name="client-list"),
+    path("<int:pk>/", client.ClientDetailView.as_view(), name="client-detail"),
+    path(
+        "<int:pk>/complete-profile/",
+        client_profile.ClientCompleteProfileView.as_view(),
+        name="client-complete-profile",
+    ),
+    path(
+        "<int:pk>/engagement-history/",
+        client.ClientEngagementHistoryView.as_view(),
+        name="client-engagement-history",
+    ),
+    path(
+        "<int:pk>/actions/", client.ClientActionsView.as_view(), name="client-actions"
+    ),
+    path(
+        "<int:client_id>/documents/",
+        client.ClientDocumentListView.as_view(),
+        name="client-documents",
+    ),
+    path(
+        "<int:client_id>/documents/<int:pk>/",
+        client.ClientDocumentDetailView.as_view(),
+        name="client-document-detail",
+    ),
+    path("stats/", client.ClientStatsView.as_view(), name="client-stats"),
 ]
 
 # Ticket Management URLs
@@ -186,8 +232,12 @@ settings_patterns = [
 
 # System Health URLs
 system_health_patterns = [
-    path('health/', system_health.SystemHealthView.as_view(), name='system-health'),
-    path('performance/', system_health.SystemPerformanceView.as_view(), name='system-performance'),
+    path("health/", system_health.SystemHealthView.as_view(), name="system-health"),
+    path(
+        "performance/",
+        system_health.SystemPerformanceView.as_view(),
+        name="system-performance",
+    ),
 ]
 
 # Search & Navigation URLs
@@ -217,24 +267,36 @@ compliance_patterns = [
 
 # Role Management URLs (Super Admin only)
 role_management_patterns = [
-    path('roles/<int:role_id>/permissions/', role_management.UpdateRolePermissionsView.as_view(), name='update-role-permissions'),
-    path('users/<int:user_id>/deactivate/', role_management.DeactivateUserView.as_view(), name='deactivate-user'),
-    path('users/<int:user_id>/edit/', role_management.EditUserView.as_view(), name='edit-user'),
+    path(
+        "roles/<int:role_id>/permissions/",
+        role_management.UpdateRolePermissionsView.as_view(),
+        name="update-role-permissions",
+    ),
+    path(
+        "users/<int:user_id>/deactivate/",
+        role_management.DeactivateUserView.as_view(),
+        name="deactivate-user",
+    ),
+    path(
+        "users/<int:user_id>/edit/",
+        role_management.EditUserView.as_view(),
+        name="edit-user",
+    ),
 ]
 
 urlpatterns = [
-    path('auth/', include(auth_patterns)),
-    path('dashboard/', include(dashboard_patterns)),
-    path('clients/', include(client_patterns)),
-    path('tickets/', include(ticket_patterns)),
-    path('content/', include(content_patterns)),
-    path('meetings/', include(meeting_patterns)),
-    path('analytics/', include(analytics_patterns)),
-    path('notifications/', include(notification_patterns)),
-    path('ai-oversight/', include(ai_oversight_patterns)),
-    path('settings/', include(settings_patterns)),
-    path('search/', include(search_patterns)),
-    path('compliance/', include(compliance_patterns)),
-    path('role-management/', include(role_management_patterns)),
-    path('system/', include(system_health_patterns)),
+    path("auth/", include(auth_patterns)),
+    path("dashboard/", include(dashboard_patterns)),
+    path("clients/", include(client_patterns)),
+    path("tickets/", include(ticket_patterns)),
+    path("content/", include(content_patterns)),
+    path("meetings/", include(meeting_patterns)),
+    path("analytics/", include(analytics_patterns)),
+    path("notifications/", include(notification_patterns)),
+    path("ai-oversight/", include(ai_oversight_patterns)),
+    path("settings/", include(settings_patterns)),
+    path("search/", include(search_patterns)),
+    path("compliance/", include(compliance_patterns)),
+    path("role-management/", include(role_management_patterns)),
+    path("system/", include(system_health_patterns)),
 ]

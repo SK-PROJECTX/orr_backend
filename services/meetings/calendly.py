@@ -1,9 +1,9 @@
-import requests
 import logging
-from django.conf import settings
-from rest_framework.exceptions import APIException
 from datetime import timedelta
 
+import requests
+from django.conf import settings
+from rest_framework.exceptions import APIException
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +16,7 @@ class CalendlyAPIException(APIException):
 
 class CalendlyAPI:
     BASE_URL = "https://api.calendly.com"
-    CALENDLY_API_V2  = "https://api.calendly.com/api/v2"
+    CALENDLY_API_V2 = "https://api.calendly.com/api/v2"
     EVENT_TYPE_MAPPING = {
         "discovery": "https://api.calendly.com/event_types/EVENT_UUID_DISCOVERY",
         "follow_up": "https://api.calendly.com/event_types/EVENT_UUID_FOLLOWUP",
@@ -29,7 +29,8 @@ class CalendlyAPI:
             "Authorization": f"Bearer {settings.CALENDLY_API_KEY}",
             "Content-Type": "application/json",
         }
-        self.user_uri = None 
+        self.user_uri = None
+
     def _request(self, method, url, **kwargs):
         """
         Unified request wrapper with full logging.
@@ -62,17 +63,11 @@ class CalendlyAPI:
 
             try:
                 error_data = response.json()
-                message = (
-                    error_data.get("title")
-                    or error_data.get("message")
-                    or str(e)
-                )
+                message = error_data.get("title") or error_data.get("message") or str(e)
             except Exception:
                 message = str(e)
 
-            raise CalendlyAPIException(
-                detail=f"Calendly API error: {message}"
-            )
+            raise CalendlyAPIException(detail=f"Calendly API error: {message}")
 
         except requests.exceptions.RequestException as e:
             logger.error(" Network error talking to Calendly")
@@ -81,6 +76,7 @@ class CalendlyAPI:
             raise CalendlyAPIException(
                 detail=f"Network error communicating with Calendly: {str(e)}"
             )
+
     def get_user_uri(self):
         """Fetch and cache the user URI"""
         if not self.user_uri:
@@ -88,6 +84,7 @@ class CalendlyAPI:
             data = self._request("GET", url)
             self.user_uri = data["resource"]["uri"]
         return self.user_uri
+
     def get_event_types(self):
         """Fetch all event types for the authenticated user"""
         url = f"{self.BASE_URL}/event_types"
@@ -108,9 +105,7 @@ class CalendlyAPI:
         payload = {
             "event_type": event_type_uri,
             "start_time": start_time,
-            "invitees": [
-                {"email": invitee_email, "name": name}
-            ],
+            "invitees": [{"email": invitee_email, "name": name}],
         }
         return self._request("POST", url, json=payload)
 
@@ -118,11 +113,11 @@ class CalendlyAPI:
         url = f"{self.BASE_URL}/scheduled_events/{event_uuid}/cancellation"
         payload = {"reason": reason}
         return self._request("POST", url, json=payload)
-    
+
     def get_event_type_by_name(self, name_slug: str):
         """Map your internal meeting type to Calendly Event Type URI"""
         return self.EVENT_TYPE_MAPPING.get(name_slug)
-    
+
     def schedule_event(self, meeting):
         """
         Schedule a meeting in Calendly and return event details
@@ -145,20 +140,22 @@ class CalendlyAPI:
                     "name": meeting.client.user.get_full_name(),
                 }
             ],
-            "location": {"type": "google_meet"}, 
+            "location": {"type": "google_meet"},
             "metadata": {
                 "meeting_id": str(meeting.id),
                 "client_id": str(meeting.client.id),
             },
         }
 
-        response = self._request("POST", f"{self.CALENDLY_API_V2}/scheduled_events", json=payload)
+        response = self._request(
+            "POST", f"{self.CALENDLY_API_V2}/scheduled_events", json=payload
+        )
         data = response["resource"]
 
         return {
             "event_uri": data["uri"],
             "event_uuid": data["uuid"],
-            "invite_link": data["invitees"][0].get("reschedule_url"),  
+            "invite_link": data["invitees"][0].get("reschedule_url"),
             "join_url": data.get("location", {}).get("join_url"),
             "status": data["status"],
         }

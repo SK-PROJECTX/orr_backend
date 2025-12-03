@@ -5,7 +5,6 @@ from ..models import Invoice, PricingPlan
 
 class CreateCheckoutSerializer(serializers.Serializer):
     price_id = serializers.CharField()
-   
 
 
 class ChangePlanSerializer(serializers.Serializer):

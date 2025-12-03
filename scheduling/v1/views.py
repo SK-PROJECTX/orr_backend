@@ -1,110 +1,46 @@
+import logging
 from calendar import monthrange
-from datetime import date, timedelta
-from rest_framework.exceptions import PermissionDenied
+from datetime import date, datetime, timedelta
+
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
-from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from drf_spectacular.utils import OpenApiParameter, extend_schema
-from rest_framework import status, viewsets
-from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
+from rest_framework import status
+from rest_framework.exceptions import PermissionDenied
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from datetime import datetime, timedelta
-from services.meetings.calendly import CalendlyAPI
-from .serializers import MeetingRequestSerializer, MeetingSerializer
-from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes
-from rest_framework.decorators import action
-from client.models import Activity
 
-from ..models import Calendar, Event, MeetingRequest
-from .serializers import (
-    CalendarSerializer,
-    EventSerializer,
-    MeetingPrepSerializer,
-    MeetingStatusChangeSerializer,
-    MeetingCalendarSerializer
-)
-import requests
-from django.conf import settings
-import logging
+from client.models import Activity
 from services.meetings.calendly import CalendlyAPI
+
+
+from .serializers import (
+    MeetingCalendarSerializer,
+    MeetingPrepSerializer,
+    MeetingRequestSerializer,
+    MeetingSerializer,
+    MeetingStatusChangeSerializer,
+)
 
 logger = logging.getLogger(__name__)
-from admin_portal.models import Client,Meeting
+from admin_portal.models import Client, Meeting
 
 
 
 
-class MyCalendarView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        calendar, created = Calendar.objects.get_or_create(
-            owner_user=request.user,
-            defaults={"name": f"{request.user.username}'s Calendar"},
-        )
-        serializer = CalendarSerializer(calendar)
-        return Response(serializer.data)
 
 
-@extend_schema(tags=["shedulling"])
-class CalendarMonthView(APIView):
-    permission_classes = [IsAuthenticated]
-    serilizer_class = EventSerializer
-
-    @extend_schema(
-        parameters=[
-            OpenApiParameter(
-                name="year", type=int, location=OpenApiParameter.QUERY, required=True
-            ),
-            OpenApiParameter(
-                name="month", type=int, location=OpenApiParameter.QUERY, required=True
-            ),
-        ],
-        responses={200: dict},
-    )
-    def get(self, request, calendar_id):
-        year = int(request.GET.get("year"))
-        month = int(request.GET.get("month"))
-
-        start_date = date(year, month, 1)
-        last_day = monthrange(year, month)[1]
-        end_date = date(year, month, last_day)
-
-        events = Event.objects.filter(calendar_id=calendar_id).filter(
-            Q(start__date__lte=end_date) & Q(end__date__gte=start_date)
-        )
-
-        days_data = []
-        current = start_date
-        while current <= end_date:
-            day_events = [
-                e for e in events if e.start.date() <= current <= e.end.date()
-            ]
-            days_data.append(
-                {"date": current, "events": EventSerializer(day_events, many=True).data}
-            )
-            current += timedelta(days=1)
-
-        return Response(
-            {
-                "calendar_id": calendar_id,
-                "year": year,
-                "month": month,
-                "days": days_data,
-            }
-        )
-
-
+@extend_schema(tags=["scheduling"])
 class UpdateMeetingPrepView(APIView):
     permission_classes = [IsAuthenticated]
     serializer_class = MeetingPrepSerializer
 
     def patch(self, request, pk):
-        meeting_request = get_object_or_404(
-            MeetingRequest, pk=pk, requester=request.user
-        )
+        user = request.user
+        client = Client.objects.get(user=user)
+        meeting_request = get_object_or_404(Meeting, pk=pk, client=client)
 
         serializer = MeetingPrepSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -120,78 +56,119 @@ class UpdateMeetingPrepView(APIView):
             user=request.user,
             activity_type="Meeting Activity",
             title="Completed first meeting preparation",
-            description="User submitted their meeting preparation details.",
+            message="User submitted their meeting preparation details.",
             metadata={"meeting_request_id": meeting_request.id},
         )
 
         return Response({"message": "Meeting preparation updated successfully."})
 
 
-@extend_schema(tags=["shedulling"])
+@extend_schema(tags=["scheduling"])
 class EventTypesView(APIView):
     permission_classes = [IsAuthenticated]
+
     def get(self, request):
         calendly = CalendlyAPI()
-        event_types = calendly.get_event_types()  
+        event_types = calendly.get_event_types()
         data = [
             {"name": et["name"], "uri": et["uri"]} for et in event_types["collection"]
         ]
         return Response(data)
 
 
-
 @extend_schema(
-        tags=["shedulling"],
-        parameters=[
-            OpenApiParameter(
-                name="event_type_uri",
-                type=str,
-                required=True,
-                description="Full Calendly event_type URL (e.g., https://api.calendly.com/event_types/XXXX)"
-            )
-        ]
-    )
+    tags=["scheduling"],
+    parameters=[
+        OpenApiParameter(
+            name="event_type_uri",
+            type=str,
+            required=True,
+            description="Full Calendly event_type URL (e.g., https://api.calendly.com/event_types/XXXX)",
+        ),
+        OpenApiParameter(
+            name="start_date",
+            type=str,
+            required=False,
+            description="Filter slots starting from this date (format: YYYY-MM-DD)",
+        ),
+        OpenApiParameter(
+            name="end_date",
+            type=str,
+            required=False,
+            description="Filter slots up to this date (format: YYYY-MM-DD)",
+        ),
+    ],
+)
 class AvailableSlotsView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         meeting_type_uri = request.query_params.get("event_type_uri")
+        if not meeting_type_uri:
+            return Response({"message": "Missing event_type_uri"}, status=400)
+
         start = datetime.now() + timedelta(hours=1)
         end = start + timedelta(days=7)
+
+        start_date_str = request.query_params.get("start_date")
+        end_date_str = request.query_params.get("end_date")
+        try:
+            if start_date_str:
+                start = datetime.strptime(start_date_str, "%Y-%m-%d")
+                if start < datetime.now():
+                    start = datetime.now() + timedelta(minutes=1)
+            if end_date_str:
+                end = datetime.strptime(end_date_str, "%Y-%m-%d")
+                if (end - start).days > 7:
+                    end = start + timedelta(days=7)
+        except ValueError:
+            return Response(
+                {"message": "Invalid date format, use YYYY-MM-DD"}, status=400
+            )
 
         calendly = CalendlyAPI()
         slots = calendly.get_available_slots(meeting_type_uri, start, end)
 
         return Response(slots)
 
-@extend_schema(tags=["shedulling"])
+
+@extend_schema(tags=["scheduling"])
 class CreateMeetingView(APIView):
     permission_classes = [IsAuthenticated]
     serializer_class = MeetingRequestSerializer
 
     def post(self, request):
-        serializer = MeetingRequestSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
         user = request.user
         client = Client.objects.get(user=user)
-        meeting = serializer.save(client=client)
 
-        return Response(MeetingSerializer(meeting).data)
-    
+        serializer = MeetingRequestSerializer(
+            data=request.data, context={"client": client}
+        )
+        serializer.is_valid(raise_exception=True)
+        meeting = serializer.save()
 
-
+        return Response(
+            {
+                "success": True,
+                "message": "Meeting created. Redirect user to Calendly.",
+                "meeting_id": meeting.id,
+                "redirect_url": meeting.meeting_link,
+            }
+        )
 
 
 @extend_schema(
-    tags=["shedulling"],
+    tags=["scheduling"],
 )
 class MeetingChangeStatusView(APIView):
     """
     Endpoint to change the status of a meeting.
     POST /api/meetings/<pk>/change-status/
     """
+
     permission_classes = [IsAuthenticated]
     serializer_class = MeetingStatusChangeSerializer
+
     def post(self, request, pk):
         meeting = get_object_or_404(Meeting, pk=pk)
         new_status = request.data.get("status")
@@ -212,10 +189,13 @@ class MeetingChangeStatusView(APIView):
 
         try:
             if new_status == "cancelled" and meeting.calendar_event_id:
-                calendly.cancel_event(meeting.calendar_event_id, reason=f"Status changed to {new_status} via portal")
+                calendly.cancel_event(
+                    meeting.calendar_event_id,
+                    reason=f"Status changed to {new_status} via portal",
+                )
 
             elif new_status == "rescheduled" and meeting.calendar_event_id:
-                pass 
+                pass
             elif new_status == "confirmed" and old_status == "requested":
                 if not meeting.calendar_event_id:
                     calendly_data = calendly.schedule_event(meeting)
@@ -224,7 +204,9 @@ class MeetingChangeStatusView(APIView):
                     meeting.confirmed_datetime = meeting.requested_datetime
 
         except Exception as e:
-            meeting.internal_notes += f"\n[Auto] Calendly sync warning ({new_status}): {str(e)}"
+            meeting.internal_notes += (
+                f"\n[Auto] Calendly sync warning ({new_status}): {str(e)}"
+            )
             logger.warning(f"Calendly sync failed for meeting {meeting.id}: {e}")
 
         meeting.save()
@@ -232,15 +214,19 @@ class MeetingChangeStatusView(APIView):
 
         old_status_display = valid_statuses[old_status]
         new_status_display = valid_statuses[new_status]
-        return Response({
-            "id": meeting.id,
-            "status": new_status,
-            "status_display": new_status_display,
-            "message": f"Status changed from {old_status_display} → {new_status_display}",
-        }, status=status.HTTP_200_OK)
-        
+        return Response(
+            {
+                "id": meeting.id,
+                "status": new_status,
+                "status_display": new_status_display,
+                "message": f"Status changed from {old_status_display} → {new_status_display}",
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
 @extend_schema(
-    tags=["shedulling"],
+    tags=["scheduling"],
     description="Get all meetings created by the authenticated client.",
     responses=MeetingSerializer(many=True),
 )
@@ -253,31 +239,29 @@ class MyMeetingsView(APIView):
         meetings = Meeting.objects.filter(client=client).order_by("-id")
         serializer = MeetingSerializer(meetings, many=True)
         return Response(serializer.data)
-    
-
 
 
 @extend_schema(
-        tags=["scheduling"],
-        parameters=[
-            OpenApiParameter(
-                name="month",
-                type=int,
-                required=True,
-                location=OpenApiParameter.QUERY,
-                description="Month number (1-12)"
-            ),
-            OpenApiParameter(
-                name="year",
-                type=int,
-                required=True,
-                location=OpenApiParameter.QUERY,
-                description="4-digit year, e.g. 2025"
-            ),
-        ],
-        summary="Get monthly calendar overview",
-        description="Returns all meetings for the selected month formatted for a calendar UI"
-    )
+    tags=["scheduling"],
+    parameters=[
+        OpenApiParameter(
+            name="month",
+            type=int,
+            required=True,
+            location=OpenApiParameter.QUERY,
+            description="Month number (1-12)",
+        ),
+        OpenApiParameter(
+            name="year",
+            type=int,
+            required=True,
+            location=OpenApiParameter.QUERY,
+            description="4-digit year, e.g. 2025",
+        ),
+    ],
+    summary="Get monthly calendar overview",
+    description="Returns all meetings for the selected month formatted for a calendar UI",
+)
 class CalendarView(APIView):
     def get(self, request):
         month = int(request.query_params.get("month"))
@@ -289,7 +273,7 @@ class CalendarView(APIView):
 
         meetings = Meeting.objects.filter(
             confirmed_datetime__date__gte=start_date,
-            confirmed_datetime__date__lte=end_date
+            confirmed_datetime__date__lte=end_date,
         )
 
         sidebar_events = MeetingCalendarSerializer(meetings, many=True).data
@@ -299,20 +283,104 @@ class CalendarView(APIView):
             d = date(year, month, day)
             day_meetings = meetings.filter(confirmed_datetime__date=d)
 
-            calendar_days.append({
-                "date": str(d),
-                "events": [
-                    {
-                        "id": m.id,
-                        "title": m.title,
-                        "color": m.color
-                    }
-                    for m in day_meetings
-                ]
-            })
+            calendar_days.append(
+                {
+                    "date": str(d),
+                    "events": [
+                        {"id": m.id, "title": m.title, "color": m.color}
+                        for m in day_meetings
+                    ],
+                }
+            )
 
-        return Response({
-            "month": start_date.strftime("%B %Y"),
-            "sidebar_events": sidebar_events,
-            "calendar_days": calendar_days
-        })
+        return Response(
+            {
+                "month": start_date.strftime("%B %Y"),
+                "sidebar_events": sidebar_events,
+                "calendar_days": calendar_days,
+            }
+        )
+
+
+@extend_schema(tags=["scheduling"])
+class CalendlyWebhookView(APIView):
+    """
+    Webhook to handle Calendly events: booking confirmed, canceled, rescheduled.
+    Automatically updates local Meeting instances.
+    """
+
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        """
+        Expected payload from Calendly:
+        {
+            "event": "invitee.created" | "invitee.canceled" | "invitee.rescheduled",
+            "payload": {...}
+        }
+        """
+        event_type = request.data.get("event")
+        payload = request.data.get("payload")
+
+        if not event_type or not payload:
+            return Response({"message": "Invalid webhook payload"}, status=400)
+
+        try:
+            if event_type == "invitee.created":
+                self.handle_created(payload)
+            elif event_type == "invitee.canceled":
+                self.handle_canceled(payload)
+            elif event_type == "invitee.rescheduled":
+                self.handle_rescheduled(payload)
+            else:
+                return Response(
+                    {"message": f"Unhandled event type: {event_type}"}, status=200
+                )
+        except Exception as e:
+            return Response(
+                {"message": f"Error processing webhook: {str(e)}"}, status=500
+            )
+
+        return Response({"success": True})
+
+    def handle_created(self, payload):
+        """
+        Booking confirmed in Calendly.
+        Update local meeting to confirmed.
+        """
+        calendly_event_id = payload.get("event", {}).get("uri")
+        meeting_link = payload.get("event", {}).get("location", {}).get("join_url")
+        start_time_str = payload.get("event", {}).get("start_time")
+        start_time = parse_datetime(start_time_str) if start_time_str else None
+
+        meeting = Meeting.objects.filter(meeting_link=meeting_link).first()
+
+        if meeting:
+            meeting.status = "confirmed"
+            meeting.confirmed_datetime = start_time
+            meeting.calendar_event_id = calendly_event_id
+            meeting.save()
+
+    def handle_canceled(self, payload):
+        """
+        Meeting canceled in Calendly.
+        """
+        calendly_event_id = payload.get("event", {}).get("uri")
+        meeting = Meeting.objects.filter(calendar_event_id=calendly_event_id).first()
+        if meeting:
+            meeting.status = "cancelled"
+            meeting.save()
+
+    def handle_rescheduled(self, payload):
+        """
+        Meeting rescheduled in Calendly.
+        """
+        calendly_event_id = payload.get("event", {}).get("uri")
+        start_time_str = payload.get("event", {}).get("start_time")
+        start_time = parse_datetime(start_time_str) if start_time_str else None
+
+        meeting = Meeting.objects.filter(calendar_event_id=calendly_event_id).first()
+        if meeting and start_time:
+            meeting.status = "rescheduled"
+            meeting.confirmed_datetime = start_time
+            meeting.save()

@@ -9,6 +9,7 @@ from rest_framework.views import APIView
 from admin_portal.models import Ticket, TicketMessage
 from admin_portal.permissions import CanManageTickets
 from admin_portal.services import NotificationService
+
 from ..serializers.ticket import (
     TicketCreateSerializer,
     TicketDetailSerializer,
@@ -146,10 +147,10 @@ class TicketActionsView(APIView):
                         assigned_user = User.objects.get(pk=assigned_to_id)
                         ticket.assigned_to = assigned_user
                         ticket.save()
-                        
+
                         # Send notification
                         NotificationService.send_ticket_notification(
-                            ticket, 'assigned', assigned_user
+                            ticket, "assigned", assigned_user
                         )
 
                         return Response({"message": "Ticket assigned successfully"})

@@ -4,12 +4,20 @@ from django.db.models import Count, Q
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.views import APIView
 from rest_framework.response import Response
-from admin_portal.permissions import IsAdminUser
+from rest_framework.views import APIView
 
-from admin_portal.models import Client, Ticket, Meeting, SystemNotification, AIConversation, Content
-from admin_portal.services import SystemHealthService, AnalyticsService
+from admin_portal.models import (
+    AIConversation,
+    Client,
+    Content,
+    Meeting,
+    SystemNotification,
+    Ticket,
+)
+from admin_portal.permissions import IsAdminUser
+from admin_portal.services import AnalyticsService, SystemHealthService
+
 from ..serializers.dashboard import (
     DashboardStatsSerializer,
     QuickClientSerializer,
@@ -54,7 +62,7 @@ class DashboardOverviewView(APIView):
 
         # System notifications (unread)
         system_notifications = 0  # SystemNotification.objects.filter(
-            # recipient=request.user, is_read=False
+        # recipient=request.user, is_read=False
         # ).count()
 
         # Portal logins in last 7 days
@@ -64,36 +72,38 @@ class DashboardOverviewView(APIView):
 
         # AI chat sessions and escalation rate
         ai_sessions = 0  # AIConversation.objects.filter(
-            # created_at__gte=seven_days_ago
+        # created_at__gte=seven_days_ago
         # ).count()
 
         escalated_sessions = 0  # AIConversation.objects.filter(
-            # created_at__gte=seven_days_ago, escalated_to_ticket=True
+        # created_at__gte=seven_days_ago, escalated_to_ticket=True
         # ).count()
-        
-        escalation_rate = (escalated_sessions / ai_sessions * 100) if ai_sessions > 0 else 0
-        
+
+        escalation_rate = (
+            (escalated_sessions / ai_sessions * 100) if ai_sessions > 0 else 0
+        )
+
         # Most-used resources (top 5 by view count)
         most_used_resources = list(
-            Content.objects.filter(status='published')
-            .order_by('-view_count')[:5]
-            .values('id', 'title', 'content_type', 'view_count')
+            Content.objects.filter(status="published")
+            .order_by("-view_count")[:5]
+            .values("id", "title", "content_type", "view_count")
         )
-        
+
         # System health status
         system_health = SystemHealthService.get_system_health()
-        
+
         stats_data = {
-            'active_clients': active_clients,
-            'active_clients_link': '/admin-portal/v1/clients/?activity=active',
-            'pending_tickets': pending_tickets,
-            'upcoming_meetings': upcoming_meetings,
-            'system_notifications': system_notifications,
-            'portal_logins_7days': portal_logins_7days,
-            'ai_chat_sessions': ai_sessions,
-            'escalation_rate': round(escalation_rate, 2),
-            'most_used_resources': most_used_resources,
-            'system_health': system_health
+            "active_clients": active_clients,
+            "active_clients_link": "/admin-portal/v1/clients/?activity=active",
+            "pending_tickets": pending_tickets,
+            "upcoming_meetings": upcoming_meetings,
+            "system_notifications": system_notifications,
+            "portal_logins_7days": portal_logins_7days,
+            "ai_chat_sessions": ai_sessions,
+            "escalation_rate": round(escalation_rate, 2),
+            "most_used_resources": most_used_resources,
+            "system_health": system_health,
         }
 
         serializer = DashboardStatsSerializer(stats_data)
@@ -113,15 +123,15 @@ class RecentActivityView(APIView):
     def get(self, request):
         # Role-based client filtering
         user_role = request.user.admin_profile.role
-        client_queryset = Client.objects.select_related('user', 'assigned_admin')
-        
-        if user_role.name == 'admin' and not user_role.can_view_all_clients:
+        client_queryset = Client.objects.select_related("user", "assigned_admin")
+
+        if user_role.name == "admin" and not user_role.can_view_all_clients:
             # Admin can only see clients assigned to them
             client_queryset = client_queryset.filter(assigned_admin=request.user)
-        
+
         # Recent clients (last 10)
-        recent_clients = client_queryset.order_by('-created_at')[:10]
-        
+        recent_clients = client_queryset.order_by("-created_at")[:10]
+
         # Recent tickets (last 10)
         recent_tickets = Ticket.objects.select_related("client__user").order_by(
             "-created_at"
@@ -169,7 +179,7 @@ class QuickStatsView(APIView):
                         confirmed_datetime__date=now.date(), status="confirmed"
                     ).count(),
                     "ai_conversations": 0,  # AIConversation.objects.filter(
-                        # created_at__gte=today_start
+                    # created_at__gte=today_start
                     # ).count(),
                 },
                 "this_week": {
@@ -190,61 +200,64 @@ class QuickStatsView(APIView):
 @extend_schema(
     tags=["Admin Dashboard"],
     summary="Get client management dashboard widgets",
-    description="Retrieve client-specific dashboard widgets including client distribution by stage/pillar, recent client activity, and quick access links."
+    description="Retrieve client-specific dashboard widgets including client distribution by stage/pillar, recent client activity, and quick access links.",
 )
 class ClientDashboardWidgetsView(APIView):
     """Client management dashboard widgets"""
+
     permission_classes = [IsAuthenticated]
-    
+
     def get(self, request):
         # Role-based client access
         user_role = request.user.admin_profile.role
         client_queryset = Client.objects.all()
-        
-        if user_role.name == 'admin' and not user_role.can_view_all_clients:
+
+        if user_role.name == "admin" and not user_role.can_view_all_clients:
             client_queryset = client_queryset.filter(assigned_admin=request.user)
-        
+
         # Client distribution by stage
         clients_by_stage = dict(
-            client_queryset.values('stage')
-            .annotate(count=Count('id'))
-            .values_list('stage', 'count')
+            client_queryset.values("stage")
+            .annotate(count=Count("id"))
+            .values_list("stage", "count")
         )
-        
+
         # Client distribution by pillar
         clients_by_pillar = dict(
-            client_queryset.values('primary_pillar')
-            .annotate(count=Count('id'))
-            .values_list('primary_pillar', 'count')
+            client_queryset.values("primary_pillar")
+            .annotate(count=Count("id"))
+            .values_list("primary_pillar", "count")
         )
-        
+
         # Recent client activity (last 7 days)
         now = timezone.now()
         recent_activity = {
-            'new_clients': client_queryset.filter(
+            "new_clients": client_queryset.filter(
                 created_at__gte=now - timedelta(days=7)
             ).count(),
-            'active_clients': client_queryset.filter(
+            "active_clients": client_queryset.filter(
                 user__last_login__gte=now - timedelta(days=7)
             ).count(),
-            'dormant_clients': client_queryset.filter(
-                Q(user__last_login__lt=now - timedelta(days=30)) |
-                Q(user__last_login__isnull=True)
-            ).count()
+            "dormant_clients": client_queryset.filter(
+                Q(user__last_login__lt=now - timedelta(days=30))
+                | Q(user__last_login__isnull=True)
+            ).count(),
         }
-        
+
         # Quick access links
         quick_links = {
-            'all_clients': '/admin-portal/v1/clients/',
-            'active_clients': '/admin-portal/v1/clients/?activity=active',
-            'dormant_clients': '/admin-portal/v1/clients/?activity=dormant',
-            'new_clients': f'/admin-portal/v1/clients/?created_after={now - timedelta(days=7)}',
+            "all_clients": "/admin-portal/v1/clients/",
+            "active_clients": "/admin-portal/v1/clients/?activity=active",
+            "dormant_clients": "/admin-portal/v1/clients/?activity=dormant",
+            "new_clients": f"/admin-portal/v1/clients/?created_after={now - timedelta(days=7)}",
         }
-        
-        return Response({
-            'clients_by_stage': clients_by_stage,
-            'clients_by_pillar': clients_by_pillar,
-            'recent_activity': recent_activity,
-            'quick_links': quick_links,
-            'total_clients': client_queryset.count()
-        })
+
+        return Response(
+            {
+                "clients_by_stage": clients_by_stage,
+                "clients_by_pillar": clients_by_pillar,
+                "recent_activity": recent_activity,
+                "quick_links": quick_links,
+                "total_clients": client_queryset.count(),
+            }
+        )

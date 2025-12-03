@@ -2,16 +2,17 @@ from django.contrib.auth import get_user_model
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
+from admin_portal.models import AdminProfile, Meeting
 from notification.utils import notify_user
-from scheduling.models import MeetingRequest
 
 from .models import Activity, ContactMessage
-from admin_portal.models import AdminProfile
+
 User = get_user_model()
+from admin_portal.models import Client
 from client.tasks.activities import invalidate_recommendations_cache
 
 from .models import Profile
-from admin_portal.models import Client
+
 
 @receiver(post_save, sender=ContactMessage)
 def send_contact_notifications(sender, instance, created, **kwargs):
@@ -51,7 +52,7 @@ def send_contact_notifications(sender, instance, created, **kwargs):
 @receiver(post_save)
 def auto_create_activity(sender, instance, created, **kwargs):
     """Auto-create activities for key models"""
-    if sender == MeetingRequest and created:
+    if sender == Meeting and created:
         user = getattr(instance, "requester", None)
         if not user:
             return
@@ -59,7 +60,7 @@ def auto_create_activity(sender, instance, created, **kwargs):
             user=user,
             action_type="Meeting Activity",
             title="Upcoming meeting scheduled",
-            message="Meeting on {instance.preferred_slots}",
+            message="Meeting on {instance.requested_datetime}",
         )
         invalidate_recommendations_cache.delay(user.id)
 

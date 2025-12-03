@@ -1,18 +1,20 @@
 import datetime
-from rest_framework import viewsets, status
+
 import stripe
 from django.conf import settings
 from django.http import HttpResponse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework import status
+from drf_spectacular.utils import extend_schema
+from rest_framework import status, viewsets
 from rest_framework.generics import ListAPIView
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from drf_spectacular.utils import extend_schema
-from rest_framework.permissions import AllowAny
-from ..models import Invoice, Subscription, PricingPlan
+
+from common.permissions import IsAdminUser
+
+from ..models import Invoice, PricingPlan, Subscription
 from .serializers import (
     BillingPortalSerializer,
     ChangePlanSerializer,
@@ -21,16 +23,19 @@ from .serializers import (
     PauseSubscriptionSerializer,
     PricingPlanSerializer,
 )
-from common.permissions import IsAdminUser
+
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
 User = settings.AUTH_USER_MODEL
 
+
 @extend_schema(
-    tags=["payment"],)
+    tags=["payment"],
+)
 class CreateCheckoutSession(APIView):
     serializer_class = CreateCheckoutSerializer
     permission_classes = [IsAuthenticated]
+
     def post(self, request):
         price_id = request.data.get("price_id")
 
@@ -42,7 +47,8 @@ class CreateCheckoutSession(APIView):
                 mode="subscription",
                 payment_method_types=["card"],
                 line_items=[{"price": price_id, "quantity": 1}],
-                success_url=settings.STRIPE_SUCCESS_URL + "?session_id={CHECKOUT_SESSION_ID}",
+                success_url=settings.STRIPE_SUCCESS_URL
+                + "?session_id={CHECKOUT_SESSION_ID}",
                 cancel_url=settings.STRIPE_CANCEL_URL,
             )
 
@@ -50,6 +56,7 @@ class CreateCheckoutSession(APIView):
 
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
 
 @csrf_exempt
 def stripe_webhook(request):
@@ -108,8 +115,10 @@ def stripe_webhook(request):
 
     return HttpResponse(status=200)
 
+
 @extend_schema(
-    tags=["payment"],)
+    tags=["payment"],
+)
 class ChangePlanView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -154,7 +163,8 @@ class ChangePlanView(APIView):
 
 
 @extend_schema(
-    tags=["payment"],)
+    tags=["payment"],
+)
 class PauseSubscriptionView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -200,7 +210,8 @@ class PauseSubscriptionView(APIView):
 
 
 @extend_schema(
-    tags=["payment"],)
+    tags=["payment"],
+)
 class BillingPortalView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -224,7 +235,8 @@ class BillingPortalView(APIView):
 
 
 @extend_schema(
-    tags=["payment"],)
+    tags=["payment"],
+)
 class StripeWebhookView(APIView):
 
     def post(self, request):
@@ -272,9 +284,11 @@ class StripeWebhookView(APIView):
             )
 
         return HttpResponse(status=200)
-    
+
+
 @extend_schema(
-    tags=["payment"],)
+    tags=["payment"],
+)
 class BillingHistoryView(ListAPIView):
     serializer_class = InvoiceHistorySerializer
     permission_classes = [IsAuthenticated]
@@ -284,12 +298,14 @@ class BillingHistoryView(ListAPIView):
 
 
 @extend_schema(
-    tags=["payment"],)
+    tags=["payment"],
+)
 class PricingPlanViewSet(viewsets.ModelViewSet):
     queryset = PricingPlan.objects.all()
     serializer_class = PricingPlanSerializer
+
     def get_permissions(self):
-        
+
         if self.request.method in ("GET", "HEAD", "OPTIONS"):
             return [AllowAny()]
         return [IsAdminUser()]
@@ -305,7 +321,7 @@ class PricingPlanViewSet(viewsets.ModelViewSet):
         price = stripe.Price.create(
             product=product.id,
             unit_amount=amount,
-            currency="usd",   
+            currency="usd",
             recurring={"interval": "month"},
         )
         serializer.save(stripe_price_id=price.id)
