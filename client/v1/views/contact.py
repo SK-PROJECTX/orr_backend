@@ -2,7 +2,6 @@ from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from admin_portal.permissions import IsAdminExceptContentEditor
 
 from ...models import ContactMessage
 from ..serializers.contact import (
@@ -35,7 +34,7 @@ class ContactRequestView(APIView):
 
 class SupportHistoryListView(generics.ListAPIView):
     serializer_class = SupportMessageSerializer
-    permission_classes = [permissions.IsAuthenticated, IsAdminExceptContentEditor]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         return ContactMessage.objects.all().order_by("-created_at")

@@ -47,7 +47,7 @@ urlpatterns = [
     path("profile/create/", CreateOrUpdateProfileView.as_view(), name="profile-create"),
     path("account/settings/", AccountSettingsView.as_view(), name="account-settings"),
     path(
-        "support/messages/",
+        "support/history/",
         SupportHistoryListView.as_view(),
         name="support-messages-list",
     ),

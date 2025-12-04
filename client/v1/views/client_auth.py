@@ -27,10 +27,9 @@ class ClientSignupView(views.APIView):
 
         if not serializer.is_valid():
             return Response(
-                {"error": "Invalid data.", "details": serializer.errors},
+                {"errors": serializer.errors},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
         username = serializer.validated_data["username"]
         email = serializer.validated_data["email"]
         password = serializer.validated_data["password"]
@@ -44,19 +43,6 @@ class ClientSignupView(views.APIView):
                 {"error": "Weak password.", "details": exc.messages},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
-        if User.objects.filter(username=username).exists():
-            return Response(
-                {"message": "Username already exists."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        if User.objects.filter(email=email).exists():
-            return Response(
-                {"message": "Email already exists."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
         user = User(
             username=username,
             email=email,
