@@ -94,12 +94,15 @@ class Client(Audit):
 
 
 class Ticket(Audit):
-    """Support ticket system"""
+    """Payment and support ticket system"""
 
     STATUS_CHOICES = [
         ("new", "New"),
-        ("in_progress", "In Progress"),
-        ("waiting_client", "Waiting on Client"),
+        ("processing", "Processing Payment"),
+        ("payment_failed", "Payment Failed"),
+        ("payment_disputed", "Payment Disputed"),
+        ("refund_requested", "Refund Requested"),
+        ("refund_processed", "Refund Processed"),
         ("resolved", "Resolved"),
         ("archived", "Archived"),
     ]
@@ -112,9 +115,11 @@ class Ticket(Audit):
     ]
 
     SOURCE_CHOICES = [
-        ("ai_escalation", "AI Escalation"),
+        ("payment_webhook", "Payment Webhook"),
+        ("billing_portal", "Billing Portal"),
+        ("subscription_change", "Subscription Change"),
         ("manual_request", "Manual Request"),
-        ("portal_form", "Portal Form"),
+        ("client_inquiry", "Client Inquiry"),
     ]
 
     ticket_id = models.CharField(max_length=20, unique=True)
@@ -140,13 +145,27 @@ class Ticket(Audit):
     description = models.TextField()
     internal_notes = models.TextField(blank=True)
 
-    # Relationships
-    related_meeting = models.ForeignKey(
-        "Meeting", on_delete=models.SET_NULL, null=True, blank=True
+    # Payment relationships (required - all tickets must be payment-related)
+    related_invoice = models.ForeignKey(
+        "payment.Invoice", on_delete=models.CASCADE, null=True, blank=True
     )
-    related_content = models.ForeignKey(
-        "Content", on_delete=models.SET_NULL, null=True, blank=True
+    related_subscription = models.ForeignKey(
+        "payment.Subscription", on_delete=models.CASCADE, null=True, blank=True
     )
+    
+    # Payment specific fields
+    payment_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    stripe_payment_intent_id = models.CharField(max_length=255, blank=True)
+    refund_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        if not self.related_invoice and not self.related_subscription:
+            raise ValidationError("Ticket must be linked to either an invoice or subscription.")
+    
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
 
     def save(self, *args, **kwargs):
         if not self.ticket_id:

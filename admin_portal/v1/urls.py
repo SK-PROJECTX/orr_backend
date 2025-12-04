@@ -7,6 +7,7 @@ from .views import (
     auth,
     client,
     client_profile,
+    cms,
     compliance,
     content,
     dashboard,
@@ -284,6 +285,30 @@ role_management_patterns = [
     ),
 ]
 
+# CMS URLs
+cms_patterns = [
+    path("all-content/", cms.AllHomepageContentView.as_view(), name="cms-all-content"),
+    path("homepage/", cms.HomePageView.as_view(), name="cms-homepage"),
+    path("approach-section/", cms.ApproachSectionView.as_view(), name="cms-approach-section"),
+    path("business-system-section/", cms.BusinessSystemSectionView.as_view(), name="cms-business-system-section"),
+    path("orr-role-section/", cms.ORRRoleSectionView.as_view(), name="cms-orr-role-section"),
+    path("message-strip/", cms.MessageStripView.as_view(), name="cms-message-strip"),
+    path("process-section/", cms.ProcessSectionView.as_view(), name="cms-process-section"),
+    path("orr-report-section/", cms.ORRReportSectionView.as_view(), name="cms-orr-report-section"),
+    path("upload-image/", cms.ImageUploadView.as_view(), name="cms-upload-image"),
+    path("service-cards/", cms.ServiceCardListView.as_view(), name="cms-service-cards"),
+    path("service-cards/<int:pk>/", cms.ServiceCardDetailView.as_view(), name="cms-service-card-detail"),
+    path("testimonials/", cms.TestimonialListView.as_view(), name="cms-testimonials"),
+    path("testimonials/<int:pk>/", cms.TestimonialDetailView.as_view(), name="cms-testimonial-detail"),
+    path("faqs/", cms.FAQListView.as_view(), name="cms-faqs"),
+    path("faqs/<int:pk>/", cms.FAQDetailView.as_view(), name="cms-faq-detail"),
+    path("blog/", cms.BlogPostListView.as_view(), name="cms-blog"),
+    path("blog/<int:pk>/", cms.BlogPostDetailView.as_view(), name="cms-blog-detail"),
+    path("blog/<int:pk>/publish/", cms.BlogPostPublishView.as_view(), name="cms-blog-publish"),
+    path("contact-info/", cms.ContactInfoView.as_view(), name="cms-contact-info"),
+    path("site-settings/", cms.SiteSettingsView.as_view(), name="cms-settings"),
+]
+
 urlpatterns = [
     path("auth/", include(auth_patterns)),
     path("dashboard/", include(dashboard_patterns)),
@@ -299,4 +324,5 @@ urlpatterns = [
     path("compliance/", include(compliance_patterns)),
     path("role-management/", include(role_management_patterns)),
     path("system/", include(system_health_patterns)),
+    path("cms/", include(cms_patterns)),
 ]
