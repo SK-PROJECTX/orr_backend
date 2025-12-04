@@ -13,6 +13,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from common.permissions import IsAdminUser
+from admin_portal.payment_ticket_service import PaymentTicketService
 
 from ..models import Invoice, PricingPlan, Subscription
 from .serializers import (
@@ -98,20 +99,23 @@ def stripe_webhook(request):
                 "current_period_end": current_period_end,
             },
         )
-        if event["type"] == "customer.subscription.deleted":
-            data = event["data"]["object"]
-            subscription_id = data["id"]
+        
+    elif event["type"] == "customer.subscription.deleted":
+        data = event["data"]["object"]
+        subscription_id = data["id"]
 
-            try:
-                sub = Subscription.objects.get(stripe_subscription_id=subscription_id)
-                sub.is_active = False
-                sub.save()
+        try:
+            sub = Subscription.objects.get(stripe_subscription_id=subscription_id)
+            PaymentTicketService.create_subscription_cancelled_ticket(sub)
+            
+            sub.is_active = False
+            sub.save()
 
-                sub.user.is_active = False
-                sub.user.save()
+            sub.user.is_active = False
+            sub.user.save()
 
-            except Subscription.DoesNotExist:
-                pass
+        except Subscription.DoesNotExist:
+            pass
 
     return HttpResponse(status=200)
 
@@ -282,6 +286,31 @@ class StripeWebhookView(APIView):
                     "hosted_invoice_url": data.get("hosted_invoice_url"),
                 },
             )
+            
+        elif event["type"] == "invoice.payment_failed":
+            data = event["data"]["object"]
+            user = User.objects.filter(customer_id=data["customer"]).first()
+            if user:
+                invoice = Invoice.objects.filter(stripe_invoice_id=data["id"]).first()
+                if invoice:
+                    PaymentTicketService.create_payment_failed_ticket(invoice)
+                    
+        elif event["type"] == "invoice.payment_action_required":
+            data = event["data"]["object"]
+            user = User.objects.filter(customer_id=data["customer"]).first()
+            if user:
+                invoice = Invoice.objects.filter(stripe_invoice_id=data["id"]).first()
+                if invoice:
+                    PaymentTicketService.create_payment_failed_ticket(invoice)
+                    
+        elif event["type"] == "customer.dispute.created":
+            data = event["data"]["object"]
+            charge_id = data.get("charge")
+            if charge_id:
+                # Find invoice by charge and create dispute ticket
+                invoice = Invoice.objects.filter(stripe_invoice_id__contains=charge_id[:10]).first()
+                if invoice:
+                    PaymentTicketService.create_dispute_ticket(invoice)
 
         return HttpResponse(status=200)
 

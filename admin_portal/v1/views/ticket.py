@@ -1,4 +1,5 @@
-from django.db.models import Avg, Count, Q
+from django.db import models
+from django.db.models import Avg, Count, Q, Sum
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import generics, status
@@ -68,6 +69,14 @@ class TicketListView(generics.ListCreateAPIView):
         source = self.request.query_params.get("source", None)
         if source:
             queryset = queryset.filter(source=source)
+            
+        # All tickets are payment-related, so no need for has_payment filter
+            
+        payment_status = self.request.query_params.get("payment_status", None)
+        if payment_status:
+            payment_statuses = ["processing", "payment_failed", "payment_disputed", "refund_requested", "refund_processed"]
+            if payment_status in payment_statuses:
+                queryset = queryset.filter(status=payment_status)
 
         # Date range filter
         date_from = self.request.query_params.get("date_from", None)
@@ -198,45 +207,48 @@ class TicketActionsView(APIView):
                         status=status.HTTP_400_BAD_REQUEST,
                     )
 
-            elif action == "link_meeting":
-                meeting_id = request.data.get("meeting_id")
-                if meeting_id:
-                    from admin_portal.models import Meeting
 
+                    
+            elif action == "update_payment":
+                invoice_id = request.data.get("invoice_id")
+                subscription_id = request.data.get("subscription_id")
+                
+                if invoice_id:
+                    from payment.models import Invoice
                     try:
-                        meeting = Meeting.objects.get(pk=meeting_id)
-                        ticket.related_meeting = meeting
+                        invoice = Invoice.objects.get(pk=invoice_id)
+                        ticket.related_invoice = invoice
+                        ticket.payment_amount = invoice.amount
                         ticket.save()
-                        return Response({"message": "Meeting linked to ticket"})
-                    except Meeting.DoesNotExist:
-                        return Response(
-                            {"error": "Meeting not found"},
-                            status=status.HTTP_400_BAD_REQUEST,
-                        )
-                else:
-                    ticket.related_meeting = None
-                    ticket.save()
-                    return Response({"message": "Meeting unlinked from ticket"})
-
-            elif action == "link_content":
-                content_id = request.data.get("content_id")
-                if content_id:
-                    from admin_portal.models import Content
-
+                        return Response({"message": "Invoice linked to ticket"})
+                    except Invoice.DoesNotExist:
+                        return Response({"error": "Invoice not found"}, status=status.HTTP_400_BAD_REQUEST)
+                        
+                elif subscription_id:
+                    from payment.models import Subscription
                     try:
-                        content = Content.objects.get(pk=content_id)
-                        ticket.related_content = content
+                        subscription = Subscription.objects.get(pk=subscription_id)
+                        ticket.related_subscription = subscription
                         ticket.save()
-                        return Response({"message": "Content linked to ticket"})
-                    except Content.DoesNotExist:
-                        return Response(
-                            {"error": "Content not found"},
-                            status=status.HTTP_400_BAD_REQUEST,
-                        )
+                        return Response({"message": "Subscription linked to ticket"})
+                    except Subscription.DoesNotExist:
+                        return Response({"error": "Subscription not found"}, status=status.HTTP_400_BAD_REQUEST)
                 else:
-                    ticket.related_content = None
+                    ticket.related_invoice = None
+                    ticket.related_subscription = None
+                    ticket.payment_amount = None
                     ticket.save()
-                    return Response({"message": "Content unlinked from ticket"})
+                    return Response({"message": "Payment unlinked from ticket"})
+                    
+            elif action == "process_refund":
+                refund_amount = request.data.get("refund_amount")
+                if refund_amount and ticket.related_invoice:
+                    ticket.refund_amount = refund_amount
+                    ticket.status = "refund_processed"
+                    ticket.save()
+                    return Response({"message": "Refund processed"})
+                else:
+                    return Response({"error": "Invalid refund request"}, status=status.HTTP_400_BAD_REQUEST)
 
             else:
                 return Response(
@@ -263,9 +275,20 @@ class TicketStatsView(APIView):
         # Basic ticket counts
         total_tickets = Ticket.objects.count()
         new_tickets = Ticket.objects.filter(status="new").count()
-        in_progress_tickets = Ticket.objects.filter(status="in_progress").count()
-        waiting_client_tickets = Ticket.objects.filter(status="waiting_client").count()
+        processing_payments = Ticket.objects.filter(status="processing").count()
+        payment_failed = Ticket.objects.filter(status="payment_failed").count()
+        payment_disputed = Ticket.objects.filter(status="payment_disputed").count()
+        refund_requested = Ticket.objects.filter(status="refund_requested").count()
         resolved_tickets = Ticket.objects.filter(status="resolved").count()
+        
+        # Payment-specific metrics
+        total_payment_amount = Ticket.objects.filter(payment_amount__isnull=False).aggregate(
+            total=models.Sum('payment_amount')
+        )['total'] or 0
+        
+        total_refund_amount = Ticket.objects.filter(refund_amount__isnull=False).aggregate(
+            total=models.Sum('refund_amount')
+        )['total'] or 0
 
         # Average response and resolution times (placeholder - would need actual calculation)
         avg_response_time = 2.5  # hours
@@ -288,9 +311,13 @@ class TicketStatsView(APIView):
         stats_data = {
             "total_tickets": total_tickets,
             "new_tickets": new_tickets,
-            "in_progress_tickets": in_progress_tickets,
-            "waiting_client_tickets": waiting_client_tickets,
+            "processing_payments": processing_payments,
+            "payment_failed": payment_failed,
+            "payment_disputed": payment_disputed,
+            "refund_requested": refund_requested,
             "resolved_tickets": resolved_tickets,
+            "total_payment_amount": total_payment_amount,
+            "total_refund_amount": total_refund_amount,
             "avg_response_time": avg_response_time,
             "avg_resolution_time": avg_resolution_time,
             "tickets_by_priority": tickets_by_priority,

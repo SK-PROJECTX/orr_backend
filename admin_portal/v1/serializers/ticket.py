@@ -4,7 +4,7 @@ from admin_portal.models import Ticket, TicketMessage
 
 
 class TicketListSerializer(serializers.ModelSerializer):
-    """Ticket list view serializer"""
+    """Payment ticket list view serializer"""
 
     client_name = serializers.CharField(source="client.user.get_full_name")
     client_company = serializers.CharField(source="client.company")
@@ -12,6 +12,7 @@ class TicketListSerializer(serializers.ModelSerializer):
         source="assigned_to.get_full_name", allow_null=True
     )
     messages_count = serializers.SerializerMethodField()
+    payment_type = serializers.SerializerMethodField()
 
     class Meta:
         model = Ticket
@@ -26,16 +27,27 @@ class TicketListSerializer(serializers.ModelSerializer):
             "client_company",
             "assigned_to_name",
             "messages_count",
+            "payment_type",
+            "payment_amount",
+            "refund_amount",
+            "stripe_payment_intent_id",
             "created_at",
             "updated_at",
         ]
 
     def get_messages_count(self, obj):
         return obj.messages.count()
+        
+    def get_payment_type(self, obj):
+        if obj.related_invoice:
+            return "invoice"
+        elif obj.related_subscription:
+            return "subscription"
+        return "unknown"
 
 
 class TicketDetailSerializer(serializers.ModelSerializer):
-    """Detailed ticket view serializer"""
+    """Detailed payment ticket view serializer"""
 
     client_name = serializers.CharField(source="client.user.get_full_name")
     client_email = serializers.CharField(source="client.user.email")
@@ -43,8 +55,7 @@ class TicketDetailSerializer(serializers.ModelSerializer):
     assigned_to_name = serializers.CharField(
         source="assigned_to.get_full_name", allow_null=True
     )
-    related_meeting_info = serializers.SerializerMethodField()
-    related_content_info = serializers.SerializerMethodField()
+    related_payment_info = serializers.SerializerMethodField()
 
     class Meta:
         model = Ticket
@@ -61,34 +72,38 @@ class TicketDetailSerializer(serializers.ModelSerializer):
             "client_company",
             "assigned_to_name",
             "internal_notes",
-            "related_meeting_info",
-            "related_content_info",
+            "payment_amount",
+            "refund_amount",
+            "stripe_payment_intent_id",
+            "related_payment_info",
             "created_at",
             "updated_at",
         ]
 
-    def get_related_meeting_info(self, obj):
-        if obj.related_meeting:
+    def get_related_payment_info(self, obj):
+        if obj.related_invoice:
             return {
-                "id": obj.related_meeting.id,
-                "type": obj.related_meeting.meeting_type,
-                "datetime": obj.related_meeting.confirmed_datetime
-                or obj.related_meeting.requested_datetime,
+                "type": "invoice",
+                "id": obj.related_invoice.id,
+                "stripe_id": obj.related_invoice.stripe_invoice_id,
+                "amount": obj.related_invoice.amount,
+                "status": obj.related_invoice.status,
+                "billing_date": obj.related_invoice.billing_date,
             }
-        return None
-
-    def get_related_content_info(self, obj):
-        if obj.related_content:
+        elif obj.related_subscription:
             return {
-                "id": obj.related_content.id,
-                "title": obj.related_content.title,
-                "type": obj.related_content.content_type,
+                "type": "subscription",
+                "id": obj.related_subscription.id,
+                "stripe_id": obj.related_subscription.stripe_subscription_id,
+                "plan_name": obj.related_subscription.plan_name,
+                "is_active": obj.related_subscription.is_active,
+                "current_period_end": obj.related_subscription.current_period_end,
             }
         return None
 
 
 class TicketUpdateSerializer(serializers.ModelSerializer):
-    """Ticket update serializer"""
+    """Payment ticket update serializer"""
 
     class Meta:
         model = Ticket
@@ -97,8 +112,11 @@ class TicketUpdateSerializer(serializers.ModelSerializer):
             "priority",
             "assigned_to",
             "internal_notes",
-            "related_meeting",
-            "related_content",
+            "related_invoice",
+            "related_subscription",
+            "payment_amount",
+            "refund_amount",
+            "stripe_payment_intent_id",
         ]
 
 
@@ -127,7 +145,7 @@ class TicketMessageSerializer(serializers.ModelSerializer):
 
 
 class TicketCreateSerializer(serializers.ModelSerializer):
-    """Create new ticket serializer"""
+    """Create new payment ticket serializer"""
 
     class Meta:
         model = Ticket
@@ -138,7 +156,16 @@ class TicketCreateSerializer(serializers.ModelSerializer):
             "priority",
             "source",
             "assigned_to",
+            "related_invoice",
+            "related_subscription",
+            "payment_amount",
+            "stripe_payment_intent_id",
         ]
+        
+    def validate(self, data):
+        if not data.get('related_invoice') and not data.get('related_subscription'):
+            raise serializers.ValidationError("Ticket must be linked to either an invoice or subscription.")
+        return data
 
 
 class TicketStatsSerializer(serializers.Serializer):
@@ -146,9 +173,13 @@ class TicketStatsSerializer(serializers.Serializer):
 
     total_tickets = serializers.IntegerField()
     new_tickets = serializers.IntegerField()
-    in_progress_tickets = serializers.IntegerField()
-    waiting_client_tickets = serializers.IntegerField()
+    processing_payments = serializers.IntegerField()
+    payment_failed = serializers.IntegerField()
+    payment_disputed = serializers.IntegerField()
+    refund_requested = serializers.IntegerField()
     resolved_tickets = serializers.IntegerField()
+    total_payment_amount = serializers.DecimalField(max_digits=10, decimal_places=2)
+    total_refund_amount = serializers.DecimalField(max_digits=10, decimal_places=2)
     avg_response_time = serializers.FloatField()
     avg_resolution_time = serializers.FloatField()
     tickets_by_priority = serializers.DictField()

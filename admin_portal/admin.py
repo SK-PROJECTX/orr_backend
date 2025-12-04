@@ -16,6 +16,23 @@ from .models import (
     Ticket,
     TicketMessage,
 )
+from .models_cms import (
+    HomePage,
+    ServiceCard,
+    Testimonial,
+    FAQ,
+    BlogPost,
+    ContactInfo,
+    SiteSettings,
+    ApproachSection,
+    BusinessSystemCard,
+    BusinessSystemSection,
+    ORRRoleSection,
+    MessageStrip,
+    ProcessStage,
+    ProcessSection,
+    ORRReportSection,
+)
 
 
 @admin.register(AdminRole)
@@ -62,7 +79,7 @@ class TicketAdmin(admin.ModelAdmin):
     ]
     list_filter = ["status", "priority", "source", "assigned_to"]
     search_fields = ["ticket_id", "subject", "client__user__email", "client__company"]
-    raw_id_fields = ["client", "assigned_to", "related_meeting", "related_content"]
+    raw_id_fields = ["client", "assigned_to", "related_invoice", "related_subscription"]
     readonly_fields = ["ticket_id", "created_at", "updated_at"]
 
 
@@ -153,3 +170,106 @@ class ClientDocumentAdmin(admin.ModelAdmin):
     list_filter = ["document_type", "is_visible_to_client", "uploaded_by"]
     search_fields = ["client__user__email", "title", "description"]
     raw_id_fields = ["client", "uploaded_by"]
+
+
+# CMS Admin Registration
+@admin.register(HomePage)
+class HomePageAdmin(admin.ModelAdmin):
+    list_display = ["hero_title", "is_active", "last_updated_by", "updated_at"]
+    list_filter = ["is_active"]
+    readonly_fields = ["created_at", "updated_at"]
+
+
+@admin.register(ServiceCard)
+class ServiceCardAdmin(admin.ModelAdmin):
+    list_display = ["title", "pillar", "order", "is_active"]
+    list_filter = ["pillar", "is_active"]
+    list_editable = ["order", "is_active"]
+    ordering = ["order"]
+
+
+@admin.register(Testimonial)
+class TestimonialAdmin(admin.ModelAdmin):
+    list_display = ["client_name", "client_company", "rating", "is_featured", "is_active"]
+    list_filter = ["rating", "is_featured", "is_active"]
+    list_editable = ["is_featured", "is_active"]
+
+
+@admin.register(FAQ)
+class FAQAdmin(admin.ModelAdmin):
+    list_display = ["question", "category", "order", "is_active"]
+    list_filter = ["category", "is_active"]
+    list_editable = ["order", "is_active"]
+    ordering = ["category", "order"]
+
+
+@admin.register(BlogPost)
+class BlogPostAdmin(admin.ModelAdmin):
+    list_display = ["title", "author", "status", "is_featured", "published_at"]
+    list_filter = ["status", "is_featured", "author"]
+    prepopulated_fields = {"slug": ("title",)}
+    readonly_fields = ["view_count"]
+
+
+@admin.register(ContactInfo)
+class ContactInfoAdmin(admin.ModelAdmin):
+    list_display = ["company_name", "email", "phone", "is_active"]
+    list_filter = ["is_active"]
+
+
+@admin.register(ApproachSection)
+class ApproachSectionAdmin(admin.ModelAdmin):
+    list_display = ["title", "is_active", "updated_at"]
+    list_filter = ["is_active"]
+
+
+@admin.register(BusinessSystemSection)
+class BusinessSystemSectionAdmin(admin.ModelAdmin):
+    list_display = ["title", "subtitle", "is_active"]
+    list_filter = ["is_active"]
+
+
+@admin.register(BusinessSystemCard)
+class BusinessSystemCardAdmin(admin.ModelAdmin):
+    list_display = ["title", "order", "is_active"]
+    list_filter = ["is_active"]
+    list_editable = ["order", "is_active"]
+    ordering = ["order"]
+
+
+@admin.register(ORRRoleSection)
+class ORRRoleSectionAdmin(admin.ModelAdmin):
+    list_display = ["title", "is_active", "updated_at"]
+    list_filter = ["is_active"]
+
+
+@admin.register(MessageStrip)
+class MessageStripAdmin(admin.ModelAdmin):
+    list_display = ["title", "is_active", "updated_at"]
+    list_filter = ["is_active"]
+
+
+@admin.register(ProcessSection)
+class ProcessSectionAdmin(admin.ModelAdmin):
+    list_display = ["title", "is_active", "updated_at"]
+    list_filter = ["is_active"]
+
+
+@admin.register(ProcessStage)
+class ProcessStageAdmin(admin.ModelAdmin):
+    list_display = ["title", "order", "is_active"]
+    list_filter = ["is_active"]
+    list_editable = ["order", "is_active"]
+    ordering = ["order"]
+
+
+@admin.register(ORRReportSection)
+class ORRReportSectionAdmin(admin.ModelAdmin):
+    list_display = ["title", "is_active", "updated_at"]
+    list_filter = ["is_active"]
+
+
+@admin.register(SiteSettings)
+class SiteSettingsAdmin(admin.ModelAdmin):
+    list_display = ["site_name", "primary_color", "is_active"]
+    list_filter = ["is_active"]
