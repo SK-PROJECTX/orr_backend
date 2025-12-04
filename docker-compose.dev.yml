@@ -19,14 +19,16 @@ services:
       - .:/app
     depends_on:
       - db
-    command:  ["/app/entrypoint.sh"]
+    command:  ["/app/entrypoint.dev.sh"]
         
   worker:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
     container_name: orr_backend_worker
     command: >
-      sh -c "./wait-for-it.sh db:5432 -- 
-          poetry run celery -A core worker --loglevel=info"
+      sh -c "./wait-for-it.sh db:5432 --
+            exec poetry run celery -A core worker --loglevel=info"
 
     environment:
       - DATABASE_URL=${DATABASE_URL}
@@ -36,6 +38,8 @@ services:
     depends_on:
       - db
       - redis
+    volumes:
+    - .:/app
 
   db:
     image: postgres:16

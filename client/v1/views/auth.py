@@ -2,8 +2,6 @@ import logging
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_exempt
 from drf_spectacular.utils import extend_schema
 from rest_framework import status, views
 from rest_framework.permissions import AllowAny
@@ -21,7 +19,6 @@ User = get_user_model()
 
 
 @extend_schema(tags=["auth"])
-@method_decorator(csrf_exempt, name="dispatch")
 class SignupView(views.APIView):
     permission_classes = [AllowAny]
     serializer_class = SignUpSerializer
@@ -95,7 +92,6 @@ class SignupView(views.APIView):
 
 
 @extend_schema(tags=["auth"])
-@method_decorator(csrf_exempt, name="dispatch")
 class LoginView(APIView):
     permission_classes = [AllowAny]
     serializer_class = LoginSerializer
