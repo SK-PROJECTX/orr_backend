@@ -8,7 +8,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
-
+from drf_spectacular.utils import extend_schema_field, extend_schema_serializer, OpenApiExample
 from services.notifications.email_verification import (
     send_email_verification_notification,
 )
@@ -89,6 +89,8 @@ class SignupView(views.APIView):
             {"detail": "Registration successful. Email sent."},
             status=status.HTTP_201_CREATED,
         )
+
+
 
 
 @extend_schema(tags=["auth"])
