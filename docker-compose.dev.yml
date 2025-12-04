@@ -14,25 +14,25 @@ services:
       - DATABASE_URL=${DATABASE_URL}
       - CELERY_BROKER_URL=${CELERY_BROKER_URL}
       - SECRET_KEY=${SECRET_KEY}
+      - SERVICE=web
     volumes:
       - .:/app
     depends_on:
       - db
-    command: >  
-      sh -c "./wait-for-it.sh db:5432 -- 
-          poetry run python manage.py migrate;
-          poetry run python manage.py runserver 0.0.0.0:8000"
+    command:  ["/app/entrypoint.sh"]
+        
   worker:
     build: .
     container_name: orr_backend_worker
     command: >
       sh -c "./wait-for-it.sh db:5432 -- 
-          celery -A core worker --loglevel=info"
+          poetry run celery -A core worker --loglevel=info"
 
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - CELERY_BROKER_URL=${CELERY_BROKER_URL}
       - SECRET_KEY=${SECRET_KEY}
+      - SERVICE=worker
     depends_on:
       - db
       - redis
