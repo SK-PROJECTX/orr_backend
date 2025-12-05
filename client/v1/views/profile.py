@@ -2,9 +2,9 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
+from django.shortcuts import get_object_or_404
 from ...models import Profile
-from ..serializers.profile import ProfileCreateSerializer
+from ..serializers.profile import ProfileCreateSerializer, ProfileSerializer
 
 
 class CreateOrUpdateProfileView(APIView):
@@ -27,6 +27,24 @@ class CreateOrUpdateProfileView(APIView):
                     else "Profile updated successfully"
                 ),
                 "profile": serializer.data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class GetProfileView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        profile = get_object_or_404(Profile, user=request.user)
+        serializer = ProfileSerializer(profile, context={"request": request})
+
+        return Response(
+            {
+                "success": True,
+                "status": 200,
+                "message": "Profile retrieved successfully",
+                "data": serializer.data,
             },
             status=status.HTTP_200_OK,
         )

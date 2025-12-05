@@ -21,7 +21,7 @@ from .views.contact import (
     SupportMessageUpdateView,
 )
 from .views.onboarding import OnboardingQuestionnaireViewSet
-from .views.profile import CreateOrUpdateProfileView
+from .views.profile import CreateOrUpdateProfileView, GetProfileView
 from .views.role_check import RoleCheckView
 
 router = DefaultRouter()
@@ -70,4 +70,5 @@ urlpatterns = [
     path("favorites/<int:document_id>/toggle/", ToggleFavoriteView.as_view(), name="favorites-toggle"),
     path("favorites/<int:pk>/delete/", FavoriteDeleteView.as_view(), name="favorites-delete"),
      path("client/documents/", ClientDocumentsView.as_view(), name="client-documents"),
+    path("profile/", GetProfileView.as_view(), name="get-profile"),
 ]
