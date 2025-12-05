@@ -5,8 +5,11 @@ from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
 from ...models import Profile
 from ..serializers.profile import ProfileCreateSerializer, ProfileSerializer
+from drf_spectacular.utils import extend_schema
 
 
+
+@extend_schema(tags=["profile"])
 class CreateOrUpdateProfileView(APIView):
     permission_classes = [IsAuthenticated]
     serializer_class = ProfileCreateSerializer
@@ -32,6 +35,7 @@ class CreateOrUpdateProfileView(APIView):
         )
 
 
+@extend_schema(tags=["profile"])
 class GetProfileView(APIView):
     permission_classes = [IsAuthenticated]
 

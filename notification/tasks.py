@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 @shared_task(max_retries=3, default_retry_delay=10)
 def send_email_task(subject, recipient_email, template_name, context):
     """
-    Send email using Brevo SMTP (not Gmail—updated docstring for clarity).
+    Send email using Brevo SMTP .
     """
     html_content = render_to_string(template_name, context)
 
@@ -59,7 +59,7 @@ class EmailService:
 
     def send_email(self, subject, recipient_email, template_name, context):
         try:
-            context["from_email"] = "orr.com"
+            context["from_email"] = "info@orr.solutions"
 
 
             send_email_task.delay(subject, recipient_email, template_name, context)
