@@ -24,6 +24,7 @@ def notify_admin_on_new_contact_message(sender, instance, created, **kwargs):
     logger.info(
         f"New ContactMessage created (ID={instance.id}). Preparing admin notifications..."
     )
+    print( f"New ContactMessage created (ID={instance.id}). Preparing admin notifications...")
 
     admin_profiles = AdminProfile.objects.exclude(role__name="content_editor")
 
