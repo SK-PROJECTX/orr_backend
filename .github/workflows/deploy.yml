@@ -21,6 +21,7 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
+          registry: docker.io
 
       - name: Generate version tag
         id: vars
@@ -62,25 +63,4 @@ jobs:
           rm -rf /tmp/.buildx-cache
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
-  notify:
-    needs: build
-    if: failure()
-    runs-on: ubuntu-latest
-
-    steps:
-
-      - name: Send Email Notification
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: ${{ secrets.SMTP_HOST }}
-          server_port: ${{ secrets.SMTP_PORT }}
-          username: ${{ secrets.SMTP_USERNAME }}
-          password: ${{ secrets.SMTP_PASSWORD }}
-          subject: " ORR Backend CI/CD Build FAILED"
-          to: ${{ secrets.SEND_TO_EMAIL }}
-          from: ${{ secrets.SMTP_USERNAME }}
-          body: |
-            The ORR backend CI/CD process failed.
-            Branch: staging
-            Workflow: Build & Deploy Docker Images
-            Check logs in GitHub Actions.
+ 

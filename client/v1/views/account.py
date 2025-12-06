@@ -133,10 +133,37 @@ class ChangePasswordView(generics.UpdateAPIView):
         )
 
 
-@extend_schema(tags=["account-setting"])
+@extend_schema(tags=["profile account-setting"])
 class AccountSettingsView(APIView):
     permission_classes = [IsAuthenticated]
     serializer_class = AccountSettingsDetailsSerializer
+
+    def get(self, request):
+        """Retrieve the current user's account settings."""
+        user = request.user
+        profile = request.user.profile
+
+        return Response(
+            {
+                "user": {
+                    "first_name": user.first_name,
+                    "last_name": user.last_name,
+                    "username": user.username,
+                    "email": user.email,
+                },
+                "profile": {
+                    "phone_number": profile.phone_number,
+                    "city": profile.city,
+                    "country": profile.country,
+                    "zip_code": profile.zip_code,
+                    "bio": profile.bio_text,
+                    "profile_pic": profile.profile_pic.url if profile.profile_pic else None,
+                    "bio_attachment": profile.bio_attachment.url if profile.bio_attachment else None,
+                    "timezone": profile.timezone,
+                },
+            },
+            status=status.HTTP_200_OK,
+        )
 
     def patch(self, request):
         serializer = AccountSettingsDetailsSerializer(
@@ -198,7 +225,7 @@ class AccountSettingsView(APIView):
             status=status.HTTP_200_OK,
         )
 
-
+@extend_schema(tags=["activities"])
 class DashboardOverviewView(APIView):
     permission_classes = [IsAuthenticated]
 
