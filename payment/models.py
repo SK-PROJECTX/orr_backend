@@ -5,13 +5,18 @@ from common.models import Audit
 
 
 class PricingPlan(Audit):
+    BILLING_TYPE_CHOICES = [
+        ("monthly", "Monthly"),
+        ("metered", "Per Hour / Metered"),
+    ]
     name = models.CharField(max_length=100)
     stripe_price_id = models.CharField(max_length=200)
     amount = models.IntegerField()  # cents
+    billing_type = models.CharField(max_length=20, choices=BILLING_TYPE_CHOICES)
     description = models.TextField(blank=True)
 
     def __str__(self):
-        return self.name
+        return f"{self.name} ({self.billing_type})"
 
 
 class Subscription(Audit):
@@ -20,10 +25,13 @@ class Subscription(Audit):
     )
     stripe_subscription_id = models.CharField(max_length=255, unique=True)
     stripe_customer_id = models.CharField(max_length=255)
+    plan = models.ForeignKey(PricingPlan, on_delete=models.SET_NULL, null=True)
     plan_name = models.CharField(max_length=100)
     is_active = models.BooleanField(default=True)
     current_period_end = models.DateTimeField(null=True, blank=True)
+    used_hours = models.FloatField(null=True, blank=True)
 
+    
     def __str__(self):
         return f"{self.user} -> {self.plan_name}"
 

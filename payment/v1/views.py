@@ -42,12 +42,22 @@ class CreateCheckoutSession(APIView):
 
         if not price_id:
             return Response({"error": "price_id is required"}, status=400)
+        try:
+            plan = PricingPlan.objects.get(stripe_price_id=price_id)
+        except PricingPlan.DoesNotExist:
+            return Response({"error": "Invalid price_id"}, status=400)
+
 
         try:
             session = stripe.checkout.Session.create(
                 mode="subscription",
                 payment_method_types=["card"],
                 line_items=[{"price": price_id, "quantity": 1}],
+                metadata={
+                    "user_id": request.user.id,
+                    "plan_id": plan.id,
+                    "billing_type": plan.billing_type,
+                },
                 success_url=settings.STRIPE_SUCCESS_URL
                 + "?session_id={CHECKOUT_SESSION_ID}",
                 cancel_url=settings.STRIPE_CANCEL_URL,
@@ -73,15 +83,19 @@ def stripe_webhook(request):
 
     if event["type"] == "checkout.session.completed":
         data = event["data"]["object"]
-
         customer_id = data["customer"]
         subscription_id = data["subscription"]
+        metadata = data.get("metadata", {})
+        plan_id = metadata.get("plan_id")
+        billing_type = metadata.get("billing_type")
         email = data.get("customer_details", {}).get("email")
 
         try:
             user = User.objects.get(email=email)
-        except User.DoesNotExist:
+            plan = PricingPlan.objects.get(id=plan_id)
+        except (User.DoesNotExist, PricingPlan.DoesNotExist):
             return HttpResponse(status=200)
+
 
         stripe_sub = stripe.Subscription.retrieve(subscription_id)
 
@@ -97,6 +111,7 @@ def stripe_webhook(request):
                 "plan_name": plan_name,
                 "is_active": True,
                 "current_period_end": current_period_end,
+                "used_hours": 0 if billing_type == "metered" else None,
             },
         )
         
