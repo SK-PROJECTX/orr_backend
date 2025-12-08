@@ -25,13 +25,7 @@ class SignupView(views.APIView):
 
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
-
-        if not serializer.is_valid():
-            return Response(
-                {"error": "Invalid data.", "details": serializer.errors},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
+        serializer.is_valid(raise_exception=True)
         username = serializer.validated_data["username"]
         email = serializer.validated_data["email"]
         password = serializer.validated_data["password"]

@@ -16,6 +16,23 @@ def api_response(
 class CustomJSONRenderer(JSONRenderer):
     charset = "utf-8"
 
+    def flatten_errors(self, errors):
+        """Turn DRF serializer errors into readable text."""
+        if isinstance(errors, list):
+            return " ".join([self.flatten_errors(e) for e in errors])
+
+        if isinstance(errors, dict):
+            messages = []
+            for field, msgs in errors.items():
+                text = self.flatten_errors(msgs)
+                if field == "non_field_errors":
+                    messages.append(text)
+                else:
+                    messages.append(f"{field}: {text}")
+            return " | ".join(messages)
+
+        return str(errors)
+
     def render(self, data, accepted_media_type=None, renderer_context=None):
         response = renderer_context.get("response", None)
         status_code = getattr(response, "status_code", 200)
@@ -25,6 +42,12 @@ class CustomJSONRenderer(JSONRenderer):
             message = "Request successful"
         else:
             message = "Validation error" if status_code == 400 else "Request failed"
+        if not success and isinstance(data, dict):
+            if "detail" in data:
+                message = data.get("detail")
+                data.pop("detail", None)
+            else:
+                message = self.flatten_errors(data)
 
         if isinstance(data, dict):
             if "message" in data:
