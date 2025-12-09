@@ -26,7 +26,7 @@ urlpatterns = [
     path("subscriptions/portal/", BillingPortalView.as_view(), name="billing-portal"),
     path("webhook/", StripeWebhookView.as_view()),
     path("billing-history/", BillingHistoryView.as_view()),
-    path("stripe/webhook/", stripe_webhook, name="stripe-webhook"),
+    path("stripe-webhook/", stripe_webhook, name="stripe-webhook"),
 ]
 
 urlpatterns += router.urls

@@ -4,6 +4,13 @@ from django.db import models
 from common.models import Audit
 
 
+
+
+
+
+
+
+
 class PricingPlan(Audit):
     BILLING_TYPE_CHOICES = [
         ("monthly", "Monthly"),
@@ -35,6 +42,27 @@ class Subscription(Audit):
     def __str__(self):
         return f"{self.user} -> {self.plan_name}"
 
+
+
+class CheckoutSessionLog(Audit):
+    STATUS_CHOICES = [
+        ("initiated", "Initiated"),
+        ("completed", "Completed (Success)"),
+        ("expired", "Expired/Canceled/Failed"),
+    ]
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="checkout_logs"
+    )
+    plan = models.ForeignKey(
+        PricingPlan, on_delete=models.SET_NULL, null=True, related_name="checkout_logs"
+    )
+    stripe_session_id = models.CharField(max_length=128, unique=True)
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default="initiated"
+    )
+    
+    def __str__(self):
+        return f"Session {self.stripe_session_id} ({self.status}) for {self.user}"
 
 class Invoice(Audit):
     user = models.ForeignKey(User, on_delete=models.CASCADE)

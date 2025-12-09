@@ -11,11 +11,11 @@ from rest_framework.generics import ListAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
+import traceback
 from common.permissions import IsAdminUser
 from admin_portal.payment_ticket_service import PaymentTicketService
-
-from ..models import Invoice, PricingPlan, Subscription
+from ..tasks import handle_stripe_event
+from ..models import Invoice, PricingPlan, Subscription, CheckoutSessionLog
 from .serializers import (
     BillingPortalSerializer,
     ChangePlanSerializer,
@@ -24,8 +24,9 @@ from .serializers import (
     PauseSubscriptionSerializer,
     PricingPlanSerializer,
 )
-
-stripe.api_key = settings.STRIPE_SECRET_KEY
+import logging
+logger = logging.getLogger(__name__)
+stripe.api_key = settings.STRIPE_SECRET_KEY  
 
 User = settings.AUTH_USER_MODEL
 
@@ -41,14 +42,17 @@ class CreateCheckoutSession(APIView):
         price_id = request.data.get("price_id")
 
         if not price_id:
+            logger.error("price_id is missing in request data")
             return Response({"error": "price_id is required"}, status=400)
+        
         try:
             plan = PricingPlan.objects.get(stripe_price_id=price_id)
         except PricingPlan.DoesNotExist:
+            logger.error(f"PricingPlan not found for price_id: {price_id}")
             return Response({"error": "Invalid price_id"}, status=400)
 
-
         try:
+            logger.info(f"Creating Stripe session for user: {request.user.id} with plan: {plan.id}")
             session = stripe.checkout.Session.create(
                 mode="subscription",
                 payment_method_types=["card"],
@@ -62,77 +66,46 @@ class CreateCheckoutSession(APIView):
                 + "?session_id={CHECKOUT_SESSION_ID}",
                 cancel_url=settings.STRIPE_CANCEL_URL,
             )
-
+            CheckoutSessionLog.objects.create(
+                user=request.user,
+                plan=plan,
+                stripe_session_id=session.id,
+                status="initiated" 
+            )
+            logger.info(f"Stripe session created successfully, session_id: {session.id}")
             return Response({"checkout_url": session.url})
 
         except Exception as e:
+            logger.error(f"Error creating Stripe session: {str(e)}")
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
 
 @csrf_exempt
 def stripe_webhook(request):
     payload = request.body
-    sig_header = request.META["HTTP_STRIPE_SIGNATURE"]
+    sig_header = request.META.get("HTTP_STRIPE_SIGNATURE")
 
-    try:
-        event = stripe.Webhook.construct_event(
-            payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
-        )
-    except Exception:
+    if not sig_header:
+        logger.error("Missing Stripe signature header")
         return HttpResponse(status=400)
 
-    if event["type"] == "checkout.session.completed":
-        data = event["data"]["object"]
-        customer_id = data["customer"]
-        subscription_id = data["subscription"]
-        metadata = data.get("metadata", {})
-        plan_id = metadata.get("plan_id")
-        billing_type = metadata.get("billing_type")
-        email = data.get("customer_details", {}).get("email")
+    try:
+        event = stripe.Webhook.construct_event(payload, sig_header, settings.STRIPE_WEBHOOK_SECRET)
+    except Exception as e:
+        logger.exception("Invalid Stripe webhook signature")
+        return HttpResponse(status=400)
 
-        try:
-            user = User.objects.get(email=email)
-            plan = PricingPlan.objects.get(id=plan_id)
-        except (User.DoesNotExist, PricingPlan.DoesNotExist):
-            return HttpResponse(status=200)
-
-
-        stripe_sub = stripe.Subscription.retrieve(subscription_id)
-
-        plan_name = stripe_sub["items"]["data"][0]["plan"]["nickname"]
-        current_period_end = timezone.datetime.fromtimestamp(
-            stripe_sub["current_period_end"], timezone.utc
-        )
-        Subscription.objects.update_or_create(
-            user=user,
-            defaults={
-                "stripe_subscription_id": subscription_id,
-                "stripe_customer_id": customer_id,
-                "plan_name": plan_name,
-                "is_active": True,
-                "current_period_end": current_period_end,
-                "used_hours": 0 if billing_type == "metered" else None,
-            },
-        )
-        
-    elif event["type"] == "customer.subscription.deleted":
-        data = event["data"]["object"]
-        subscription_id = data["id"]
-
-        try:
-            sub = Subscription.objects.get(stripe_subscription_id=subscription_id)
-            PaymentTicketService.create_subscription_cancelled_ticket(sub)
-            
-            sub.is_active = False
-            sub.save()
-
-            sub.user.is_active = False
-            sub.user.save()
-
-        except Subscription.DoesNotExist:
-            pass
-
+    
+    try:
+        handle_stripe_event.delay(event)  
+    except Exception:
+        logger.exception("Failed to enqueue Stripe event to Celery")
     return HttpResponse(status=200)
+
+
+
+
+
+
 
 
 @extend_schema(
