@@ -406,18 +406,6 @@ class CreateCalendlyWebhook(APIView):
         scope = data["scope"]
 
         try:
-            org_response = requests.get(
-                "https://api.calendly.com/organizations/me",
-                headers={"Authorization": f"Bearer {settings.CALENDLY_API_KEY}"}
-            )
-            org_response.raise_for_status()
-            organizations = org_response.json().get("collection", [])
-            if not organizations:
-                return Response({"error": "No organizations found for API key"}, status=400)
-            organization_uri = organizations[0]["uri"]
-        except Exception as e:
-            return Response({"error": f"Failed to fetch organization_uri: {str(e)}"}, status=400)
-        try:
             user_response = requests.get(
                 "https://api.calendly.com/users/me",
                 headers={"Authorization": f"Bearer {settings.CALENDLY_API_KEY}"}
@@ -430,7 +418,6 @@ class CreateCalendlyWebhook(APIView):
         payload = {
             "url": webhook_url,
             "events": events,
-            "organization": organization_uri,
             "user": user_uri,
             "scope": scope
         }
