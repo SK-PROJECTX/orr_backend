@@ -67,3 +67,35 @@ class HasSubscriptionPlan(BasePermission):
         return user.subscription.plan_name.lower() in [
             plan.lower() for plan in self.allowed_plans
         ]
+
+
+
+
+class HasActiveMeteredSubscription(BasePermission):
+    """
+    Allows access only to users who have an active metered subscription.
+    """
+
+    message = "You must have an active meeting subscription to access this."
+
+    def has_permission(self, request, view):
+        user = request.user
+        if not user.is_authenticated:
+            return False
+
+        subscription = getattr(user, "subscription", None)
+        if not subscription:
+            return False
+
+        # Check if subscription is active and plan is metered
+        if not subscription.is_active:
+            return False
+
+        plan = subscription.plan
+        if not plan:
+            return False
+
+        if plan.billing_type != "metered":
+            return False
+
+        return True

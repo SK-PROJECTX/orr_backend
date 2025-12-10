@@ -72,3 +72,17 @@ class MeetingCalendarSerializer(serializers.ModelSerializer):
             "color",
             "meeting_link",
         ]
+
+
+
+class CalendlyWebhookSerializer(serializers.Serializer):
+    webhook_url = serializers.URLField()
+    events = serializers.ListField(
+        child=serializers.CharField(),
+        default=[
+            "invitee.created",
+            "invitee.canceled",
+            "invitee.rescheduled"
+        ]
+    )
+    scope = serializers.ChoiceField(choices=["user", "organization"], default="user")

@@ -9,6 +9,7 @@ from .views import (
     MeetingChangeStatusView,
     MyMeetingsView,
     UpdateMeetingPrepView,
+    CreateCalendlyWebhook,
 )
 
 urlpatterns = [
@@ -28,4 +29,5 @@ urlpatterns = [
     path("event-type/", EventTypesView.as_view()),
     path("calendar/", CalendarView.as_view(), name="calendar-month"),
     path("webhooks/calendly/", CalendlyWebhookView.as_view(), name="calendly-webhook"),
+    path('calendly/webhook/create/', CreateCalendlyWebhook.as_view(), name='create_calendly_webhook'),
 ]

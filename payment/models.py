@@ -5,12 +5,6 @@ from common.models import Audit
 
 
 
-
-
-
-
-
-
 class PricingPlan(Audit):
     BILLING_TYPE_CHOICES = [
         ("monthly", "Monthly"),

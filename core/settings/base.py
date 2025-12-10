@@ -52,7 +52,6 @@ INSTALLED_APPS = [
     "main",
     "admin_portal",
     "scheduling",
-    "organization",
     "payment",
 ]
 

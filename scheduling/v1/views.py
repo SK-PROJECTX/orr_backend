@@ -11,10 +11,11 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
+from django.conf import settings
+import requests
 from client.models import Activity
 from services.meetings.calendly import CalendlyAPI
-
+from common.permissions import HasActiveMeteredSubscription
 
 from .serializers import (
     MeetingCalendarSerializer,
@@ -22,6 +23,7 @@ from .serializers import (
     MeetingRequestSerializer,
     MeetingSerializer,
     MeetingStatusChangeSerializer,
+    CalendlyWebhookSerializer,
 )
 
 logger = logging.getLogger(__name__)
@@ -134,7 +136,7 @@ class AvailableSlotsView(APIView):
 
 @extend_schema(tags=["scheduling"])
 class CreateMeetingView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasActiveMeteredSubscription]
     serializer_class = MeetingRequestSerializer
 
     def post(self, request):
@@ -166,7 +168,7 @@ class MeetingChangeStatusView(APIView):
     POST /api/meetings/<pk>/change-status/
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, HasActiveMeteredSubscription]
     serializer_class = MeetingStatusChangeSerializer
 
     def post(self, request, pk):
@@ -351,15 +353,20 @@ class CalendlyWebhookView(APIView):
         calendly_event_id = payload.get("event", {}).get("uri")
         meeting_link = payload.get("event", {}).get("location", {}).get("join_url")
         start_time_str = payload.get("event", {}).get("start_time")
+        end_str = payload.get("event", {}).get("end_time")
         start_time = parse_datetime(start_time_str) if start_time_str else None
+        end_time = parse_datetime(end_str) if end_str else None
 
         meeting = Meeting.objects.filter(meeting_link=meeting_link).first()
 
         if meeting:
             meeting.status = "confirmed"
+            meeting.end_datetime = end_time
             meeting.confirmed_datetime = start_time
             meeting.calendar_event_id = calendly_event_id
             meeting.save()
+            from ..billing import charge_for_meeting
+            charge_for_meeting(meeting)
 
     def handle_canceled(self, payload):
         """
@@ -384,3 +391,62 @@ class CalendlyWebhookView(APIView):
             meeting.status = "rescheduled"
             meeting.confirmed_datetime = start_time
             meeting.save()
+
+
+
+class CreateCalendlyWebhook(APIView):
+    serializer_class = CalendlyWebhookSerializer
+    def post(self, request):
+        serializer = CalendlyWebhookSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        webhook_url = data["webhook_url"]
+        events = data["events"]
+        scope = data["scope"]
+
+        try:
+            org_response = requests.get(
+                "https://api.calendly.com/organizations/me",
+                headers={"Authorization": f"Bearer {settings.CALENDLY_API_KEY}"}
+            )
+            org_response.raise_for_status()
+            organizations = org_response.json().get("collection", [])
+            if not organizations:
+                return Response({"error": "No organizations found for API key"}, status=400)
+            organization_uri = organizations[0]["uri"]
+        except Exception as e:
+            return Response({"error": f"Failed to fetch organization_uri: {str(e)}"}, status=400)
+        try:
+            user_response = requests.get(
+                "https://api.calendly.com/users/me",
+                headers={"Authorization": f"Bearer {settings.CALENDLY_API_KEY}"}
+            )
+            user_response.raise_for_status()
+            user_uri = user_response.json()["resource"]["uri"]
+        except Exception as e:
+            return Response({"error": f"Failed to fetch user_uri: {str(e)}"}, status=400)
+
+        payload = {
+            "url": webhook_url,
+            "events": events,
+            "organization": organization_uri,
+            "user": user_uri,
+            "scope": scope
+        }
+
+        try:
+            response = requests.post(
+                "https://api.calendly.com/webhook_subscriptions",
+                json=payload,
+                headers={
+                    "Authorization": f"Bearer {settings.CALENDLY_API_KEY}",
+                    "Content-Type": "application/json"
+                },
+                timeout=10
+            )
+            response.raise_for_status()
+        except requests.exceptions.RequestException as e:
+            return Response({"error": f"Failed to create webhook: {str(e)}"}, status=400)
+
+        return Response({"webhook": response.json()}, status=201)

@@ -285,12 +285,13 @@ class Meeting(Audit):
         max_length=20, choices=STATUS_CHOICES, default="requested"
     )
 
-    # Scheduling
+
     requested_datetime = models.DateTimeField()
     confirmed_datetime = models.DateTimeField(null=True, blank=True)
+    end_datetime = models.DateTimeField(null=True, blank=True)
     duration_minutes = models.PositiveIntegerField(default=60)
 
-    # Details
+
     agenda = models.TextField(blank=True)
     meeting_notes = models.TextField(blank=True)
     internal_notes = models.TextField(blank=True)
@@ -307,6 +308,17 @@ class Meeting(Audit):
     # Integration
     calendar_event_id = models.CharField(max_length=200, blank=True)
     meeting_link = models.URLField(blank=True)
+
+    @property
+    def duration_hours(self):
+         # If Calendly sent confirmed start & end time:
+        if self.confirmed_datetime and hasattr(self, "end_datetime") and self.end_datetime:
+            delta = self.end_datetime - self.confirmed_datetime
+            minutes = delta.total_seconds() / 60
+            return minutes / 60
+
+        return self.duration_minutes / 60
+
 
     @property
     def event_date(self):
