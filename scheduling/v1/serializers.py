@@ -82,7 +82,6 @@ class CalendlyWebhookSerializer(serializers.Serializer):
         default=[
             "invitee.created",
             "invitee.canceled",
-            "invitee.rescheduled"
         ]
     )
     scope = serializers.ChoiceField(choices=["user", "organization"], default="user")

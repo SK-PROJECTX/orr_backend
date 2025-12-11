@@ -321,6 +321,10 @@ class CalendlyWebhookView(APIView):
             "payload": {...}
         }
         """
+        data = request.data
+        if data.get("event") == "ping" or data == {}:
+            return Response({"status": "ok"}, status=200)
+
         event_type = request.data.get("event")
         payload = request.data.get("payload")
 
@@ -393,36 +397,64 @@ class CalendlyWebhookView(APIView):
             meeting.save()
 
 
-
 class CreateCalendlyWebhook(APIView):
     serializer_class = CalendlyWebhookSerializer
+
     def post(self, request):
         serializer = CalendlyWebhookSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
+
 
         webhook_url = data["webhook_url"]
         events = data["events"]
         scope = data["scope"]
 
         try:
+            org_response = requests.get(
+                "https://api.calendly.com/users/me",
+                headers={"Authorization": f"Bearer {settings.CALENDLY_API_KEY}"},
+                timeout=10
+            )
+            org_response.raise_for_status()
+            organization_uri = org_response.json()["resource"]["current_organization"]
+            
+        except Exception as e:
+            return Response(
+                {"error": f"Failed to fetch organization URI: {str(e)}"},
+                status=400
+            )
+        try:
             user_response = requests.get(
                 "https://api.calendly.com/users/me",
-                headers={"Authorization": f"Bearer {settings.CALENDLY_API_KEY}"}
+                headers={"Authorization": f"Bearer {settings.CALENDLY_API_KEY}"},
+                timeout=10
             )
             user_response.raise_for_status()
-            user_uri = user_response.json()["resource"]["uri"]
-        except Exception as e:
-            return Response({"error": f"Failed to fetch user_uri: {str(e)}"}, status=400)
+            user_data = user_response.json()["resource"]
+            user_role = user_data.get("role")
 
+            user_uri = user_data["uri"]
+
+        except Exception as e:
+            return Response(
+                {"error": f"Failed to fetch user: {str(e)}"},
+                status=400
+            )
+
+      
         payload = {
             "url": webhook_url,
             "events": events,
-            "user": user_uri,
-            "scope": scope
+            "scope": scope,
+            "organization": organization_uri,
+            "user": user_uri
         }
 
+      
         try:
+            print(payload)
+            print(user_role)
             response = requests.post(
                 "https://api.calendly.com/webhook_subscriptions",
                 json=payload,
@@ -432,8 +464,12 @@ class CreateCalendlyWebhook(APIView):
                 },
                 timeout=10
             )
+            
             response.raise_for_status()
         except requests.exceptions.RequestException as e:
-            return Response({"error": f"Failed to create webhook: {str(e)}"}, status=400)
-
+            return Response(
+                {"error": f"Failed to create webhook: {str(e)}"},
+                status=400
+            )
+            
         return Response({"webhook": response.json()}, status=201)
