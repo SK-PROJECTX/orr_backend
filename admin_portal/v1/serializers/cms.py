@@ -3,7 +3,8 @@ from admin_portal.models_cms import (
     HomePage, ServiceCard, Testimonial, FAQ, BlogPost, 
     ContactInfo, SiteSettings, ApproachSection, BusinessSystemCard,
     BusinessSystemSection, ORRRoleSection, MessageStrip, ProcessStage,
-    ProcessSection, ORRReportSection
+    ProcessSection, ORRReportSection, ServicesPage, ResourcesBlogsPage,
+    LegacyPolicyPage, ContactPage
 )
 from django.core.files.storage import default_storage
 
@@ -256,6 +257,85 @@ class ORRReportSectionSerializer(serializers.ModelSerializer):
             'feature_3', 'feature_3_image',
             'feature_4', 'feature_4_image',
             'is_active', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class ServicesPageSerializer(serializers.ModelSerializer):
+    """Services page serializer"""
+    
+    class Meta:
+        model = ServicesPage
+        fields = [
+            'id', 'hero_title', 'hero_subtitle',
+            'stage_1_title', 'stage_1_subtitle', 'stage_1_description', 'stage_1_focus', 'stage_1_button_text',
+            'stage_2_title', 'stage_2_subtitle', 'stage_2_description', 'stage_2_focus', 'stage_2_button_text',
+            'stage_3_title', 'stage_3_subtitle', 'stage_3_description', 'stage_3_focus', 'stage_3_button_1_text', 'stage_3_button_2_text',
+            'stage_4_title', 'stage_4_subtitle', 'stage_4_description', 'stage_4_focus', 'stage_4_button_text',
+            'stage_5_title', 'stage_5_subtitle', 'stage_5_description', 'stage_5_focus', 'stage_5_button_text',
+            'pillars_title',
+            'pillar_1_title', 'pillar_1_description', 'pillar_1_button_text',
+            'pillar_2_title', 'pillar_2_description', 'pillar_2_button_text',
+            'pillar_3_title', 'pillar_3_description', 'pillar_3_button_text',
+            'business_gp_title', 'business_gp_subtitle', 'business_gp_description', 'business_gp_button_text', 'business_gp_image',
+            'services_overview_title',
+            'service_1_title', 'service_1_description', 'service_1_image', 'service_1_button_text',
+            'service_2_title', 'service_2_description', 'service_2_image', 'service_2_button_text',
+            'data_intelligence_title', 'data_intelligence_description', 'data_intelligence_image', 'data_intelligence_button_text',
+            'meta_title', 'meta_description', 'is_active', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class ResourcesBlogsPageSerializer(serializers.ModelSerializer):
+    """Resources & Blogs page serializer"""
+    
+    class Meta:
+        model = ResourcesBlogsPage
+        fields = [
+            'id', 'hero_title', 'hero_subtitle',
+            'blog_card_1_title', 'blog_card_1_category', 'blog_card_1_image',
+            'blog_card_2_title', 'blog_card_2_category', 'blog_card_2_image',
+            'blog_card_3_title', 'blog_card_3_category', 'blog_card_3_image',
+            'blog_card_4_title', 'blog_card_4_category', 'blog_card_4_image',
+            'admin_tips_title',
+            'tip_1_number', 'tip_1_title', 'tip_1_description',
+            'tip_2_number', 'tip_2_title', 'tip_2_description',
+            'tip_3_number', 'tip_3_title', 'tip_3_description',
+            'meta_title', 'meta_description', 'is_active', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class LegacyPolicyPageSerializer(serializers.ModelSerializer):
+    """Legacy & Policy page serializer"""
+    
+    class Meta:
+        model = LegacyPolicyPage
+        fields = [
+            'id', 'hero_title', 'hero_description',
+            'policy_item_1_number', 'policy_item_1_description',
+            'policy_item_2_number', 'policy_item_2_description',
+            'policy_item_3_number', 'policy_item_3_description',
+            'meta_title', 'meta_description', 'is_active', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class ContactPageSerializer(serializers.ModelSerializer):
+    """Contact page serializer"""
+    
+    class Meta:
+        model = ContactPage
+        fields = [
+            'id', 'hero_title',
+            'contact_info_title', 'contact_info_subtitle',
+            'phone_number', 'email_address', 'address',
+            'first_name_label', 'last_name_label', 'email_label', 'phone_label', 'subject_label', 'message_label',
+            'first_name_placeholder', 'last_name_placeholder', 'email_placeholder', 'phone_placeholder', 'message_placeholder',
+            'subject_option_1', 'subject_option_2', 'subject_option_3', 'subject_option_4',
+            'submit_button_text',
+            'meta_title', 'meta_description', 'is_active', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
 

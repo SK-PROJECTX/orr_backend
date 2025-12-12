@@ -32,6 +32,10 @@ from .models_cms import (
     ProcessStage,
     ProcessSection,
     ORRReportSection,
+    ServicesPage,
+    ResourcesBlogsPage,
+    LegacyPolicyPage,
+    ContactPage,
 )
 
 
@@ -267,6 +271,34 @@ class ProcessStageAdmin(admin.ModelAdmin):
 class ORRReportSectionAdmin(admin.ModelAdmin):
     list_display = ["title", "is_active", "updated_at"]
     list_filter = ["is_active"]
+
+
+@admin.register(ServicesPage)
+class ServicesPageAdmin(admin.ModelAdmin):
+    list_display = ["hero_title", "is_active", "updated_at"]
+    list_filter = ["is_active"]
+    readonly_fields = ["created_at", "updated_at"]
+
+
+@admin.register(ResourcesBlogsPage)
+class ResourcesBlogsPageAdmin(admin.ModelAdmin):
+    list_display = ["hero_title", "is_active", "updated_at"]
+    list_filter = ["is_active"]
+    readonly_fields = ["created_at", "updated_at"]
+
+
+@admin.register(LegacyPolicyPage)
+class LegacyPolicyPageAdmin(admin.ModelAdmin):
+    list_display = ["hero_title", "is_active", "updated_at"]
+    list_filter = ["is_active"]
+    readonly_fields = ["created_at", "updated_at"]
+
+
+@admin.register(ContactPage)
+class ContactPageAdmin(admin.ModelAdmin):
+    list_display = ["hero_title", "is_active", "updated_at"]
+    list_filter = ["is_active"]
+    readonly_fields = ["created_at", "updated_at"]
 
 
 @admin.register(SiteSettings)

@@ -287,8 +287,13 @@ role_management_patterns = [
 
 # CMS URLs
 cms_patterns = [
-    path("all-content/", cms.AllHomepageContentView.as_view(), name="cms-all-content"),
+    path("all-content/", cms.AllContentView.as_view(), name="cms-all-content"),
+    path("homepage-content/", cms.AllHomepageContentView.as_view(), name="cms-homepage-content"),
     path("homepage/", cms.HomePageView.as_view(), name="cms-homepage"),
+    path("services-page/", cms.ServicesPageView.as_view(), name="cms-services-page"),
+    path("resources-page/", cms.ResourcesBlogsPageView.as_view(), name="cms-resources-page"),
+    path("legacy-page/", cms.LegacyPolicyPageView.as_view(), name="cms-legacy-page"),
+    path("contact-page/", cms.ContactPageView.as_view(), name="cms-contact-page"),
     path("approach-section/", cms.ApproachSectionView.as_view(), name="cms-approach-section"),
     path("business-system-section/", cms.BusinessSystemSectionView.as_view(), name="cms-business-system-section"),
     path("orr-role-section/", cms.ORRRoleSectionView.as_view(), name="cms-orr-role-section"),

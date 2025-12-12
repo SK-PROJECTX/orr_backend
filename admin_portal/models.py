@@ -63,9 +63,10 @@ class Client(Audit):
     ]
 
     PILLAR_CHOICES = [
-        ("strategic", "Strategic Advisory & Compliance"),
-        ("digital", "Digital Systems, Automation & AI"),
-        ("living", "Living Systems & Regeneration"),
+        ("strategic", "Strategic"),
+        ("operational", "Operational"),
+        ("financial", "Financial"),
+        ("cultural", "Cultural"),
     ]
 
     user = models.OneToOneField(
@@ -154,24 +155,20 @@ class Ticket(Audit):
     )
     
     # Payment specific fields
-    payment_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    payment_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     stripe_payment_intent_id = models.CharField(max_length=255, blank=True)
     refund_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     
     def clean(self):
-        from django.core.exceptions import ValidationError
-        if not self.related_invoice and not self.related_subscription:
-            raise ValidationError("Ticket must be linked to either an invoice or subscription.")
+        # Optional validation - tickets can be general support tickets
+        pass
     
-    def save(self, *args, **kwargs):
-        self.clean()
-        super().save(*args, **kwargs)
-
     def save(self, *args, **kwargs):
         if not self.ticket_id:
             self.ticket_id = (
                 f"TKT-{timezone.now().strftime('%Y%m%d')}-{self.pk or '001'}"
             )
+        self.clean()
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -204,6 +201,7 @@ class Content(Audit):
         ("checklist", "Checklist"),
         ("template", "Template"),
         ("guide", "Guide"),
+        ("announcement", "Announcement"),
     ]
 
     STATUS_CHOICES = [
@@ -221,9 +219,10 @@ class Content(Audit):
     ]
 
     PILLAR_CHOICES = [
-        ("strategic", "Strategic Advisory & Compliance"),
-        ("digital", "Digital Systems, Automation & AI"),
-        ("living", "Living Systems & Regeneration"),
+        ("strategic", "Strategic"),
+        ("operational", "Operational"),
+        ("financial", "Financial"),
+        ("cultural", "Cultural"),
     ]
 
     title = models.CharField(max_length=200)
@@ -262,10 +261,10 @@ class Meeting(Audit):
     """Meeting management system"""
 
     TYPE_CHOICES = [
-        ("discovery", "Discovery Meeting"),
-        ("follow_up", "Follow-up"),
-        ("report_review", "Report Review"),
+        ("discovery", "Discovery"),
         ("consultation", "Consultation"),
+        ("follow_up", "Follow Up"),
+        ("review", "Review"),
     ]
 
     STATUS_CHOICES = [

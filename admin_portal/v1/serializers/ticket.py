@@ -121,9 +121,9 @@ class TicketUpdateSerializer(serializers.ModelSerializer):
 
 
 class TicketMessageSerializer(serializers.ModelSerializer):
-    """Ticket message serializer"""
+    """Ticket message serializer for reading"""
 
-    sender_name = serializers.CharField(source="sender.get_full_name")
+    sender_name = serializers.CharField(source="sender.get_full_name", read_only=True)
     sender_type = serializers.SerializerMethodField()
 
     class Meta:
@@ -136,12 +136,24 @@ class TicketMessageSerializer(serializers.ModelSerializer):
             "is_internal",
             "created_at",
         ]
+        read_only_fields = ["id", "sender_name", "sender_type", "created_at"]
 
     def get_sender_type(self, obj):
         # Determine if sender is admin or client
         if hasattr(obj.sender, "admin_profile"):
             return "admin"
         return "client"
+
+
+class TicketMessageCreateSerializer(serializers.ModelSerializer):
+    """Ticket message serializer for creating"""
+
+    class Meta:
+        model = TicketMessage
+        fields = [
+            "message",
+            "is_internal",
+        ]
 
 
 class TicketCreateSerializer(serializers.ModelSerializer):
@@ -163,8 +175,12 @@ class TicketCreateSerializer(serializers.ModelSerializer):
         ]
         
     def validate(self, data):
-        if not data.get('related_invoice') and not data.get('related_subscription'):
-            raise serializers.ValidationError("Ticket must be linked to either an invoice or subscription.")
+        # Make payment linking optional for general support tickets
+        # Only require payment linking for payment-related sources
+        payment_sources = ["payment_webhook", "billing_portal", "subscription_change"]
+        if data.get('source') in payment_sources:
+            if not data.get('related_invoice') and not data.get('related_subscription'):
+                raise serializers.ValidationError("Payment-related tickets must be linked to either an invoice or subscription.")
         return data
 
 

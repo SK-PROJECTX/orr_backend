@@ -69,6 +69,12 @@ class ContentListView(generics.ListCreateAPIView):
         return queryset.order_by("-created_at")
 
     def perform_create(self, serializer):
+        # Set published_at if status is published
+        validated_data = serializer.validated_data
+        if validated_data.get('status') == 'published':
+            from django.utils import timezone
+            validated_data['published_at'] = timezone.now()
+        
         serializer.save(author=self.request.user)
 
 
