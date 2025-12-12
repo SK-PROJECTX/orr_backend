@@ -10,6 +10,7 @@ from admin_portal.models import Client, ClientDocument
 from admin_portal.permissions import CanEditClients, CanViewAllClients
 
 from ..serializers.client import (
+    ClientCreateSerializer,
     ClientDetailSerializer,
     ClientDocumentSerializer,
     ClientEngagementHistorySerializer,
@@ -20,23 +21,34 @@ from ..serializers.client import (
 
 @extend_schema(
     tags=["Client Management"],
-    summary="List all clients",
-    description="Retrieve a paginated list of all clients with advanced filtering options including search by name/email/company, filter by stage, pillar, assigned admin, portal status, and activity level.",
+    summary="List or create clients",
+    description="Retrieve a paginated list of all clients with advanced filtering options including search by name/email/company, filter by stage, pillar, assigned admin, portal status, and activity level. Also supports creating new clients.",
 )
-class ClientListView(generics.ListAPIView):
-    """List all clients with filtering and search"""
+class ClientListView(generics.ListCreateAPIView):
+    """List and create clients with filtering and search"""
 
-    serializer_class = ClientListSerializer
-    permission_classes = [CanViewAllClients]
+    def get_permissions(self):
+        if self.request.method == "POST":
+            return [IsAuthenticated()]
+        return [CanViewAllClients()]
+
+    def get_serializer_class(self):
+        if self.request.method == "POST":
+            return ClientCreateSerializer
+        return ClientListSerializer
 
     def get_queryset(self):
         queryset = Client.objects.select_related("user", "assigned_admin").all()
 
         # Role-based filtering
-        user_role = self.request.user.admin_profile.role
-        if user_role.name == "admin" and not user_role.can_view_all_clients:
-            # Admin can only see clients assigned to them
-            queryset = queryset.filter(assigned_admin=self.request.user)
+        try:
+            user_role = self.request.user.admin_profile.role
+            if user_role.name == "admin" and not user_role.can_view_all_clients:
+                # Admin can only see clients assigned to them
+                queryset = queryset.filter(assigned_admin=self.request.user)
+        except AttributeError:
+            # User doesn't have admin profile, show all clients
+            pass
 
         # Search functionality
         search = self.request.query_params.get("search", None)
@@ -44,6 +56,7 @@ class ClientListView(generics.ListAPIView):
             queryset = queryset.filter(
                 Q(user__first_name__icontains=search)
                 | Q(user__last_name__icontains=search)
+                | Q(user__username__icontains=search)
                 | Q(user__email__icontains=search)
                 | Q(company__icontains=search)
             )
@@ -88,6 +101,59 @@ class ClientListView(generics.ListAPIView):
             )
 
         return queryset.order_by("-created_at")
+
+    def post(self, request, *args, **kwargs):
+        """Create a new client with user account"""
+        from django.contrib.auth.models import User
+        from django.db import transaction
+        
+        try:
+            with transaction.atomic():
+                # Validate input data
+                serializer = ClientCreateSerializer(data=request.data)
+                if not serializer.is_valid():
+                    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                
+                validated_data = serializer.validated_data
+                
+                # Create user account
+                user_data = {
+                    'username': validated_data['username'],
+                    'email': validated_data['email'],
+                    'password': 'TempPass123!',  # Temporary password - user should reset
+                }
+                
+                # Handle full name parsing
+                full_name = validated_data.get('full_name', '')
+                if full_name:
+                    name_parts = full_name.strip().split()
+                    user_data['first_name'] = name_parts[0] if name_parts else ''
+                    user_data['last_name'] = ' '.join(name_parts[1:]) if len(name_parts) > 1 else ''
+                
+                user = User.objects.create_user(**user_data)
+                
+                # Create client profile
+                client = Client.objects.create(
+                    user=user,
+                    company=validated_data.get('company', ''),
+                    role=validated_data.get('role', ''),
+                    stage=validated_data.get('stage', 'discover'),
+                    primary_pillar=validated_data.get('primary_pillar', 'strategic'),
+                    assigned_admin=request.user,
+                )
+                
+                # Return success response
+                response_serializer = ClientListSerializer(client)
+                return Response(
+                    response_serializer.data,
+                    status=status.HTTP_201_CREATED
+                )
+                
+        except Exception as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 @extend_schema(

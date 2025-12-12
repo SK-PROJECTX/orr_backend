@@ -61,24 +61,29 @@ class LoginView(APIView):
                 role_name = admin_profile.role.name if admin_profile.role else 'admin'
                 
                 return Response({
-                    'access': str(refresh.access_token),
-                    'refresh': str(refresh),
-                    'user': {
-                        'id': user.id,
-                        'username': user.username,
-                        'email': user.email,
-                        'is_staff': user.is_staff,
-                        'is_superuser': user.is_superuser,
-                        'user_type': 'admin',
-                        'role': role_name,
-                        'can_edit_content': admin_profile.role.can_create_content if admin_profile.role else user.is_superuser,
-                        'permissions': {
-                            'can_manage_users': admin_profile.role.can_manage_users if admin_profile.role else user.is_superuser,
-                            'can_view_all_clients': admin_profile.role.can_view_all_clients if admin_profile.role else user.is_superuser,
-                            'can_edit_clients': admin_profile.role.can_edit_clients if admin_profile.role else user.is_superuser,
-                            'can_manage_tickets': admin_profile.role.can_manage_tickets if admin_profile.role else user.is_superuser,
-                            'can_create_content': admin_profile.role.can_create_content if admin_profile.role else user.is_superuser,
-                            'can_publish_content': admin_profile.role.can_publish_content if admin_profile.role else user.is_superuser,
+                    'success': True,
+                    'status': 200,
+                    'message': 'Login successful',
+                    'data': {
+                        'accessToken': str(refresh.access_token),
+                        'refreshToken': str(refresh),
+                        'user': {
+                            'id': user.id,
+                            'username': user.username,
+                            'email': user.email,
+                            'is_staff': user.is_staff,
+                            'is_superuser': user.is_superuser,
+                            'user_type': 'admin',
+                            'role': role_name,
+                            'can_edit_content': admin_profile.role.can_create_content if admin_profile.role else user.is_superuser,
+                            'permissions': {
+                                'can_manage_users': admin_profile.role.can_manage_users if admin_profile.role else user.is_superuser,
+                                'can_view_all_clients': admin_profile.role.can_view_all_clients if admin_profile.role else user.is_superuser,
+                                'can_edit_clients': admin_profile.role.can_edit_clients if admin_profile.role else user.is_superuser,
+                                'can_manage_tickets': admin_profile.role.can_manage_tickets if admin_profile.role else user.is_superuser,
+                                'can_create_content': admin_profile.role.can_create_content if admin_profile.role else user.is_superuser,
+                                'can_publish_content': admin_profile.role.can_publish_content if admin_profile.role else user.is_superuser,
+                            }
                         }
                     }
                 })
@@ -89,22 +94,27 @@ class LoginView(APIView):
                     client_profile = ClientProfile.objects.get(user=user)
                     
                     return Response({
-                        'access': str(refresh.access_token),
-                        'refresh': str(refresh),
-                        'user': {
-                            'id': user.id,
-                            'username': user.username,
-                            'email': user.email,
-                            'is_staff': user.is_staff,
-                            'is_superuser': user.is_superuser,
-                            'user_type': 'client',
-                            'role': 'client',
-                            'can_edit_content': False,
-                            'permissions': {
-                                'can_view_own_data': True,
-                                'can_book_meetings': True,
-                                'can_create_tickets': True,
-                                'can_view_content': True,
+                        'success': True,
+                        'status': 200,
+                        'message': 'Login successful',
+                        'data': {
+                            'accessToken': str(refresh.access_token),
+                            'refreshToken': str(refresh),
+                            'user': {
+                                'id': user.id,
+                                'username': user.username,
+                                'email': user.email,
+                                'is_staff': user.is_staff,
+                                'is_superuser': user.is_superuser,
+                                'user_type': 'client',
+                                'role': 'client',
+                                'can_edit_content': False,
+                                'permissions': {
+                                    'can_view_own_data': True,
+                                    'can_book_meetings': True,
+                                    'can_create_tickets': True,
+                                    'can_view_content': True,
+                                }
                             }
                         }
                     })
@@ -113,29 +123,38 @@ class LoginView(APIView):
                     # Django superuser without profiles
                     if user.is_superuser:
                         return Response({
-                            'access': str(refresh.access_token),
-                            'refresh': str(refresh),
-                            'user': {
-                                'id': user.id,
-                                'username': user.username,
-                                'email': user.email,
-                                'is_staff': user.is_staff,
-                                'is_superuser': user.is_superuser,
-                                'user_type': 'admin',
-                                'role': 'super_admin',
-                                'can_edit_content': True,
-                                'permissions': {
-                                    'can_manage_users': True,
-                                    'can_view_all_clients': True,
-                                    'can_edit_clients': True,
-                                    'can_manage_tickets': True,
-                                    'can_create_content': True,
-                                    'can_publish_content': True,
+                            'success': True,
+                            'status': 200,
+                            'message': 'Login successful',
+                            'data': {
+                                'accessToken': str(refresh.access_token),
+                                'refreshToken': str(refresh),
+                                'user': {
+                                    'id': user.id,
+                                    'username': user.username,
+                                    'email': user.email,
+                                    'is_staff': user.is_staff,
+                                    'is_superuser': user.is_superuser,
+                                    'user_type': 'admin',
+                                    'role': 'super_admin',
+                                    'can_edit_content': True,
+                                    'permissions': {
+                                        'can_manage_users': True,
+                                        'can_view_all_clients': True,
+                                        'can_edit_clients': True,
+                                        'can_manage_tickets': True,
+                                        'can_create_content': True,
+                                        'can_publish_content': True,
+                                    }
                                 }
                             }
                         })
         
         return Response(
-            {'error': 'Invalid credentials'}, 
+            {
+                'success': False,
+                'status': 401,
+                'message': 'Invalid credentials'
+            }, 
             status=status.HTTP_401_UNAUTHORIZED
         )

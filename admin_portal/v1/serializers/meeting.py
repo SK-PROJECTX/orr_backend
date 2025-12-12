@@ -57,6 +57,33 @@ class MeetingDetailSerializer(serializers.ModelSerializer):
         ]
 
 
+class MeetingCreateSerializer(serializers.ModelSerializer):
+    """Meeting creation serializer"""
+    
+    client_email = serializers.EmailField(write_only=True)
+    
+    class Meta:
+        model = Meeting
+        fields = [
+            "client_email",
+            "meeting_type",
+            "requested_datetime",
+            "duration_minutes",
+            "agenda",
+        ]
+        
+    def validate_client_email(self, value):
+        from django.contrib.auth.models import User
+        from admin_portal.models import Client
+        
+        try:
+            user = User.objects.get(email=value)
+            Client.objects.get(user=user)
+        except (User.DoesNotExist, Client.DoesNotExist):
+            raise serializers.ValidationError("Client with this email not found")
+        return value
+
+
 class MeetingUpdateSerializer(serializers.ModelSerializer):
     """Meeting update serializer"""
 

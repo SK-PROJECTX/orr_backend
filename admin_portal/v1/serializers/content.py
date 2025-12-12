@@ -82,20 +82,44 @@ class ContentCreateUpdateSerializer(serializers.ModelSerializer):
             "summary",
             "content",
             "content_type",
+            "status",
             "stage",
             "pillars",
             "attachment",
         ]
+        extra_kwargs = {
+            'slug': {'required': False}
+        }
 
-    def validate_slug(self, value):
+    def validate(self, data):
+        # Auto-generate slug if not provided
+        if not data.get('slug') and data.get('title'):
+            from django.utils.text import slugify
+            data['slug'] = slugify(data['title'])
+        
         # Check for unique slug excluding current instance
-        instance = getattr(self, "instance", None)
-        if (
-            Content.objects.filter(slug=value)
-            .exclude(pk=instance.pk if instance else None)
-            .exists()
-        ):
-            raise serializers.ValidationError("Content with this slug already exists.")
+        slug = data.get('slug')
+        if slug:
+            instance = getattr(self, "instance", None)
+            if (
+                Content.objects.filter(slug=slug)
+                .exclude(pk=instance.pk if instance else None)
+                .exists()
+            ):
+                # Auto-append number to make it unique
+                base_slug = slug
+                counter = 1
+                while Content.objects.filter(slug=slug).exclude(pk=instance.pk if instance else None).exists():
+                    slug = f"{base_slug}-{counter}"
+                    counter += 1
+                data['slug'] = slug
+        
+        return data
+        
+    def validate_pillars(self, value):
+        # Convert single pillar string to list for consistency
+        if isinstance(value, str):
+            return [value]
         return value
 
 
