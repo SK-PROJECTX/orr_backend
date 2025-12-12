@@ -93,12 +93,6 @@ class EventTypesView(APIView):
             required=False,
             description="Filter slots starting from this date (format: YYYY-MM-DD)",
         ),
-        OpenApiParameter(
-            name="end_date",
-            type=str,
-            required=False,
-            description="Filter slots up to this date (format: YYYY-MM-DD)",
-        ),
     ],
 )
 class AvailableSlotsView(APIView):
@@ -108,26 +102,33 @@ class AvailableSlotsView(APIView):
         meeting_type_uri = request.query_params.get("event_type_uri")
         if not meeting_type_uri:
             return Response({"message": "Missing event_type_uri"}, status=400)
-
+        now = datetime.now()
         start = datetime.now() + timedelta(hours=1)
         end = start + timedelta(days=7)
 
-        start_date_str = request.query_params.get("start_date")
-        end_date_str = request.query_params.get("end_date")
-        try:
-            if start_date_str:
-                start = datetime.strptime(start_date_str, "%Y-%m-%d")
-                if start < datetime.now():
-                    start = datetime.now() + timedelta(minutes=1)
-            if end_date_str:
-                end = datetime.strptime(end_date_str, "%Y-%m-%d")
-                if (end - start).days > 7:
-                    end = start + timedelta(days=7)
-        except ValueError:
-            return Response(
-                {"message": "Invalid date format, use YYYY-MM-DD"}, status=400
-            )
+        date_str = request.query_params.get("start_date")
+        if date_str:
+            try:
+                selected_date = datetime.strptime(date_str, "%Y-%m-%d")
 
+
+                if selected_date.date() < now.date():
+                    return Response({"message": "Date cannot be in the past"}, status=400)
+
+                start = selected_date
+                if start.date() == now.date():
+                    min_start = now + timedelta(hours=1)
+                    if start < min_start:
+                        start = min_start
+
+                end = start + timedelta(days=1)
+            except ValueError:
+                return Response(
+                    {"message": "Invalid date format, use YYYY-MM-DD"}, status=400
+                )
+            else:
+                start = start
+                end = end
         calendly = CalendlyAPI()
         slots = calendly.get_available_slots(meeting_type_uri, start, end)
 
@@ -370,7 +371,7 @@ class CalendlyWebhookView(APIView):
             meeting.calendar_event_id = calendly_event_id
             meeting.save()
             from ..billing import charge_for_meeting
-            charge_for_meeting(meeting)
+            charge_for_meeting.delay(meeting.id)
 
     def handle_canceled(self, payload):
         """
@@ -453,8 +454,6 @@ class CreateCalendlyWebhook(APIView):
 
       
         try:
-            print(payload)
-            print(user_role)
             response = requests.post(
                 "https://api.calendly.com/webhook_subscriptions",
                 json=payload,

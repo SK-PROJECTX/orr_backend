@@ -46,3 +46,10 @@ class PricingPlanSerializer(serializers.ModelSerializer):
         model = PricingPlan
         fields = "__all__"
         read_only_fields = ("stripe_price_id",)
+
+
+class SetupIntentResponseSerializer(serializers.Serializer):
+    client_secret = serializers.CharField()
+    customer_id = serializers.CharField()
+
+

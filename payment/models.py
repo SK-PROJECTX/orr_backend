@@ -30,7 +30,9 @@ class Subscription(Audit):
     plan_name = models.CharField(max_length=100)
     is_active = models.BooleanField(default=True)
     current_period_end = models.DateTimeField(null=True, blank=True)
+    stripe_subscription_item_id = models.CharField(max_length=255, null=True, blank=True)
     used_hours = models.FloatField(null=True, blank=True)
+    default_payment_method = models.CharField(max_length=255, null=True, blank=True)
 
     
     def __str__(self):
@@ -73,3 +75,12 @@ class Invoice(Audit):
 
     def __str__(self):
         return f"Invoice {self.stripe_invoice_id}"
+
+
+class StripeCustomer(Audit):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    stripe_customer_id = models.CharField(max_length=255, unique=True)
+    stripe_card_id = models.CharField(max_length=255, unique=True)
+
+    def __str__(self):
+        return f"{self.user.username} Stripe Customer"

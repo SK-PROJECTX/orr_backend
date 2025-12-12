@@ -68,7 +68,7 @@ def handle_stripe_event(self, event: dict):
 
                 item = sub.get("items", {}).get("data", [{}])[0]
                 plan_name = item.get("price", {}).get("nickname") or item.get("plan", {}).get("nickname") or "Unknown Plan"
-
+                subscription_item_id = item["id"]
             except Exception:
                 logger.exception("Failed retrieving subscription %s", subscription_id)
                 return
@@ -82,6 +82,7 @@ def handle_stripe_event(self, event: dict):
                         "stripe_customer_id": customer_id,
                         "plan": plan,
                         "plan_name": plan_name,
+                        "stripe_subscription_item_id": subscription_item_id,
                         "is_active": True,
                         "current_period_end": current_period_end,
                         "used_hours": 0 if billing_type == "metered" else None,
@@ -176,7 +177,23 @@ def handle_stripe_event(self, event: dict):
             if session_id:
                 CheckoutSessionLog.objects.filter(stripe_session_id=session_id).update(status="expired")
             return
+        if event["type"] == "setup_intent.succeeded":
+            intent = event["data"]["object"]
+            customer_id = intent["customer"]
+            payment_method_id = intent["payment_method"]
 
+            subscription = Subscription.objects.filter(
+                stripe_customer_id=customer_id
+            ).first()
+
+            if subscription:
+                subscription.default_payment_method = payment_method_id
+                subscription.save()
+
+                stripe.Customer.modify(
+                    customer_id,
+                    invoice_settings={"default_payment_method": payment_method_id}
+                )
         if event_type == "customer.subscription.deleted":
             sub_id = data.get("id")
             if not sub_id:

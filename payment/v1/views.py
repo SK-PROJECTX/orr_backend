@@ -15,9 +15,10 @@ import traceback
 from common.permissions import IsAdminUser
 from admin_portal.payment_ticket_service import PaymentTicketService
 from ..tasks import handle_stripe_event
-from ..models import Invoice, PricingPlan, Subscription, CheckoutSessionLog
+from ..models import Invoice, PricingPlan, Subscription, CheckoutSessionLog, StripeCustomer
 from .serializers import (
     BillingPortalSerializer,
+    SetupIntentResponseSerializer,
     ChangePlanSerializer,
     CreateCheckoutSerializer,
     InvoiceHistorySerializer,
@@ -50,6 +51,11 @@ class CreateCheckoutSession(APIView):
         except PricingPlan.DoesNotExist:
             logger.error(f"PricingPlan not found for price_id: {price_id}")
             return Response({"error": "Invalid price_id"}, status=400)
+        if plan.billing_type == "metered":
+            return Response(
+                {"error": "This plan cannot be purchased directly."},
+                status=400
+            )
 
         try:
             logger.info(f"Creating Stripe session for user: {request.user.id} with plan: {plan.id}")
@@ -349,3 +355,38 @@ class PricingPlanViewSet(viewsets.ModelViewSet):
             recurring={"interval": "month"},
         )
         serializer.save(stripe_price_id=price.id)
+
+
+
+@extend_schema(
+    tags=["payment"],
+)
+class CreateSetupIntent(APIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class=SetupIntentResponseSerializer
+    def post(self, request):
+        user = request.user
+        
+        subscription, _ = Subscription.objects.get_or_create(user=user)
+        full_name = f"{user.first_name} {user.last_name}".strip()
+        if not full_name:
+            full_name = user.username
+        if not subscription.stripe_customer_id:
+            customer = stripe.Customer.create(
+                email=user.email,
+                name=full_name or user.username,
+            )
+            subscription.stripe_customer_id = customer.id
+            subscription.save()
+        else:
+            customer = stripe.Customer.retrieve(subscription.stripe_customer_id)
+
+        setup_intent = stripe.SetupIntent.create(
+            customer=customer.id,
+            payment_method_types=["card"],
+        )
+
+        return Response({
+            "client_secret": setup_intent.client_secret,
+            "customer_id": customer.id
+        })
