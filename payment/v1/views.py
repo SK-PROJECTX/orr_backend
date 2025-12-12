@@ -81,6 +81,13 @@ class CreateCheckoutSession(APIView):
 
 @csrf_exempt
 def stripe_webhook(request):
+
+    if request.method == "GET":
+       return HttpResponse("pong", status=200)
+    
+    if request.method != "POST":
+        return HttpResponse(status=405)
+    
     payload = request.body
     sig_header = request.META.get("HTTP_STRIPE_SIGNATURE")
 
