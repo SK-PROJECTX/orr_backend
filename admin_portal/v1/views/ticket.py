@@ -16,6 +16,7 @@ from ..serializers.ticket import (
     TicketDetailSerializer,
     TicketListSerializer,
     TicketMessageSerializer,
+    TicketMessageCreateSerializer,
     TicketStatsSerializer,
     TicketUpdateSerializer,
 )
@@ -120,8 +121,12 @@ class TicketDetailView(generics.RetrieveUpdateAPIView):
 class TicketMessagesView(generics.ListCreateAPIView):
     """List and create ticket messages"""
 
-    serializer_class = TicketMessageSerializer
     permission_classes = [IsAuthenticated]
+    
+    def get_serializer_class(self):
+        if self.request.method == "POST":
+            return TicketMessageCreateSerializer
+        return TicketMessageSerializer
 
     def get_queryset(self):
         ticket_id = self.kwargs.get("ticket_id")

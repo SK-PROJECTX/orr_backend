@@ -9,6 +9,7 @@ class ClientListSerializer(serializers.ModelSerializer):
 
     full_name = serializers.CharField(source="user.get_full_name")
     email = serializers.CharField(source="user.email")
+    username = serializers.CharField(source="user.username")
     assigned_admin_name = serializers.CharField(
         source="assigned_admin.get_full_name", allow_null=True
     )
@@ -19,6 +20,7 @@ class ClientListSerializer(serializers.ModelSerializer):
             "id",
             "full_name",
             "email",
+            "username",
             "company",
             "role",
             "stage",
@@ -80,6 +82,36 @@ class ClientDetailSerializer(serializers.ModelSerializer):
 
     def get_documents_count(self, obj):
         return obj.documents.count()
+
+
+class ClientCreateSerializer(serializers.ModelSerializer):
+    """Client creation serializer"""
+    
+    username = serializers.CharField(write_only=True)
+    email = serializers.EmailField(write_only=True)
+    full_name = serializers.CharField(write_only=True, required=False)
+    
+    class Meta:
+        model = Client
+        fields = [
+            "username",
+            "email",
+            "full_name",
+            "company",
+            "role",
+            "stage",
+            "primary_pillar",
+        ]
+        
+    def validate_username(self, value):
+        if User.objects.filter(username=value).exists():
+            raise serializers.ValidationError("Username already exists")
+        return value
+        
+    def validate_email(self, value):
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("Email already exists")
+        return value
 
 
 class ClientUpdateSerializer(serializers.ModelSerializer):

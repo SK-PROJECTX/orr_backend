@@ -15,13 +15,15 @@ from admin_portal.permissions import CanCreateContent, CanPublishContent
 from admin_portal.models_cms import (
     HomePage, ServiceCard, Testimonial, FAQ, BlogPost, 
     ContactInfo, SiteSettings, ApproachSection, BusinessSystemSection,
-    ORRRoleSection, MessageStrip, ProcessSection, ORRReportSection
+    ORRRoleSection, MessageStrip, ProcessSection, ORRReportSection,
+    ServicesPage, ResourcesBlogsPage, LegacyPolicyPage, ContactPage
 )
 from ..serializers.cms import (
     HomePageSerializer, ServiceCardSerializer, TestimonialSerializer,
     FAQSerializer, BlogPostSerializer, ContactInfoSerializer, SiteSettingsSerializer,
     ApproachSectionSerializer, BusinessSystemSectionSerializer, ORRRoleSectionSerializer,
-    MessageStripSerializer, ProcessSectionSerializer, ORRReportSectionSerializer
+    MessageStripSerializer, ProcessSectionSerializer, ORRReportSectionSerializer,
+    ServicesPageSerializer, ResourcesBlogsPageSerializer, LegacyPolicyPageSerializer, ContactPageSerializer
 )
 
 
@@ -566,6 +568,240 @@ class ImageUploadView(APIView):
                 {'error': f'Upload failed: {str(e)}'}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
+@extend_schema(
+    tags=["CMS - Services Page"],
+    summary="Get or update services page content",
+    description="Manage services page content including stages, pillars, and service overview."
+)
+@method_decorator(csrf_exempt, name='dispatch')
+class ServicesPageView(APIView):
+    """Services page content management"""
+    
+    def get_permissions(self):
+        return []
+    
+    def get(self, request):
+        services_page, created = ServicesPage.objects.get_or_create(is_active=True)
+        serializer = ServicesPageSerializer(services_page)
+        return Response({
+            'success': True,
+            'status': 200,
+            'message': 'Request successful',
+            'data': serializer.data
+        })
+    
+    def put(self, request):
+        services_page, created = ServicesPage.objects.get_or_create(is_active=True)
+        serializer = ServicesPageSerializer(services_page, data=request.data, partial=True)
+        
+        if serializer.is_valid():
+            serializer.save()
+            return Response({
+                'success': True,
+                'status': 200,
+                'message': 'Services page updated successfully',
+                'data': serializer.data
+            })
+        return Response({
+            'success': False,
+            'status': 400,
+            'message': 'Validation failed',
+            'data': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+
+@extend_schema(
+    tags=["CMS - Resources & Blogs Page"],
+    summary="Get or update resources & blogs page content",
+    description="Manage resources & blogs page content including blog cards and admin tips."
+)
+@method_decorator(csrf_exempt, name='dispatch')
+class ResourcesBlogsPageView(APIView):
+    """Resources & Blogs page content management"""
+    
+    def get_permissions(self):
+        return []
+    
+    def get(self, request):
+        resources_page, created = ResourcesBlogsPage.objects.get_or_create(is_active=True)
+        serializer = ResourcesBlogsPageSerializer(resources_page)
+        return Response({
+            'success': True,
+            'status': 200,
+            'message': 'Request successful',
+            'data': serializer.data
+        })
+    
+    def put(self, request):
+        resources_page, created = ResourcesBlogsPage.objects.get_or_create(is_active=True)
+        serializer = ResourcesBlogsPageSerializer(resources_page, data=request.data, partial=True)
+        
+        if serializer.is_valid():
+            serializer.save()
+            return Response({
+                'success': True,
+                'status': 200,
+                'message': 'Resources & Blogs page updated successfully',
+                'data': serializer.data
+            })
+        return Response({
+            'success': False,
+            'status': 400,
+            'message': 'Validation failed',
+            'data': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+
+@extend_schema(
+    tags=["CMS - Legacy & Policy Page"],
+    summary="Get or update legacy & policy page content",
+    description="Manage legacy & policy page content including policy items."
+)
+@method_decorator(csrf_exempt, name='dispatch')
+class LegacyPolicyPageView(APIView):
+    """Legacy & Policy page content management"""
+    
+    def get_permissions(self):
+        return []
+    
+    def get(self, request):
+        legacy_page, created = LegacyPolicyPage.objects.get_or_create(is_active=True)
+        serializer = LegacyPolicyPageSerializer(legacy_page)
+        return Response({
+            'success': True,
+            'status': 200,
+            'message': 'Request successful',
+            'data': serializer.data
+        })
+    
+    def put(self, request):
+        legacy_page, created = LegacyPolicyPage.objects.get_or_create(is_active=True)
+        serializer = LegacyPolicyPageSerializer(legacy_page, data=request.data, partial=True)
+        
+        if serializer.is_valid():
+            serializer.save()
+            return Response({
+                'success': True,
+                'status': 200,
+                'message': 'Legacy & Policy page updated successfully',
+                'data': serializer.data
+            })
+        return Response({
+            'success': False,
+            'status': 400,
+            'message': 'Validation failed',
+            'data': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+
+@extend_schema(
+    tags=["CMS - Contact Page"],
+    summary="Get or update contact page content",
+    description="Manage contact page content including form labels and contact information."
+)
+@method_decorator(csrf_exempt, name='dispatch')
+class ContactPageView(APIView):
+    """Contact page content management"""
+    
+    def get_permissions(self):
+        return []
+    
+    def get(self, request):
+        contact_page, created = ContactPage.objects.get_or_create(is_active=True)
+        serializer = ContactPageSerializer(contact_page)
+        return Response({
+            'success': True,
+            'status': 200,
+            'message': 'Request successful',
+            'data': serializer.data
+        })
+    
+    def put(self, request):
+        contact_page, created = ContactPage.objects.get_or_create(is_active=True)
+        serializer = ContactPageSerializer(contact_page, data=request.data, partial=True)
+        
+        if serializer.is_valid():
+            serializer.save()
+            return Response({
+                'success': True,
+                'status': 200,
+                'message': 'Contact page updated successfully',
+                'data': serializer.data
+            })
+        return Response({
+            'success': False,
+            'status': 400,
+            'message': 'Validation failed',
+            'data': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+
+@extend_schema(
+    tags=["CMS - All Content"],
+    summary="Get all content for all pages",
+    description="Fetch all content for all pages in a single request for better performance."
+)
+class AllContentView(APIView):
+    """Get all content for all pages at once"""
+    
+    def get(self, request):
+        try:
+            # Get or create all content sections
+            homepage, _ = HomePage.objects.get_or_create(is_active=True)
+            approach_section, _ = ApproachSection.objects.get_or_create(is_active=True)
+            business_system_section, _ = BusinessSystemSection.objects.get_or_create(is_active=True)
+            orr_role_section, _ = ORRRoleSection.objects.get_or_create(is_active=True)
+            message_strip, _ = MessageStrip.objects.get_or_create(is_active=True)
+            process_section, _ = ProcessSection.objects.get_or_create(is_active=True)
+            orr_report_section, _ = ORRReportSection.objects.get_or_create(is_active=True)
+            contact_info, _ = ContactInfo.objects.get_or_create(is_active=True)
+            
+            # Get new page content
+            services_page, _ = ServicesPage.objects.get_or_create(is_active=True)
+            resources_page, _ = ResourcesBlogsPage.objects.get_or_create(is_active=True)
+            legacy_page, _ = LegacyPolicyPage.objects.get_or_create(is_active=True)
+            contact_page, _ = ContactPage.objects.get_or_create(is_active=True)
+            
+            # Get lists
+            service_cards = ServiceCard.objects.filter(is_active=True).order_by('order')
+            faqs = FAQ.objects.filter(is_active=True).order_by('category', 'order')
+            testimonials = Testimonial.objects.filter(is_active=True).order_by('order')
+            
+            # Serialize all data
+            data = {
+                'homepage': HomePageSerializer(homepage).data,
+                'approach_section': ApproachSectionSerializer(approach_section).data,
+                'business_system_section': BusinessSystemSectionSerializer(business_system_section).data,
+                'orr_role_section': ORRRoleSectionSerializer(orr_role_section).data,
+                'message_strip': MessageStripSerializer(message_strip).data,
+                'process_section': ProcessSectionSerializer(process_section).data,
+                'orr_report_section': ORRReportSectionSerializer(orr_report_section).data,
+                'contact_info': ContactInfoSerializer(contact_info).data,
+                'service_cards': ServiceCardSerializer(service_cards, many=True).data,
+                'faqs': FAQSerializer(faqs, many=True).data,
+                'testimonials': TestimonialSerializer(testimonials, many=True).data,
+                'services_page': ServicesPageSerializer(services_page).data,
+                'resources_page': ResourcesBlogsPageSerializer(resources_page).data,
+                'legacy_page': LegacyPolicyPageSerializer(legacy_page).data,
+                'contact_page': ContactPageSerializer(contact_page).data,
+            }
+            
+            return Response({
+                'success': True,
+                'status': 200,
+                'message': 'All content fetched successfully',
+                'data': data
+            })
+            
+        except Exception as e:
+            return Response({
+                'success': False,
+                'status': 500,
+                'message': f'Error fetching content: {str(e)}',
+                'data': None
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @extend_schema(

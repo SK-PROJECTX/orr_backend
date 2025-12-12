@@ -1,7 +1,7 @@
 from django.db.models import Count, Q
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
-from rest_framework import generics, status
+from rest_framework import generics, serializers, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -12,6 +12,7 @@ from admin_portal.services import CalendarService, NotificationService
 
 from ..serializers.meeting import (
     MeetingActionSerializer,
+    MeetingCreateSerializer,
     MeetingDetailSerializer,
     MeetingListSerializer,
     MeetingStatsSerializer,
@@ -21,14 +22,18 @@ from ..serializers.meeting import (
 
 @extend_schema(
     tags=["Meeting Management"],
-    summary="List all meeting requests",
-    description="Retrieve a filtered list of meeting requests with options to filter by status, type, host, date range, and upcoming meetings.",
+    summary="List or create meeting requests",
+    description="Retrieve a filtered list of meeting requests with options to filter by status, type, host, date range, and upcoming meetings. Also supports creating new meeting requests.",
 )
-class MeetingListView(generics.ListAPIView):
-    """List all meeting requests"""
+class MeetingListView(generics.ListCreateAPIView):
+    """List and create meeting requests"""
 
-    serializer_class = MeetingListSerializer
     permission_classes = [CanManageMeetings]
+    
+    def get_serializer_class(self):
+        if self.request.method == "POST":
+            return MeetingCreateSerializer
+        return MeetingListSerializer
 
     def get_queryset(self):
         queryset = Meeting.objects.select_related("client__user", "host").all()
@@ -75,6 +80,25 @@ class MeetingListView(generics.ListAPIView):
             )
 
         return queryset.order_by("-created_at")
+        
+    def perform_create(self, serializer):
+        """Create a new meeting request"""
+        from django.contrib.auth.models import User
+        from admin_portal.models import Client
+        
+        # Find client by email
+        client_email = serializer.validated_data.get('client_email')
+        try:
+            user = User.objects.get(email=client_email)
+            client = Client.objects.get(user=user)
+            serializer.save(client=client, status='requested')
+        except (User.DoesNotExist, Client.DoesNotExist):
+            raise serializers.ValidationError({"client_email": "Client with this email not found"})
+            
+        # Send notification to client
+        from admin_portal.services import NotificationService
+        meeting = serializer.instance
+        NotificationService.send_meeting_notification(meeting, "requested", client.user)
 
 
 @extend_schema(
