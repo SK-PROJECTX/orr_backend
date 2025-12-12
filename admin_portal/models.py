@@ -262,9 +262,9 @@ class Meeting(Audit):
 
     TYPE_CHOICES = [
         ("discovery", "Discovery"),
-        ("consultation", "Consultation"),
+        ("first_meeting", "First Meeting"),
         ("follow_up", "Follow Up"),
-        ("review", "Review"),
+        ("report_review", "Report Review"),
     ]
 
     STATUS_CHOICES = [
