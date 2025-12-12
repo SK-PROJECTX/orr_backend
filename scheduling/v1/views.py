@@ -370,7 +370,7 @@ class CalendlyWebhookView(APIView):
             meeting.confirmed_datetime = start_time
             meeting.calendar_event_id = calendly_event_id
             meeting.save()
-            from ..billing import charge_for_meeting
+            from ..tasks import charge_for_meeting
             charge_for_meeting.delay(meeting.id)
 
     def handle_canceled(self, payload):
