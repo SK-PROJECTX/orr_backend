@@ -235,7 +235,7 @@ class MeetingChangeStatusView(APIView):
 )
 class MyMeetingsView(APIView):
     permission_classes = [IsAuthenticated]
-
+    serializer_class = MeetingSerializer
     def get(self, request):
         user = request.user
         client = Client.objects.get(user=user)

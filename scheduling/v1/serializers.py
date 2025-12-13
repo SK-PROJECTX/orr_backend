@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from admin_portal.models import Meeting
-
+from drf_spectacular.utils import extend_schema_field
 
 class MeetingPrepSerializer(serializers.Serializer):
     basic_context = serializers.CharField(required=True)
@@ -11,16 +11,17 @@ class MeetingPrepSerializer(serializers.Serializer):
 
 class MeetingRequestSerializer(serializers.ModelSerializer):
     scheduling_url = serializers.URLField(write_only=True)
-
     class Meta:
         model = Meeting
         fields = [
             "meeting_type",
             "requested_datetime",
             "agenda",
+            "basic_context",
+            "goals",
+            "pain_points",
             "scheduling_url",
         ]
-
     def create(self, validated_data):
 
         scheduling_url = validated_data.pop("scheduling_url", None)

@@ -289,12 +289,15 @@ class Meeting(Audit):
     confirmed_datetime = models.DateTimeField(null=True, blank=True)
     end_datetime = models.DateTimeField(null=True, blank=True)
     duration_minutes = models.PositiveIntegerField(default=60)
-
+   
 
     agenda = models.TextField(blank=True)
     meeting_notes = models.TextField(blank=True)
     internal_notes = models.TextField(blank=True)
-
+    
+    basic_context = models.TextField(blank=True)
+    goals = models.TextField(blank=True)
+    pain_points = models.TextField(blank=True)
     # Assignment
     host = models.ForeignKey(
         User,
