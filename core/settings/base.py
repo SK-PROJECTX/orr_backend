@@ -32,6 +32,7 @@ ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
     "orr-backend-web-latest.onrender.com",
+    "testserver",
 ]
 
 # Application definition
@@ -176,7 +177,7 @@ EMAIL_PORT = config("EMAIL_PORT", cast=int, default=587)
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")
 EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
-DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL")
+DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="noreply@example.com")
 
 
 SPECTACULAR_SETTINGS = {
@@ -201,16 +202,16 @@ CELERY_BROKER_URL = config("CELERY_BROKER_URL", "redis://localhost:6379/0")
 CELERY_RESULT_BACKEND = config("CELERY_BROKER_URL", "redis://localhost:6379/0")
 
 
-FRONTEND_VERIFY_EMAIL_URL = config("FRONTEND_VERIFY_EMAIL_URL")
-FRONTEND_RESET_PASSWORD_URL = config("FRONTEND_RESET_PASSWORD_URL")
+FRONTEND_VERIFY_EMAIL_URL = config("FRONTEND_VERIFY_EMAIL_URL", default="http://localhost:3000/verify")
+FRONTEND_RESET_PASSWORD_URL = config("FRONTEND_RESET_PASSWORD_URL", default="http://localhost:3000/reset")
 
 
-STRIPE_SECRET_KEY = config("STRIPE_SECRET_KEY")
-STRIPE_PUBLISHABLE_KEY = config("STRIPE_PUBLISHABLE_KEY")
+STRIPE_SECRET_KEY = config("STRIPE_SECRET_KEY", default="sk_test_dummy")
+STRIPE_PUBLISHABLE_KEY = config("STRIPE_PUBLISHABLE_KEY", default="pk_test_dummy")
+STRIPE_WEBHOOK_SECRET = config("STRIPE_WEBHOOK_SECRET", default="whsec_dummy")
 
-
-STRIPE_SUCCESS_URL = config("STRIPE_SUCCESS_URL")
-STRIPE_CANCEL_URL = config("STRIPE_CANCEL_URL")
+STRIPE_SUCCESS_URL = config("STRIPE_SUCCESS_URL", default="http://localhost:3000/success")
+STRIPE_CANCEL_URL = config("STRIPE_CANCEL_URL", default="http://localhost:3000/cancel")
 
 
 CELERY_TIMEZONE = "Africa/Lagos"
@@ -268,4 +269,4 @@ CSRF_TRUSTED_ORIGINS += [
 CSRF_COOKIE_SECURE = False
 CSRF_COOKIE_HTTPONLY = False
 
-CALENDLY_API_KEY = config("CALENDLY_API_KEY")
+CALENDLY_API_KEY = config("CALENDLY_API_KEY", default="dummy_key")

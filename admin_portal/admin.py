@@ -1,41 +1,18 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
+from django.apps import apps
 
+# Import admin portal models
 from .models import (
-    AdminProfile,
-    AdminRole,
-    AIConversation,
-    AuditLog,
-    Client,
-    ClientDocument,
-    Content,
-    Meeting,
-    SystemNotification,
-    SystemSettings,
-    Ticket,
-    TicketMessage,
+    AdminProfile, AdminRole, AIConversation, AuditLog, Client, ClientDocument,
+    Content, Meeting, SystemNotification, SystemSettings, Ticket, TicketMessage,
 )
 from .models_cms import (
-    HomePage,
-    ServiceCard,
-    Testimonial,
-    FAQ,
-    BlogPost,
-    ContactInfo,
-    SiteSettings,
-    ApproachSection,
-    BusinessSystemCard,
-    BusinessSystemSection,
-    ORRRoleSection,
-    MessageStrip,
-    ProcessStage,
-    ProcessSection,
-    ORRReportSection,
-    ServicesPage,
-    ResourcesBlogsPage,
-    LegacyPolicyPage,
-    ContactPage,
+    HomePage, ServiceCard, Testimonial, FAQ, BlogPost, ContactInfo, SiteSettings,
+    ApproachSection, BusinessSystemCard, BusinessSystemSection, ORRRoleSection,
+    MessageStrip, ProcessStage, ProcessSection, ORRReportSection, ServicesPage,
+    ResourcesBlogsPage, LegacyPolicyPage, ContactPage,
 )
 
 
@@ -207,12 +184,13 @@ class FAQAdmin(admin.ModelAdmin):
     ordering = ["category", "order"]
 
 
-@admin.register(BlogPost)
-class BlogPostAdmin(admin.ModelAdmin):
-    list_display = ["title", "author", "status", "is_featured", "published_at"]
-    list_filter = ["status", "is_featured", "author"]
-    prepopulated_fields = {"slug": ("title",)}
-    readonly_fields = ["view_count"]
+# BlogPost admin is handled in main app
+# @admin.register(BlogPost)
+# class BlogPostAdmin(admin.ModelAdmin):
+#     list_display = ["title", "author", "status", "is_featured", "published_at"]
+#     list_filter = ["status", "is_featured", "author"]
+#     prepopulated_fields = {"slug": ("title",)}
+#     readonly_fields = ["view_count"]
 
 
 @admin.register(ContactInfo)
@@ -305,3 +283,23 @@ class ContactPageAdmin(admin.ModelAdmin):
 class SiteSettingsAdmin(admin.ModelAdmin):
     list_display = ["site_name", "primary_color", "is_active"]
     list_filter = ["is_active"]
+
+
+# Auto-register models from other apps (skip already registered ones)
+def auto_register_remaining_models():
+    """Auto-register models from other apps"""
+    app_names = ['client', 'main', 'notification', 'organization', 'scheduling', 'common']
+    
+    for app_name in app_names:
+        try:
+            app_config = apps.get_app_config(app_name)
+            for model in app_config.get_models():
+                if model not in admin.site._registry:
+                    try:
+                        admin.site.register(model)
+                    except admin.sites.AlreadyRegistered:
+                        pass
+        except:
+            pass
+
+auto_register_remaining_models()

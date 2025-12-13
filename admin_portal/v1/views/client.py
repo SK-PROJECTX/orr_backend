@@ -105,21 +105,54 @@ class ClientListView(generics.ListCreateAPIView):
     def post(self, request, *args, **kwargs):
         """Create a new client with user account"""
         from django.contrib.auth.models import User
-        from django.db import transaction
+        from django.db import transaction, IntegrityError
+        from common.response import api_response
         
         try:
             with transaction.atomic():
                 # Validate input data
                 serializer = ClientCreateSerializer(data=request.data)
                 if not serializer.is_valid():
-                    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                    return Response(
+                        api_response(
+                            message="Validation failed",
+                            data=serializer.errors,
+                            status_code=400,
+                            success=False
+                        ),
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
                 
                 validated_data = serializer.validated_data
                 
+                # Double-check for existing users to prevent constraint violations
+                username = validated_data['username']
+                email = validated_data['email']
+                
+                if User.objects.filter(username=username).exists():
+                    return Response(
+                        api_response(
+                            message="Username already exists",
+                            status_code=400,
+                            success=False
+                        ),
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                    
+                if User.objects.filter(email=email).exists():
+                    return Response(
+                        api_response(
+                            message="Email already exists",
+                            status_code=400,
+                            success=False
+                        ),
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                
                 # Create user account
                 user_data = {
-                    'username': validated_data['username'],
-                    'email': validated_data['email'],
+                    'username': username,
+                    'email': email,
                     'password': 'TempPass123!',  # Temporary password - user should reset
                 }
                 
@@ -145,13 +178,60 @@ class ClientListView(generics.ListCreateAPIView):
                 # Return success response
                 response_serializer = ClientListSerializer(client)
                 return Response(
-                    response_serializer.data,
+                    api_response(
+                        message="Client created successfully",
+                        data=response_serializer.data,
+                        status_code=201,
+                        success=True
+                    ),
                     status=status.HTTP_201_CREATED
                 )
                 
+        except IntegrityError as e:
+            error_msg = str(e)
+            if "duplicate key value violates unique constraint" in error_msg:
+                if "user_id" in error_msg:
+                    return Response(
+                        api_response(
+                            message="Database constraint violation: User ID conflict. This is a system issue that needs to be resolved by the development team.",
+                            status_code=500,
+                            success=False
+                        ),
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                    )
+                elif "email" in error_msg:
+                    return Response(
+                        api_response(
+                            message="Email address already exists",
+                            status_code=400,
+                            success=False
+                        ),
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                elif "username" in error_msg:
+                    return Response(
+                        api_response(
+                            message="Username already exists",
+                            status_code=400,
+                            success=False
+                        ),
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            return Response(
+                api_response(
+                    message=f"Database error: {error_msg}",
+                    status_code=500,
+                    success=False
+                ),
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
         except Exception as e:
             return Response(
-                {"error": str(e)},
+                api_response(
+                    message=f"Unexpected error: {str(e)}",
+                    status_code=500,
+                    success=False
+                ),
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
