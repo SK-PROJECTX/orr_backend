@@ -11,6 +11,10 @@ from .views import (
     StripeWebhookView,
     stripe_webhook,
     CreateSetupIntent,
+    AddPaymentMethodView,
+    DeletePaymentMethodView,
+    CreateStripeCustomerView,
+    ListPaymentMethodsView
 )
 
 router = DefaultRouter()
@@ -29,6 +33,27 @@ urlpatterns = [
     path("billing-history/", BillingHistoryView.as_view()),
     path("stripe-webhook/", stripe_webhook, name="stripe-webhook"),
     path("setup-intent/", CreateSetupIntent.as_view(), name="create_setup_intent"),
+     path(
+        "user/create-stripe-customer/",
+        CreateStripeCustomerView.as_view(),
+        name="create-stripe-customer",
+    ),
+
+    path(
+        "user/add-payment-method/",
+        AddPaymentMethodView.as_view(),
+        name="add-payment-method",
+    ),
+    path(
+        "user/payment-methods/",
+        ListPaymentMethodsView.as_view(),
+        name="list-payment-methods",
+    ),
+    path(
+        "user/payment-methods/<str:id>/",
+        DeletePaymentMethodView.as_view(),
+        name="delete-payment-method",
+    ),
 ]
 
 urlpatterns += router.urls

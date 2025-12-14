@@ -11,6 +11,10 @@ class ChangePlanSerializer(serializers.Serializer):
     price_id = serializers.CharField()
     prorate = serializers.BooleanField(default=True)
 
+class AddPaymentMethodSerializer(serializers.Serializer):
+    payment_method_id = serializers.CharField()
+
+
 
 class PauseSubscriptionSerializer(serializers.Serializer):
     action = serializers.ChoiceField(choices=["pause", "resume"])

@@ -24,7 +24,9 @@ from .serializers import (
     InvoiceHistorySerializer,
     PauseSubscriptionSerializer,
     PricingPlanSerializer,
+    AddPaymentMethodSerializer
 )
+from ..utils import get_or_create_stripe_customer
 import logging
 logger = logging.getLogger(__name__)
 stripe.api_key = settings.STRIPE_SECRET_KEY  
@@ -355,6 +357,111 @@ class PricingPlanViewSet(viewsets.ModelViewSet):
             recurring={"interval": "month"},
         )
         serializer.save(stripe_price_id=price.id)
+
+
+
+
+@extend_schema(
+    tags=["payment"],
+)
+class CreateStripeCustomerView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        customer_id = get_or_create_stripe_customer(request.user)
+        return Response(
+            {"stripe_customer_id": customer_id},
+            status=status.HTTP_200_OK
+        )
+
+
+@extend_schema(
+    tags=["payment"],
+)
+class AddPaymentMethodView(APIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = AddPaymentMethodSerializer
+    def post(self, request):
+        serializer = AddPaymentMethodSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        customer_id = get_or_create_stripe_customer(request.user)
+
+        pm_id = serializer.validated_data["payment_method_id"]
+        try:
+            # Attach
+            stripe.PaymentMethod.attach(pm_id, customer=customer_id)
+
+            # Set default
+            stripe.Customer.modify(
+                customer_id,
+                invoice_settings={"default_payment_method": pm_id}
+            )
+
+        except stripe.error.InvalidRequestError as e:
+            return Response(
+                {
+                    "error": "Invalid payment method",
+                    "details": str(e),
+                    "action": "Please re-add your card"
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        except stripe.error.StripeError:
+            return Response(
+                {
+                    "error": "Payment service temporarily unavailable"
+                },
+                status=status.HTTP_503_SERVICE_UNAVAILABLE
+            )
+
+        return Response(
+            {"message": "Payment method added"},
+            status=status.HTTP_201_CREATED
+        )
+
+
+@extend_schema(
+    tags=["payment"],
+)
+class ListPaymentMethodsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            customer_id = request.user.stripe_profile.stripe_customer_id
+        except StripeCustomer.DoesNotExist:
+            return Response([], status=status.HTTP_200_OK)
+
+        pms = stripe.PaymentMethod.list(
+            customer=customer_id,
+            type="card"
+        )
+
+        return Response([
+            {
+                "id": pm.id,
+                "brand": pm.card.brand,
+                "last4": pm.card.last4,
+                "exp_month": pm.card.exp_month,
+                "exp_year": pm.card.exp_year,
+            }
+            for pm in pms.data
+        ])
+
+
+@extend_schema(
+    tags=["payment"],
+)
+class DeletePaymentMethodView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, id):
+        stripe.PaymentMethod.detach(id)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
 
 
 
