@@ -14,7 +14,7 @@ from rest_framework import serializers
 
 
 class LoginSerializer(serializers.Serializer):
-    username = serializers.CharField()
+    email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
 
 class LoginResponseSerializer(serializers.Serializer):
@@ -31,7 +31,7 @@ class LoginResponseSerializer(serializers.Serializer):
     examples=[
         OpenApiExample(
             "Login Example",
-            value={"username": "editor", "password": "editor123"},
+            value={"email": "editor@example.com", "password": "editor123"},
             request_only=True
         )
     ]
@@ -48,24 +48,30 @@ class LoginView(APIView):
         else:
             data = request.POST
             
-        username = data.get('username')
+        email = data.get('email')
         password = data.get('password')
         
-        if not username or not password:
+        if not email or not password:
             return Response(
                 {
                     'success': False,
                     'status': 400,
-                    'message': 'Username and password required',
+                    'message': 'Email and password required',
                     'data': {
                         'code': 'missing_credentials',
-                        'required_fields': ['username', 'password']
+                        'required_fields': ['email', 'password']
                     }
                 }, 
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        user = authenticate(username=username, password=password)
+        # Find user by email first
+        try:
+            from django.contrib.auth.models import User
+            user_obj = User.objects.get(email=email)
+            user = authenticate(username=user_obj.username, password=password)
+        except User.DoesNotExist:
+            user = None
         
         if user and user.is_active:
             refresh = RefreshToken.for_user(user)
