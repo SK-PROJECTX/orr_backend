@@ -8,7 +8,7 @@ class OnboardingQuestionnaireSerializer(serializers.ModelSerializer):
     class Meta:
         model = OnboardingQuestionnaire
         fields = "__all__"
-        read_only_fields = ["user", "created_at", "updated_at", "is_completed"]
+        read_only_fields = ["user", "created_at", "updated_at"]
 
     def validate(self, data):
         if not data.get("accepted_service_agreement", False):

@@ -14,3 +14,8 @@ class ProfileCreateSerializer(serializers.ModelSerializer):
             "language",
             "timezone",
         ]
+
+class ProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Profile
+        fields = "__all__"

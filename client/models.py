@@ -2,7 +2,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.validators import MinLengthValidator
 from django.db import models
-
+from admin_portal.models import ClientDocument
 from common.models import Audit
 
 
@@ -207,3 +207,24 @@ class OnboardingQuestionnaire(Audit):
 
     def __str__(self):
         return f"Onboarding - {self.user.get_full_name() or self.user.email}"
+
+
+class FavoriteDocument(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="favorite_documents"
+    )
+    document = models.ForeignKey(
+        ClientDocument,
+        on_delete=models.CASCADE,
+        related_name="favorited_by"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("user", "document") 
+
+    def __str__(self):
+        return f"{self.user} -> {self.document.title}"
+

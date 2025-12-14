@@ -43,8 +43,8 @@ class SignUpSerializer(serializers.ModelSerializer):
 
 
 class LoginSerializer(serializers.Serializer):
-    identifier = serializers.CharField()
-    password = serializers.CharField(write_only=True)
+    identifier = serializers.CharField(required=True)
+    password = serializers.CharField(write_only=True, required=True)
 
     def validate(self, attrs):
         identifier = attrs.get("identifier")

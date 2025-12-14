@@ -4,62 +4,93 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}{% endblock title %}</title>
+    <title>{% block title %}{% endblock %}</title>
 
     <style>
         body {
             margin: 0;
             padding: 0;
-            background-color: #ffffff;
+            background: #0d0d0d;
+            font-family: 'Poppins', Arial, sans-serif;
         }
 
+        /* Container for the email */
         .container {
+            width: 100%;
+            background: #0d0d0d;
+            padding: 40px 0;
+        }
+
+        /* Main wrapper inside the container */
+        .email-wrapper {
+            width: 600px;
+            background: #00c26f;
+            border-radius: 20px;
+            padding: 40px;
             max-width: 600px;
             margin: 0 auto;
-            background: #ffffff;
-            border: 1px solid #ddd;
         }
 
-        .header {
-            padding: 20px;
-            text-align: center;
-            background-color: #ffffff !important;
+        /* Logo Styling */
+        .logo img {
+            height: 30px;
         }
 
-        /* Logo styling */
-        .logo {
-            max-width: 160px;
-            height: auto;
-            display: block;
-            margin: 0 auto;
+        /* Social media icons */
+        .social-icons img {
+            width: 25px;
+            margin-left: 10px;
         }
 
+        /* Main content styling */
         .content {
-            padding: 20px;
-            color: #333;
-            font-size: 16px;
-            line-height: 1.5;
+            padding-top: 20px;
+            color: white;
+            text-align: center;
         }
 
+        /* Title styling */
+        .content h1 {
+            font-size: 28px;
+            font-weight: 600;
+        }
+
+        /* Body text styling */
+        .content p {
+            font-size: 16px;
+            color: #ffffff;
+            line-height: 1.7;
+        }
+
+        /* Action button styling */
+        .button {
+            background: #001a33;
+            padding: 14px 32px;
+            color: white;
+            text-decoration: none;
+            border-radius: 3px;
+            font-size: 15px;
+            font-weight: 500;
+        }
+
+        /* Footer */
         .footer {
-            padding: 15px;
+            padding: 25px 0 0;
             text-align: center;
-            background: #f1f1f1;
+            color: white;
             font-size: 12px;
-            color: #777;
         }
 
         /* ----------------------------- */
         /* DARK MODE SUPPORT (Gmail + iOS) */
         /* ----------------------------- */
 
-        /* Apple Mail, Outlook.com, iOS */
         @media (prefers-color-scheme: dark) {
             body {
                 background-color: #121212 !important;
             }
 
-            .container {
+            .email-wrapper {
                 background-color: #1e1e1e !important;
             }
 
@@ -71,42 +102,40 @@
                 background-color: #222 !important;
                 color: #aaa !important;
             }
-
-            /* header should stay light for logo */
-            .header {
-                background-color: #ffffff !important;
-            }
-        }
-
-        /* Gmail Dark Mode (special hack) */
-        [data-ogsc] .header {
-            background: #ffffff !important;
-        }
-        [data-ogsc] .container {
-            background: #1e1e1e !important;
-        }
-        [data-ogsc] body {
-            background: #121212 !important;
-        }
-        [data-ogsc] .content {
-            color: #e6e6e6 !important;
         }
     </style>
 </head>
 
 <body>
     <div class="container">
-        <div class="header">
-            <img src="" alt="ORR Solutions" class="logo">
-        </div>
+        <div class="email-wrapper">
+            <!-- Logo and social media icons -->
+            <div class="logo" style="text-align: center;">
+                <img src="https://dummyimage.com/100x30/000/fff&text=Logo" alt="Logo">
+                <div class="social-icons" style="text-align: right; margin-top: -30px;">
+                    <img src="https://cdn-icons-png.flaticon.com/512/2111/2111463.png" alt="Social Icon 1">
+                    <img src="https://cdn-icons-png.flaticon.com/512/145/145807.png" alt="Social Icon 2">
+                    <img src="https://cdn-icons-png.flaticon.com/512/733/733579.png" alt="Social Icon 3">
+                </div>
+            </div>
 
-        <div class="content">
-            {% block content %}
-            {% endblock %}
-        </div>
+            <!-- Content block for dynamic content -->
+            <div class="content">
+                {% block content %}
+                <!-- Default content can be overridden here -->
+                <h1>Confirm Email</h1>
+                <p>Hello {{ username }},<br><br>
+                   Thank you for choosing this journey with us. This is an email to confirm your account.<br><br>
+                   Thanks,<br>ORR Solutions
+                </p>
+                <a href="#" class="button">Confirm Email</a>
+                {% endblock %}
+            </div>
 
-        <div class="footer">
-            &copy; {{ year }} ORR Solutions. All rights reserved.
+            <!-- Footer -->
+            <div class="footer">
+                &copy; {{ year }} ORR Solutions. All rights reserved.
+            </div>
         </div>
     </div>
 </body>

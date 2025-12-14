@@ -1,14 +1,13 @@
 from django.contrib import admin
-
-from .models import Invoice, PricingPlan, Subscription
+from .models import PricingPlan, Subscription, Invoice, CheckoutSessionLog
 
 
 @admin.register(PricingPlan)
 class PricingPlanAdmin(admin.ModelAdmin):
-    list_display = ("name", "amount", "stripe_price_id", "created_at")
+    list_display = ("name", "billing_type", "amount", "stripe_price_id", "created_at")
     search_fields = ("name", "stripe_price_id")
-    list_filter = ("created_at",)
-    readonly_fields = ("created_at", "updated_at")
+    list_filter = ("billing_type",)
+    ordering = ("-created_at",)
 
 
 @admin.register(Subscription)
@@ -16,41 +15,42 @@ class SubscriptionAdmin(admin.ModelAdmin):
     list_display = (
         "user",
         "plan_name",
+        "stripe_customer_id",
+        "stripe_subscription_id",
         "is_active",
         "current_period_end",
-        "stripe_subscription_id",
     )
     search_fields = (
         "user__username",
-        "user__email",
-        "plan_name",
         "stripe_subscription_id",
+        "stripe_customer_id",
+        "plan_name",
     )
-    list_filter = ("is_active", "plan_name", "current_period_end", "created_at")
+    list_filter = ("is_active",)
     readonly_fields = ("created_at", "updated_at")
+    ordering = ("-created_at",)
 
 
-# -----------------------
-#  INVOICE ADMIN
-# -----------------------
 @admin.register(Invoice)
 class InvoiceAdmin(admin.ModelAdmin):
     list_display = (
         "stripe_invoice_id",
         "user",
-        "billing_title",
         "status",
-        "billing_date",
-        "amount",
-        "currency",
-        "plan",
-    )
-    search_fields = (
-        "stripe_invoice_id",
-        "user__username",
-        "user__email",
         "billing_title",
+        "amount",
+        "billing_date",
         "plan",
     )
-    list_filter = ("status", "billing_date", "currency", "plan", "created_at")
+    search_fields = ("stripe_invoice_id", "user__username", "billing_title")
+    list_filter = ("status", "currency", "billing_date")
     readonly_fields = ("created_at", "updated_at")
+    ordering = ("-billing_date",)
+
+@admin.register(CheckoutSessionLog)
+class CheckoutSessionLogAdmin(admin.ModelAdmin):
+    list_display = ("stripe_session_id", "user", "plan", "status", "created_at", "updated_at")
+    list_filter = ("status", "created_at", "plan")
+    search_fields = ("stripe_session_id", "user__username", "plan__name")
+    readonly_fields = ("stripe_session_id", "created_at", "updated_at")
+    ordering = ("-created_at",)
