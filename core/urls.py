@@ -25,6 +25,8 @@ from drf_spectacular.views import (
     SpectacularSwaggerView,
 )
 
+from common.auth_views import LoginView
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
@@ -37,6 +39,8 @@ urlpatterns = [
     path(
         "api/docs/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"
     ),
+    # Direct login endpoint for frontend
+    path("login/", LoginView.as_view(), name="direct-login"),
     path("", include("main.v1.urls")),
     path("", include("client.v1.urls")),
     path("", include("scheduling.v1.urls")),

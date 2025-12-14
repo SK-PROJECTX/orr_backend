@@ -1,41 +1,19 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
+from django.apps import apps
 
+# Import admin portal models
 from .models import (
-    AdminProfile,
-    AdminRole,
-    AIConversation,
-    AuditLog,
-    Client,
-    ClientDocument,
-    Content,
-    Meeting,
-    SystemNotification,
-    SystemSettings,
-    Ticket,
-    TicketMessage,
+    AdminProfile, AdminRole, AIConversation, AuditLog, Client, ClientDocument,
+    Content, Meeting, SystemNotification, SystemSettings, Ticket, TicketMessage,
+    ProRataApproval, PaymentDispute, DisputeNote, WalletTransaction,
 )
 from .models_cms import (
-    HomePage,
-    ServiceCard,
-    Testimonial,
-    FAQ,
-    BlogPost,
-    ContactInfo,
-    SiteSettings,
-    ApproachSection,
-    BusinessSystemCard,
-    BusinessSystemSection,
-    ORRRoleSection,
-    MessageStrip,
-    ProcessStage,
-    ProcessSection,
-    ORRReportSection,
-    ServicesPage,
-    ResourcesBlogsPage,
-    LegacyPolicyPage,
-    ContactPage,
+    HomePage, ServiceCard, Testimonial, FAQ, BlogPost, ContactInfo, SiteSettings,
+    ApproachSection, BusinessSystemCard, BusinessSystemSection, ORRRoleSection,
+    MessageStrip, ProcessStage, ProcessSection, ORRReportSection, ServicesPage,
+    ResourcesBlogsPage, LegacyPolicyPage, ContactPage,
 )
 
 
@@ -176,6 +154,68 @@ class ClientDocumentAdmin(admin.ModelAdmin):
     raw_id_fields = ["client", "uploaded_by"]
 
 
+@admin.register(ProRataApproval)
+class ProRataApprovalAdmin(admin.ModelAdmin):
+    list_display = [
+        "client",
+        "adjustment_type",
+        "prorated_amount",
+        "status",
+        "change_date",
+        "approved_by",
+        "created_at",
+    ]
+    list_filter = ["status", "adjustment_type", "approved_by", "change_date"]
+    search_fields = ["client__user__email", "client__company", "subscription_id", "notes"]
+    raw_id_fields = ["client", "approved_by"]
+    readonly_fields = ["created_at", "updated_at"]
+    date_hierarchy = "change_date"
+
+
+@admin.register(PaymentDispute)
+class PaymentDisputeAdmin(admin.ModelAdmin):
+    list_display = [
+        "client",
+        "dispute_type",
+        "dispute_amount",
+        "status",
+        "evidence_due_date",
+        "resolved_by",
+        "created_at",
+    ]
+    list_filter = ["dispute_type", "status", "resolved_by", "created_at"]
+    search_fields = ["client__user__email", "client__company", "stripe_dispute_id", "dispute_reason"]
+    raw_id_fields = ["client", "invoice", "resolved_by"]
+    readonly_fields = ["created_at", "updated_at"]
+    date_hierarchy = "created_at"
+
+
+@admin.register(DisputeNote)
+class DisputeNoteAdmin(admin.ModelAdmin):
+    list_display = ["dispute", "created_by", "is_internal", "created_at"]
+    list_filter = ["is_internal", "created_by", "created_at"]
+    search_fields = ["dispute__client__user__email", "note"]
+    raw_id_fields = ["dispute", "created_by"]
+    readonly_fields = ["created_at", "updated_at"]
+
+
+@admin.register(WalletTransaction)
+class WalletTransactionAdmin(admin.ModelAdmin):
+    list_display = [
+        "client",
+        "transaction_type",
+        "amount",
+        "balance_after",
+        "processed_by",
+        "created_at",
+    ]
+    list_filter = ["transaction_type", "processed_by", "created_at"]
+    search_fields = ["client__user__email", "client__company", "description", "reference_id"]
+    raw_id_fields = ["client", "processed_by"]
+    readonly_fields = ["created_at", "updated_at"]
+    date_hierarchy = "created_at"
+
+
 # CMS Admin Registration
 @admin.register(HomePage)
 class HomePageAdmin(admin.ModelAdmin):
@@ -207,12 +247,13 @@ class FAQAdmin(admin.ModelAdmin):
     ordering = ["category", "order"]
 
 
-@admin.register(BlogPost)
-class BlogPostAdmin(admin.ModelAdmin):
-    list_display = ["title", "author", "status", "is_featured", "published_at"]
-    list_filter = ["status", "is_featured", "author"]
-    prepopulated_fields = {"slug": ("title",)}
-    readonly_fields = ["view_count"]
+# BlogPost admin is handled in main app
+# @admin.register(BlogPost)
+# class BlogPostAdmin(admin.ModelAdmin):
+#     list_display = ["title", "author", "status", "is_featured", "published_at"]
+#     list_filter = ["status", "is_featured", "author"]
+#     prepopulated_fields = {"slug": ("title",)}
+#     readonly_fields = ["view_count"]
 
 
 @admin.register(ContactInfo)
@@ -305,3 +346,23 @@ class ContactPageAdmin(admin.ModelAdmin):
 class SiteSettingsAdmin(admin.ModelAdmin):
     list_display = ["site_name", "primary_color", "is_active"]
     list_filter = ["is_active"]
+
+
+# Auto-register models from other apps (skip already registered ones)
+def auto_register_remaining_models():
+    """Auto-register models from other apps"""
+    app_names = ['client', 'main', 'notification', 'organization', 'scheduling', 'common']
+    
+    for app_name in app_names:
+        try:
+            app_config = apps.get_app_config(app_name)
+            for model in app_config.get_models():
+                if model not in admin.site._registry:
+                    try:
+                        admin.site.register(model)
+                    except admin.sites.AlreadyRegistered:
+                        pass
+        except:
+            pass
+
+auto_register_remaining_models()

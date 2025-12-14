@@ -5,19 +5,31 @@ from .views import (
     ai_oversight,
     analytics,
     auth,
+    behavior_analytics,
+    billing,
+    billing_overview,
     client,
     client_profile,
     cms,
     compliance,
+    consultation_metrics,
     content,
     dashboard,
+    funnel_reports,
+    invoicing,
     meeting,
     notifications,
+    payment_disputes,
+    prorata_approvals,
     role_management,
     search,
+    sector_insights,
     settings,
+    subscriptions,
     system_health,
     ticket,
+    wallet_logs,
+    workspace_usage,
 )
 
 # Authentication URLs
@@ -93,6 +105,7 @@ ticket_patterns = [
         name="ticket-messages",
     ),
     path("my-tickets/", ticket.MyTicketsView.as_view(), name="my-tickets"),
+    path("assignable-users/", ticket.TicketAssignableUsersView.as_view(), name="ticket-assignable-users"),
     path("stats/", ticket.TicketStatsView.as_view(), name="ticket-stats"),
 ]
 
@@ -121,6 +134,11 @@ content_patterns = [
         name="content-bulk-actions",
     ),
     path("stats/", content.ContentStatsView.as_view(), name="content-stats"),
+    path(
+        "<int:pk>/view/",
+        content.ContentViewCountView.as_view(),
+        name="content-view-count",
+    ),
 ]
 
 # Meeting Management URLs
@@ -136,6 +154,8 @@ meeting_patterns = [
         "<int:pk>/assign/", meeting.MeetingAssignView.as_view(), name="meeting-assign"
     ),
     path("my-meetings/", meeting.MyMeetingsView.as_view(), name="my-meetings"),
+    path("confirmed/", meeting.ConfirmedMeetingsView.as_view(), name="confirmed-meetings"),
+    path("requested/", meeting.RequestedMeetingsView.as_view(), name="requested-meetings"),
     path("upcoming/", meeting.UpcomingMeetingsView.as_view(), name="upcoming-meetings"),
     path("stats/", meeting.MeetingStatsView.as_view(), name="meeting-stats"),
 ]
@@ -152,6 +172,76 @@ analytics_patterns = [
         "content/", analytics.ContentAnalyticsView.as_view(), name="content-analytics"
     ),
     path("export/", analytics.ExportAnalyticsView.as_view(), name="export-analytics"),
+]
+
+# Behavior Analytics URLs
+behavior_analytics_patterns = [
+    path(
+        "user-behavior/",
+        behavior_analytics.UserBehaviorPatternsView.as_view(),
+        name="user-behavior-patterns",
+    ),
+    path(
+        "user-journey/",
+        behavior_analytics.UserJourneyAnalyticsView.as_view(),
+        name="user-journey-analytics",
+    ),
+]
+
+# Sector Insights URLs
+sector_insights_patterns = [
+    path(
+        "sector-analytics/",
+        sector_insights.SectorAnalyticsView.as_view(),
+        name="sector-analytics",
+    ),
+    path(
+        "industry-benchmarks/",
+        sector_insights.IndustryBenchmarksView.as_view(),
+        name="industry-benchmarks",
+    ),
+]
+
+# Consultation Metrics URLs
+consultation_metrics_patterns = [
+    path(
+        "performance/",
+        consultation_metrics.ConsultationPerformanceView.as_view(),
+        name="consultation-performance",
+    ),
+    path(
+        "scheduling-analytics/",
+        consultation_metrics.ConsultationSchedulingAnalyticsView.as_view(),
+        name="consultation-scheduling-analytics",
+    ),
+]
+
+# Workspace Usage URLs
+workspace_usage_patterns = [
+    path(
+        "analytics/",
+        workspace_usage.WorkspaceUsageAnalyticsView.as_view(),
+        name="workspace-usage-analytics",
+    ),
+    path(
+        "feature-adoption/",
+        workspace_usage.FeatureAdoptionAnalyticsView.as_view(),
+        name="feature-adoption-metrics",
+    ),
+]
+
+# Funnel Reports URLs
+funnel_reports_patterns = [
+    path(
+        "conversion-funnel/",
+        funnel_reports.ConversionFunnelAnalyticsView.as_view(),
+        name="conversion-funnel-analytics",
+    ),
+    path(
+        "time-based-funnel/",
+        funnel_reports.TimeBasedFunnelAnalysisView.as_view(),
+        name="time-based-funnel-analysis",
+    ),
 ]
 
 # Notifications URLs
@@ -285,6 +375,128 @@ role_management_patterns = [
     ),
 ]
 
+# Billing URLs (Admin only)
+billing_patterns = [
+    path("", billing.AdminBillingHistoryView.as_view(), name="admin-billing-history"),
+    path("stats/", billing.AdminBillingStatsView.as_view(), name="admin-billing-stats"),
+]
+
+# Billing Overview URLs
+billing_overview_patterns = [
+    path("", billing_overview.BillingOverviewView.as_view(), name="billing-overview"),
+    path("subscriptions/", billing_overview.SubscriptionAnalyticsView.as_view(), name="subscription-analytics"),
+]
+
+# Wallet Logs URLs
+wallet_logs_patterns = [
+    path(
+        "transactions/",
+        wallet_logs.WalletTransactionLogsView.as_view(),
+        name="wallet-transaction-logs",
+    ),
+    path(
+        "activity-analytics/",
+        wallet_logs.PaymentActivityAnalyticsView.as_view(),
+        name="payment-activity-analytics",
+    ),
+    path(
+        "audit-trail/",
+        wallet_logs.TransactionAuditTrailView.as_view(),
+        name="transaction-audit-trail",
+    ),
+]
+
+# Pro-rata Approvals URLs
+prorata_approvals_patterns = [
+    path(
+        "requests/",
+        prorata_approvals.ProRataBillingRequestsView.as_view(),
+        name="prorata-billing-requests",
+    ),
+    path(
+        "decision/",
+        prorata_approvals.ProRataApprovalDecisionView.as_view(),
+        name="prorata-approval-decision",
+    ),
+    path(
+        "calculation-preview/",
+        prorata_approvals.ProRataCalculationPreviewView.as_view(),
+        name="prorata-calculation-preview",
+    ),
+    path(
+        "history/",
+        prorata_approvals.ProRataApprovalHistoryView.as_view(),
+        name="prorata-approval-history",
+    ),
+]
+
+# Subscriptions URLs
+subscriptions_patterns = [
+    path(
+        "management/",
+        subscriptions.SubscriptionManagementView.as_view(),
+        name="subscription-management",
+    ),
+    path(
+        "<str:subscription_id>/",
+        subscriptions.SubscriptionDetailView.as_view(),
+        name="subscription-detail",
+    ),
+    path(
+        "<str:subscription_id>/actions/",
+        subscriptions.SubscriptionActionsView.as_view(),
+        name="subscription-actions",
+    ),
+]
+
+# Invoicing URLs
+invoicing_patterns = [
+    path(
+        "overview/",
+        invoicing.InvoicingOverviewView.as_view(),
+        name="invoicing-overview",
+    ),
+    path(
+        "generate/",
+        invoicing.InvoiceGenerationView.as_view(),
+        name="invoice-generation",
+    ),
+    path(
+        "<str:invoice_id>/actions/",
+        invoicing.InvoiceActionsView.as_view(),
+        name="invoice-actions",
+    ),
+    path(
+        "analytics/",
+        invoicing.InvoiceAnalyticsView.as_view(),
+        name="invoice-analytics",
+    ),
+]
+
+# Payment Disputes URLs
+payment_disputes_patterns = [
+    path(
+        "overview/",
+        payment_disputes.PaymentDisputesOverviewView.as_view(),
+        name="payment-disputes-overview",
+    ),
+    path(
+        "<str:dispute_id>/actions/",
+        payment_disputes.DisputeActionsView.as_view(),
+        name="dispute-actions",
+    ),
+    path(
+        "<str:dispute_id>/",
+        payment_disputes.DisputeDetailView.as_view(),
+        name="dispute-detail",
+    ),
+    path(
+        "analytics/",
+        payment_disputes.DisputeAnalyticsView.as_view(),
+        name="dispute-analytics",
+    ),
+]
+
 # CMS URLs
 cms_patterns = [
     path("all-content/", cms.AllContentView.as_view(), name="cms-all-content"),
@@ -322,6 +534,11 @@ urlpatterns = [
     path("content/", include(content_patterns)),
     path("meetings/", include(meeting_patterns)),
     path("analytics/", include(analytics_patterns)),
+    path("behavior-analytics/", include(behavior_analytics_patterns)),
+    path("sector-insights/", include(sector_insights_patterns)),
+    path("consultation-metrics/", include(consultation_metrics_patterns)),
+    path("workspace-usage/", include(workspace_usage_patterns)),
+    path("funnel-reports/", include(funnel_reports_patterns)),
     path("notifications/", include(notification_patterns)),
     path("ai-oversight/", include(ai_oversight_patterns)),
     path("settings/", include(settings_patterns)),
@@ -329,5 +546,12 @@ urlpatterns = [
     path("compliance/", include(compliance_patterns)),
     path("role-management/", include(role_management_patterns)),
     path("system/", include(system_health_patterns)),
+    path("billing-history/", include(billing_patterns)),
+    path("billing-overview/", include(billing_overview_patterns)),
+    path("wallet-logs/", include(wallet_logs_patterns)),
+    path("prorata-approvals/", include(prorata_approvals_patterns)),
+    path("subscriptions/", include(subscriptions_patterns)),
+    path("invoicing/", include(invoicing_patterns)),
+    path("payment-disputes/", include(payment_disputes_patterns)),
     path("cms/", include(cms_patterns)),
 ]

@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+import threading
 
 from admin_portal.models import AdminProfile, Meeting
 from notification.utils import notify_user
@@ -67,20 +68,31 @@ def auto_create_activity(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender=User)
 def create_profiles(sender, instance, created, **kwargs):
-    """Create client and profile for new users"""
+    """Create client and profile for new users (only for self-registration)"""
     if created:
         # Skip users who already have an admin profile
-        if not AdminProfile.objects.filter(user=instance).exists():
+        if AdminProfile.objects.filter(user=instance).exists():
+            return
+            
+        # Skip if user is staff or superuser (admin-created)
+        if instance.is_staff or instance.is_superuser:
+            return
+            
+        # Skip if this is being created by admin portal (check for specific marker)
+        # We'll use a thread-local variable to mark admin-created users
+        import threading
+        if hasattr(threading.current_thread(), 'skip_auto_client_creation'):
+            return
 
-            # Create a general Profile if it doesn't exist
-            if not Profile.objects.filter(user=instance).exists():
-                Profile.objects.create(user=instance)
+        # Create a general Profile if it doesn't exist
+        if not Profile.objects.filter(user=instance).exists():
+            Profile.objects.create(user=instance)
 
-            # Create Client if it doesn't exist
-            if not Client.objects.filter(user=instance).exists():
-                # Provide defaults for required fields
-                Client.objects.create(
-                    user=instance,
-                    company="N/A",  # or get from registration data
-                    primary_pillar="strategic",  # default
-                )
+        # Create Client if it doesn't exist (only for self-registered users)
+        if not Client.objects.filter(user=instance).exists():
+            # Provide defaults for required fields
+            Client.objects.create(
+                user=instance,
+                company="N/A",  # or get from registration data
+                primary_pillar="strategic",  # default
+            )

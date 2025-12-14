@@ -7,13 +7,14 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from drf_spectacular.utils import extend_schema, OpenApiExample
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
+from django.middleware.csrf import get_token
 from admin_portal.models import AdminProfile
 from client.models import Profile as ClientProfile
 from rest_framework import serializers
 
 
 class LoginSerializer(serializers.Serializer):
-    username = serializers.CharField()
+    email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
 
 class LoginResponseSerializer(serializers.Serializer):
@@ -30,7 +31,7 @@ class LoginResponseSerializer(serializers.Serializer):
     examples=[
         OpenApiExample(
             "Login Example",
-            value={"username": "editor", "password": "editor123"},
+            value={"email": "editor@example.com", "password": "editor123"},
             request_only=True
         )
     ]
@@ -41,16 +42,36 @@ class LoginView(APIView):
     permission_classes = [AllowAny]
     
     def post(self, request):
-        username = request.data.get('username')
-        password = request.data.get('password')
+        # Handle both JSON and form data
+        if hasattr(request, 'data'):
+            data = request.data
+        else:
+            data = request.POST
+            
+        email = data.get('email')
+        password = data.get('password')
         
-        if not username or not password:
+        if not email or not password:
             return Response(
-                {'error': 'Username and password required'}, 
+                {
+                    'success': False,
+                    'status': 400,
+                    'message': 'Email and password required',
+                    'data': {
+                        'code': 'missing_credentials',
+                        'required_fields': ['email', 'password']
+                    }
+                }, 
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        user = authenticate(username=username, password=password)
+        # Find user by email first
+        try:
+            from django.contrib.auth.models import User
+            user_obj = User.objects.get(email=email)
+            user = authenticate(username=user_obj.username, password=password)
+        except User.DoesNotExist:
+            user = None
         
         if user and user.is_active:
             refresh = RefreshToken.for_user(user)
@@ -154,7 +175,11 @@ class LoginView(APIView):
             {
                 'success': False,
                 'status': 401,
-                'message': 'Invalid credentials'
+                'message': 'Invalid credentials',
+                'data': {
+                    'code': 'invalid_credentials',
+                    'detail': 'The provided username and password combination is incorrect.'
+                }
             }, 
             status=status.HTTP_401_UNAUTHORIZED
         )

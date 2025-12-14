@@ -17,6 +17,34 @@ class CurrentUserRoleView(APIView):
 
     def get(self, request):
         user = request.user
+        
+        # Check if user has admin_profile
+        if not hasattr(user, 'admin_profile') or user.admin_profile is None:
+            return Response({
+                "user": {
+                    "id": user.id,
+                    "username": user.username,
+                    "email": user.email,
+                    "full_name": user.get_full_name(),
+                    "is_superuser": user.is_superuser,
+                },
+                "profile": None,
+                "role": None,
+                "permissions": {
+                    "can_manage_users": user.is_superuser,
+                    "can_view_all_clients": user.is_superuser,
+                    "can_edit_clients": user.is_superuser,
+                    "can_manage_tickets": user.is_superuser,
+                    "can_manage_meetings": user.is_superuser,
+                    "can_create_content": user.is_superuser,
+                    "can_publish_content": user.is_superuser,
+                    "can_view_analytics": user.is_superuser,
+                    "can_view_billing": user.is_superuser,
+                    "can_manage_settings": user.is_superuser,
+                    "can_view_ai_logs": user.is_superuser,
+                },
+            })
+        
         admin_profile = user.admin_profile
         role = admin_profile.role
 

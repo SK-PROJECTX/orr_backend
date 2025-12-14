@@ -356,3 +356,30 @@ class ContentBulkActionsView(APIView):
         )
 
         return Response({"message": message})
+
+
+@extend_schema(
+    tags=["Content Management"],
+    summary="Increment content view count",
+    description="Increment the view count for a specific content item when it is accessed.",
+)
+class ContentViewCountView(APIView):
+    """Increment view count for content"""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        try:
+            content = Content.objects.get(pk=pk)
+            content.view_count += 1
+            content.save(update_fields=['view_count'])
+            
+            return Response({
+                "message": "View count incremented",
+                "view_count": content.view_count
+            })
+
+        except Content.DoesNotExist:
+            return Response(
+                {"error": "Content not found"}, status=status.HTTP_404_NOT_FOUND
+            )

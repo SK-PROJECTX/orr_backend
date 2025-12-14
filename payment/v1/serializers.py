@@ -25,14 +25,27 @@ class BillingPortalSerializer(serializers.Serializer):
 
 
 class InvoiceHistorySerializer(serializers.ModelSerializer):
+    client_name = serializers.CharField(source='user.get_full_name', read_only=True)
+    client_email = serializers.CharField(source='user.email', read_only=True)
+    reference_id = serializers.CharField(source='stripe_invoice_id', read_only=True)
+    transaction_date = serializers.CharField(source='billing_date', read_only=True)
+    payment_method = serializers.SerializerMethodField()
+    
+    def get_payment_method(self, obj):
+        return "Credit Card"
+    
     class Meta:
         model = Invoice
         fields = [
             "id",
-            "billing_title",
-            "status",
-            "billing_date",
+            "reference_id",
+            "transaction_date",
+            "client_name",
+            "client_email",
+            "payment_method",
             "amount",
+            "status",
+            "billing_title",
             "currency",
             "plan",
             "users",

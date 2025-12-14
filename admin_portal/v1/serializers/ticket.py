@@ -6,11 +6,9 @@ from admin_portal.models import Ticket, TicketMessage
 class TicketListSerializer(serializers.ModelSerializer):
     """Payment ticket list view serializer"""
 
-    client_name = serializers.CharField(source="client.user.get_full_name")
+    client_name = serializers.SerializerMethodField()
     client_company = serializers.CharField(source="client.company")
-    assigned_to_name = serializers.CharField(
-        source="assigned_to.get_full_name", allow_null=True
-    )
+    assigned_to_name = serializers.SerializerMethodField()
     messages_count = serializers.SerializerMethodField()
     payment_type = serializers.SerializerMethodField()
 
@@ -38,6 +36,20 @@ class TicketListSerializer(serializers.ModelSerializer):
     def get_messages_count(self, obj):
         return obj.messages.count()
         
+    def get_client_name(self, obj):
+        full_name = obj.client.user.get_full_name().strip()
+        if full_name:
+            return full_name
+        return obj.client.user.username or "Unknown Client"
+    
+    def get_assigned_to_name(self, obj):
+        if not obj.assigned_to:
+            return None
+        full_name = obj.assigned_to.get_full_name().strip()
+        if full_name:
+            return full_name
+        return obj.assigned_to.username or "Unknown User"
+    
     def get_payment_type(self, obj):
         if obj.related_invoice:
             return "invoice"
@@ -49,12 +61,10 @@ class TicketListSerializer(serializers.ModelSerializer):
 class TicketDetailSerializer(serializers.ModelSerializer):
     """Detailed payment ticket view serializer"""
 
-    client_name = serializers.CharField(source="client.user.get_full_name")
+    client_name = serializers.SerializerMethodField()
     client_email = serializers.CharField(source="client.user.email")
     client_company = serializers.CharField(source="client.company")
-    assigned_to_name = serializers.CharField(
-        source="assigned_to.get_full_name", allow_null=True
-    )
+    assigned_to_name = serializers.SerializerMethodField()
     related_payment_info = serializers.SerializerMethodField()
 
     class Meta:
@@ -80,6 +90,20 @@ class TicketDetailSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
 
+    def get_client_name(self, obj):
+        full_name = obj.client.user.get_full_name().strip()
+        if full_name:
+            return full_name
+        return obj.client.user.username or "Unknown Client"
+    
+    def get_assigned_to_name(self, obj):
+        if not obj.assigned_to:
+            return None
+        full_name = obj.assigned_to.get_full_name().strip()
+        if full_name:
+            return full_name
+        return obj.assigned_to.username or "Unknown User"
+    
     def get_related_payment_info(self, obj):
         if obj.related_invoice:
             return {
@@ -123,7 +147,7 @@ class TicketUpdateSerializer(serializers.ModelSerializer):
 class TicketMessageSerializer(serializers.ModelSerializer):
     """Ticket message serializer for reading"""
 
-    sender_name = serializers.CharField(source="sender.get_full_name", read_only=True)
+    sender_name = serializers.SerializerMethodField()
     sender_type = serializers.SerializerMethodField()
 
     class Meta:
@@ -137,6 +161,13 @@ class TicketMessageSerializer(serializers.ModelSerializer):
             "created_at",
         ]
         read_only_fields = ["id", "sender_name", "sender_type", "created_at"]
+
+    def get_sender_name(self, obj):
+        # Get full name, fallback to username if full name is empty
+        full_name = obj.sender.get_full_name().strip()
+        if full_name:
+            return full_name
+        return obj.sender.username or "Unknown User"
 
     def get_sender_type(self, obj):
         # Determine if sender is admin or client

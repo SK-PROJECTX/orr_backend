@@ -5,6 +5,7 @@ from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+import threading
 
 from admin_portal.models import Client, ClientDocument
 from admin_portal.permissions import CanEditClients, CanViewAllClients
@@ -36,6 +37,10 @@ class ClientListView(generics.ListCreateAPIView):
         if self.request.method == "POST":
             return ClientCreateSerializer
         return ClientListSerializer
+    
+    def create(self, request, *args, **kwargs):
+        """Override create to use custom post method"""
+        return self.post(request, *args, **kwargs)
 
     def get_queryset(self):
         queryset = Client.objects.select_related("user", "assigned_admin").all()
@@ -105,53 +110,197 @@ class ClientListView(generics.ListCreateAPIView):
     def post(self, request, *args, **kwargs):
         """Create a new client with user account"""
         from django.contrib.auth.models import User
-        from django.db import transaction
+        from django.db import transaction, IntegrityError
+        from common.response import api_response
+        import logging
+        import time
+        
+        logger = logging.getLogger(__name__)
+        logger.info(f"Client creation request data: {request.data}")
+        
+        # Ensure required fields are present
+        required_fields = ['email', 'company']
+        missing_fields = [field for field in required_fields if not request.data.get(field)]
+        if missing_fields:
+            logger.error(f"Missing required fields: {missing_fields}")
+            return Response(
+                api_response(
+                    message=f"Missing required fields: {', '.join(missing_fields)}",
+                    status_code=400,
+                    success=False
+                ),
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
         try:
             with transaction.atomic():
-                # Validate input data
-                serializer = ClientCreateSerializer(data=request.data)
-                if not serializer.is_valid():
-                    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                import threading
                 
-                validated_data = serializer.validated_data
+                email = request.data.get('email', '').strip().lower()
+                full_name = request.data.get('full_name', '').strip()
+                company = request.data.get('company', '').strip()
                 
-                # Create user account
-                user_data = {
-                    'username': validated_data['username'],
-                    'email': validated_data['email'],
-                    'password': 'TempPass123!',  # Temporary password - user should reset
-                }
+                # 🔒 FIRST CHECK: See if client already exists by email
+                existing_client = Client.objects.select_related('user').filter(user__email=email).first()
+                if existing_client:
+                    return Response(
+                        api_response(
+                            message="A client with this email already exists",
+                            status_code=400,
+                            success=False
+                        ),
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
                 
-                # Handle full name parsing
-                full_name = validated_data.get('full_name', '')
-                if full_name:
-                    name_parts = full_name.strip().split()
-                    user_data['first_name'] = name_parts[0] if name_parts else ''
-                    user_data['last_name'] = ' '.join(name_parts[1:]) if len(name_parts) > 1 else ''
+                # Check if user exists without client profile
+                existing_user = User.objects.filter(email=email).first()
                 
-                user = User.objects.create_user(**user_data)
+                if existing_user:
+                    # User exists, use it
+                    user = existing_user
+                    logger.info(f"Using existing user {user.id} for client creation")
+                else:
+                    # 🚫 PREVENT SIGNAL AUTO-CREATION: Set thread-local marker
+                    threading.current_thread().skip_auto_client_creation = True
+                    
+                    try:
+                        # Create new user
+                        base_username = email.split('@')[0]
+                        username = base_username
+                        counter = 1
+                        
+                        # Generate unique username
+                        while User.objects.filter(username=username).exists():
+                            username = f"{base_username}_{counter}"
+                            counter += 1
+                            if counter > 1000:  # Safety check
+                                timestamp = str(int(time.time()))
+                                username = f"{base_username}_{timestamp}"
+                                break
+                        
+                        # Parse full name
+                        first_name = ''
+                        last_name = ''
+                        if full_name:
+                            name_parts = full_name.strip().split()
+                            first_name = name_parts[0] if name_parts else ''
+                            last_name = ' '.join(name_parts[1:]) if len(name_parts) > 1 else ''
+                        
+                        # Create user
+                        user = User.objects.create_user(
+                            username=username,
+                            email=email,
+                            first_name=first_name,
+                            last_name=last_name,
+                            password='TempPass123!'  # Temporary password
+                        )
+                        logger.info(f"Created new user {user.id}: {username}")
+                        
+                    finally:
+                        # 🧹 CLEANUP: Remove thread-local marker
+                        if hasattr(threading.current_thread(), 'skip_auto_client_creation'):
+                            delattr(threading.current_thread(), 'skip_auto_client_creation')
                 
-                # Create client profile
-                client = Client.objects.create(
+                # Process secondary_pillars
+                secondary_pillars_str = request.data.get('secondary_pillars', '')
+                secondary_pillars = []
+                if secondary_pillars_str:
+                    # Split by comma and clean up
+                    secondary_pillars = [pillar.strip() for pillar in secondary_pillars_str.split(',') if pillar.strip()]
+                
+                # 🧪 ATOMIC CLIENT CREATION: Use get_or_create for safety
+                client, created = Client.objects.get_or_create(
                     user=user,
-                    company=validated_data.get('company', ''),
-                    role=validated_data.get('role', ''),
-                    stage=validated_data.get('stage', 'discover'),
-                    primary_pillar=validated_data.get('primary_pillar', 'strategic'),
-                    assigned_admin=request.user,
+                    defaults={
+                        "company": company,
+                        "role": request.data.get('role', ''),
+                        "stage": request.data.get('stage', 'discover'),
+                        "primary_pillar": request.data.get('primary_pillar', 'strategic'),
+                        "secondary_pillars": secondary_pillars,
+                        "internal_notes": request.data.get('internal_notes', ''),
+                        "assigned_admin": request.user,
+                    }
                 )
+                
+                if not created:
+                    # Update existing client with new data if it was auto-created
+                    logger.info(f"Client already existed for user {user.id}, updating with provided data")
+                    client.company = company
+                    client.role = request.data.get('role', '')
+                    client.stage = request.data.get('stage', 'discover')
+                    client.primary_pillar = request.data.get('primary_pillar', 'strategic')
+                    client.secondary_pillars = secondary_pillars
+                    client.internal_notes = request.data.get('internal_notes', '')
+                    client.assigned_admin = request.user
+                    client.save()
+                    logger.info(f"Updated existing client {client.id} with admin-provided data")
+                
+                # Success - client was created
+                logger.info(f"Client created successfully: {client.id}")
                 
                 # Return success response
                 response_serializer = ClientListSerializer(client)
                 return Response(
-                    response_serializer.data,
+                    api_response(
+                        message="Client created successfully",
+                        data=response_serializer.data,
+                        status_code=201,
+                        success=True
+                    ),
                     status=status.HTTP_201_CREATED
                 )
                 
-        except Exception as e:
+        except IntegrityError as e:
+            logger.error(f"IntegrityError during client creation: {str(e)}")
+            error_msg = str(e).lower()
+            
+            # This should rarely happen now with our triple protection
+            if "unique constraint" in error_msg or "duplicate key" in error_msg:
+                if "user_id" in error_msg or "client_profile" in error_msg:
+                    return Response(
+                        api_response(
+                            message="This user already has a client profile",
+                            status_code=400,
+                            success=False
+                        ),
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                elif "email" in error_msg:
+                    return Response(
+                        api_response(
+                            message="Email address already exists",
+                            status_code=400,
+                            success=False
+                        ),
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                elif "username" in error_msg:
+                    return Response(
+                        api_response(
+                            message="Username conflict occurred. Please try again.",
+                            status_code=400,
+                            success=False
+                        ),
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            
             return Response(
-                {"error": str(e)},
+                api_response(
+                    message="Database constraint error. Please check if the client already exists.",
+                    status_code=400,
+                    success=False
+                ),
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        except Exception as e:
+            logger.error(f"Unexpected error during client creation: {str(e)}")
+            return Response(
+                api_response(
+                    message=f"Failed to create client: {str(e)}",
+                    status_code=500,
+                    success=False
+                ),
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 

@@ -6,9 +6,30 @@ from admin_portal.models import Meeting
 class MeetingListSerializer(serializers.ModelSerializer):
     """Meeting list view serializer"""
 
-    client_name = serializers.CharField(source="client.user.get_full_name")
-    client_company = serializers.CharField(source="client.company")
-    host_name = serializers.CharField(source="host.get_full_name", allow_null=True)
+    client_name = serializers.SerializerMethodField()
+    client_company = serializers.SerializerMethodField()
+    host_name = serializers.SerializerMethodField()
+    
+    def get_client_name(self, obj):
+        if obj.client and obj.client.user:
+            full_name = obj.client.user.get_full_name().strip()
+            if full_name:
+                return full_name
+            return obj.client.user.username or "Unknown Client"
+        return "Unknown Client"
+    
+    def get_client_company(self, obj):
+        if obj.client:
+            return obj.client.company or "N/A"
+        return "N/A"
+    
+    def get_host_name(self, obj):
+        if obj.host:
+            full_name = obj.host.get_full_name().strip()
+            if full_name:
+                return full_name
+            return obj.host.username or "Unknown Host"
+        return None
 
     class Meta:
         model = Meeting
@@ -29,10 +50,36 @@ class MeetingListSerializer(serializers.ModelSerializer):
 class MeetingDetailSerializer(serializers.ModelSerializer):
     """Detailed meeting view serializer"""
 
-    client_name = serializers.CharField(source="client.user.get_full_name")
-    client_email = serializers.CharField(source="client.user.email")
-    client_company = serializers.CharField(source="client.company")
-    host_name = serializers.CharField(source="host.get_full_name", allow_null=True)
+    client_name = serializers.SerializerMethodField()
+    client_email = serializers.SerializerMethodField()
+    client_company = serializers.SerializerMethodField()
+    host_name = serializers.SerializerMethodField()
+    
+    def get_client_name(self, obj):
+        if obj.client and obj.client.user:
+            full_name = obj.client.user.get_full_name().strip()
+            if full_name:
+                return full_name
+            return obj.client.user.username or "Unknown Client"
+        return "Unknown Client"
+    
+    def get_client_email(self, obj):
+        if obj.client and obj.client.user:
+            return obj.client.user.email
+        return "N/A"
+    
+    def get_client_company(self, obj):
+        if obj.client:
+            return obj.client.company or "N/A"
+        return "N/A"
+    
+    def get_host_name(self, obj):
+        if obj.host:
+            full_name = obj.host.get_full_name().strip()
+            if full_name:
+                return full_name
+            return obj.host.username or "Unknown Host"
+        return None
 
     class Meta:
         model = Meeting
@@ -60,27 +107,33 @@ class MeetingDetailSerializer(serializers.ModelSerializer):
 class MeetingCreateSerializer(serializers.ModelSerializer):
     """Meeting creation serializer"""
     
-    client_email = serializers.EmailField(write_only=True)
+    client_id = serializers.IntegerField(write_only=True)
     
     class Meta:
         model = Meeting
         fields = [
-            "client_email",
+            "client_id",
             "meeting_type",
             "requested_datetime",
             "duration_minutes",
             "agenda",
+            "meeting_notes",
+            "internal_notes",
+            "meeting_link",
         ]
+        extra_kwargs = {
+            'meeting_notes': {'required': False, 'allow_blank': True},
+            'internal_notes': {'required': False, 'allow_blank': True},
+            'meeting_link': {'required': False, 'allow_blank': True},
+        }
         
-    def validate_client_email(self, value):
-        from django.contrib.auth.models import User
+    def validate_client_id(self, value):
         from admin_portal.models import Client
         
         try:
-            user = User.objects.get(email=value)
-            Client.objects.get(user=user)
-        except (User.DoesNotExist, Client.DoesNotExist):
-            raise serializers.ValidationError("Client with this email not found")
+            Client.objects.get(id=value)
+        except Client.DoesNotExist:
+            raise serializers.ValidationError("Client with this ID not found")
         return value
 
 
