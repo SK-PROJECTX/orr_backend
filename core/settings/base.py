@@ -53,7 +53,6 @@ INSTALLED_APPS = [
     "main",
     "admin_portal",
     "scheduling",
-    "organization",
     "payment",
 ]
 
@@ -63,7 +62,7 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
-    # "django.middleware.csrf.CsrfViewMiddleware",  # Disabled for API
+    "django.middleware.csrf.CsrfViewMiddleware",  # Disabled for API
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -164,7 +163,7 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=14),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
@@ -172,12 +171,12 @@ SIMPLE_JWT = {
 
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = config("EMAIL_HOST", default="smtp.gmail.com")
+EMAIL_HOST = config("EMAIL_HOST", default="smtp-relay.brevo.com")
 EMAIL_PORT = config("EMAIL_PORT", cast=int, default=587)
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")
-EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
-DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="noreply@example.com")
+EMAIL_HOST_USER = config("BREVO_SMTP_USER", default="")
+EMAIL_HOST_PASSWORD = config("BREVO_SMTP_KEY", default="")
+DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL")
 
 
 SPECTACULAR_SETTINGS = {
@@ -269,4 +268,12 @@ CSRF_TRUSTED_ORIGINS += [
 CSRF_COOKIE_SECURE = False
 CSRF_COOKIE_HTTPONLY = False
 
-CALENDLY_API_KEY = config("CALENDLY_API_KEY", default="dummy_key")
+
+
+
+
+CALENDLY_API_KEY = config("CALENDLY_API_KEY")
+BREVO_API_KEY = config("BREVO_API_KEY")
+
+
+STRIPE_WEBHOOK_SECRET=config("STRIPE_WEBHOOK_SECRET")

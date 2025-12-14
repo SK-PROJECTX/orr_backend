@@ -14,7 +14,24 @@ class OnboardingQuestionnaireViewSet(viewsets.GenericViewSet):
 
     def get_queryset(self):
         return OnboardingQuestionnaire.objects.filter(user=self.request.user)
+    
+    @action(detail=False, methods=["get"], url_path="me")
+    def me(self, request):
+        """
+        Called on login / app reload.
+        Forces user to complete onboarding if not completed.
+        """
+        obj, _ = OnboardingQuestionnaire.objects.get_or_create(
+            user=request.user,
+            defaults={"is_completed": False},
+        )
 
+        if obj.is_completed:
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+        serializer = self.get_serializer(obj)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
     @action(detail=False, methods=["post"], url_path="submit")
     def submit(self, request):
         """

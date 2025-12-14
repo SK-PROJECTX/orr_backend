@@ -10,6 +10,7 @@ from .views import (
     PricingPlanViewSet,
     StripeWebhookView,
     stripe_webhook,
+    CreateSetupIntent,
 )
 
 router = DefaultRouter()
@@ -26,7 +27,8 @@ urlpatterns = [
     path("subscriptions/portal/", BillingPortalView.as_view(), name="billing-portal"),
     path("webhook/", StripeWebhookView.as_view()),
     path("billing-history/", BillingHistoryView.as_view()),
-    path("stripe/webhook/", stripe_webhook, name="stripe-webhook"),
+    path("stripe-webhook/", stripe_webhook, name="stripe-webhook"),
+    path("setup-intent/", CreateSetupIntent.as_view(), name="create_setup_intent"),
 ]
 
 urlpatterns += router.urls

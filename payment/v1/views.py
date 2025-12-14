@@ -11,21 +11,23 @@ from rest_framework.generics import ListAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
+import traceback
 from common.permissions import IsAdminUser
 from admin_portal.payment_ticket_service import PaymentTicketService
-
-from ..models import Invoice, PricingPlan, Subscription
+from ..tasks import handle_stripe_event
+from ..models import Invoice, PricingPlan, Subscription, CheckoutSessionLog, StripeCustomer
 from .serializers import (
     BillingPortalSerializer,
+    SetupIntentResponseSerializer,
     ChangePlanSerializer,
     CreateCheckoutSerializer,
     InvoiceHistorySerializer,
     PauseSubscriptionSerializer,
     PricingPlanSerializer,
 )
-
-stripe.api_key = settings.STRIPE_SECRET_KEY
+import logging
+logger = logging.getLogger(__name__)
+stripe.api_key = settings.STRIPE_SECRET_KEY  
 
 User = settings.AUTH_USER_MODEL
 
@@ -41,83 +43,82 @@ class CreateCheckoutSession(APIView):
         price_id = request.data.get("price_id")
 
         if not price_id:
+            logger.error("price_id is missing in request data")
             return Response({"error": "price_id is required"}, status=400)
+        
+        try:
+            plan = PricingPlan.objects.get(stripe_price_id=price_id)
+        except PricingPlan.DoesNotExist:
+            logger.error(f"PricingPlan not found for price_id: {price_id}")
+            return Response({"error": "Invalid price_id"}, status=400)
+        if plan.billing_type == "metered":
+            return Response(
+                {"error": "This plan cannot be purchased directly."},
+                status=400
+            )
 
         try:
+            logger.info(f"Creating Stripe session for user: {request.user.id} with plan: {plan.id}")
             session = stripe.checkout.Session.create(
                 mode="subscription",
                 payment_method_types=["card"],
                 line_items=[{"price": price_id, "quantity": 1}],
+                metadata={
+                    "user_id": request.user.id,
+                    "plan_id": plan.id,
+                    "billing_type": plan.billing_type,
+                },
                 success_url=settings.STRIPE_SUCCESS_URL
                 + "?session_id={CHECKOUT_SESSION_ID}",
                 cancel_url=settings.STRIPE_CANCEL_URL,
             )
-
+            CheckoutSessionLog.objects.create(
+                user=request.user,
+                plan=plan,
+                stripe_session_id=session.id,
+                status="initiated" 
+            )
+            logger.info(f"Stripe session created successfully, session_id: {session.id}")
             return Response({"checkout_url": session.url})
 
         except Exception as e:
+            logger.error(f"Error creating Stripe session: {str(e)}")
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
 
 @csrf_exempt
 def stripe_webhook(request):
-    payload = request.body
-    sig_header = request.META["HTTP_STRIPE_SIGNATURE"]
 
-    try:
-        event = stripe.Webhook.construct_event(
-            payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
-        )
-    except Exception:
+    if request.method == "GET":
+       return HttpResponse("pong", status=200)
+    
+    if request.method != "POST":
+        return HttpResponse(status=405)
+    
+    payload = request.body
+    sig_header = request.META.get("HTTP_STRIPE_SIGNATURE")
+
+    if not sig_header:
+        logger.error("Missing Stripe signature header")
         return HttpResponse(status=400)
 
-    if event["type"] == "checkout.session.completed":
-        data = event["data"]["object"]
+    try:
+        event = stripe.Webhook.construct_event(payload, sig_header, settings.STRIPE_WEBHOOK_SECRET)
+    except Exception as e:
+        logger.exception("Invalid Stripe webhook signature")
+        return HttpResponse(status=400)
 
-        customer_id = data["customer"]
-        subscription_id = data["subscription"]
-        email = data.get("customer_details", {}).get("email")
-
-        try:
-            user = User.objects.get(email=email)
-        except User.DoesNotExist:
-            return HttpResponse(status=200)
-
-        stripe_sub = stripe.Subscription.retrieve(subscription_id)
-
-        plan_name = stripe_sub["items"]["data"][0]["plan"]["nickname"]
-        current_period_end = timezone.datetime.fromtimestamp(
-            stripe_sub["current_period_end"], timezone.utc
-        )
-        Subscription.objects.update_or_create(
-            user=user,
-            defaults={
-                "stripe_subscription_id": subscription_id,
-                "stripe_customer_id": customer_id,
-                "plan_name": plan_name,
-                "is_active": True,
-                "current_period_end": current_period_end,
-            },
-        )
-        
-    elif event["type"] == "customer.subscription.deleted":
-        data = event["data"]["object"]
-        subscription_id = data["id"]
-
-        try:
-            sub = Subscription.objects.get(stripe_subscription_id=subscription_id)
-            PaymentTicketService.create_subscription_cancelled_ticket(sub)
-            
-            sub.is_active = False
-            sub.save()
-
-            sub.user.is_active = False
-            sub.user.save()
-
-        except Subscription.DoesNotExist:
-            pass
-
+    
+    try:
+        handle_stripe_event.delay(event)  
+    except Exception:
+        logger.exception("Failed to enqueue Stripe event to Celery")
     return HttpResponse(status=200)
+
+
+
+
+
+
 
 
 @extend_schema(
@@ -354,3 +355,38 @@ class PricingPlanViewSet(viewsets.ModelViewSet):
             recurring={"interval": "month"},
         )
         serializer.save(stripe_price_id=price.id)
+
+
+
+@extend_schema(
+    tags=["payment"],
+)
+class CreateSetupIntent(APIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class=SetupIntentResponseSerializer
+    def post(self, request):
+        user = request.user
+        
+        subscription, _ = Subscription.objects.get_or_create(user=user)
+        full_name = f"{user.first_name} {user.last_name}".strip()
+        if not full_name:
+            full_name = user.username
+        if not subscription.stripe_customer_id:
+            customer = stripe.Customer.create(
+                email=user.email,
+                name=full_name or user.username,
+            )
+            subscription.stripe_customer_id = customer.id
+            subscription.save()
+        else:
+            customer = stripe.Customer.retrieve(subscription.stripe_customer_id)
+
+        setup_intent = stripe.SetupIntent.create(
+            customer=customer.id,
+            payment_method_types=["card"],
+        )
+
+        return Response({
+            "client_secret": setup_intent.client_secret,
+            "customer_id": customer.id
+        })

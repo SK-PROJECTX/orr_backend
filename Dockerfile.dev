@@ -14,6 +14,13 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
+
+# Install Stripe CLI
+RUN curl -sSL https://github.com/stripe/stripe-cli/releases/download/v1.10.0/stripe_1.10.0_linux_x86_64.tar.gz -o stripe-cli.tar.gz \
+    && tar -xvzf stripe-cli.tar.gz \
+    && mv stripe /usr/local/bin/stripe \
+    && rm stripe-cli.tar.gz
+
 # Install Poetry
 RUN curl -sSL https://install.python-poetry.org | python3 -
 
@@ -27,13 +34,14 @@ RUN poetry install --no-root
 
 COPY manage.py /app/manage.py
 COPY wait-for-it.sh /app/wait-for-it.sh
-COPY entrypoint.sh /app/entrypoint.sh
+COPY entrypoint.dev.sh /app/entrypoint.dev.sh
 
 
-RUN chmod +x /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.dev.sh
 
 # Expose port
 EXPOSE 8000
 
 
-CMD ["poetry", "run", "python", "manage.py", "runserver", "0.0.0.0:8000"]
+
+CMD ["bash", "-c", "echo 'Starting Django and Stripe CLI...' && ./entrypoint.dev.sh"]

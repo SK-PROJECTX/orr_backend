@@ -228,7 +228,6 @@ class MeetingActionsView(APIView):
                         meeting.internal_notes = notes
                     meeting.save()
 
-                    # Create notification for client
                     from admin_portal.models import SystemNotification
 
                     SystemNotification.objects.create(

@@ -12,3 +12,11 @@ class ClientSignUpSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ("username", "email", "password", "first_name", "last_name")
+    def validate(self, attrs):
+        if User.objects.filter(username=attrs["username"]).exists():
+            raise serializers.ValidationError("Username already exists.")
+
+        if User.objects.filter(email=attrs["email"]).exists():
+            raise serializers.ValidationError("Email already exists.")
+
+        return attrs
