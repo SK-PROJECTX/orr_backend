@@ -78,7 +78,7 @@ class Invoice(Audit):
 
 
 class StripeCustomer(Audit):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    user = models.OneToOneField(User, on_delete=models.CASCADE , related_name="stripe_profile")
     stripe_customer_id = models.CharField(max_length=255, unique=True)
     stripe_card_id = models.CharField(max_length=255, unique=True)
 
