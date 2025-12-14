@@ -7,6 +7,7 @@ from .views import (
     auth,
     behavior_analytics,
     billing,
+    billing_overview,
     client,
     client_profile,
     cms,
@@ -104,6 +105,7 @@ ticket_patterns = [
         name="ticket-messages",
     ),
     path("my-tickets/", ticket.MyTicketsView.as_view(), name="my-tickets"),
+    path("assignable-users/", ticket.TicketAssignableUsersView.as_view(), name="ticket-assignable-users"),
     path("stats/", ticket.TicketStatsView.as_view(), name="ticket-stats"),
 ]
 
@@ -152,6 +154,8 @@ meeting_patterns = [
         "<int:pk>/assign/", meeting.MeetingAssignView.as_view(), name="meeting-assign"
     ),
     path("my-meetings/", meeting.MyMeetingsView.as_view(), name="my-meetings"),
+    path("confirmed/", meeting.ConfirmedMeetingsView.as_view(), name="confirmed-meetings"),
+    path("requested/", meeting.RequestedMeetingsView.as_view(), name="requested-meetings"),
     path("upcoming/", meeting.UpcomingMeetingsView.as_view(), name="upcoming-meetings"),
     path("stats/", meeting.MeetingStatsView.as_view(), name="meeting-stats"),
 ]
@@ -221,7 +225,7 @@ workspace_usage_patterns = [
     ),
     path(
         "feature-adoption/",
-        workspace_usage.FeatureAdoptionMetricsView.as_view(),
+        workspace_usage.FeatureAdoptionAnalyticsView.as_view(),
         name="feature-adoption-metrics",
     ),
 ]
@@ -375,6 +379,12 @@ role_management_patterns = [
 billing_patterns = [
     path("", billing.AdminBillingHistoryView.as_view(), name="admin-billing-history"),
     path("stats/", billing.AdminBillingStatsView.as_view(), name="admin-billing-stats"),
+]
+
+# Billing Overview URLs
+billing_overview_patterns = [
+    path("", billing_overview.BillingOverviewView.as_view(), name="billing-overview"),
+    path("subscriptions/", billing_overview.SubscriptionAnalyticsView.as_view(), name="subscription-analytics"),
 ]
 
 # Wallet Logs URLs
@@ -537,6 +547,7 @@ urlpatterns = [
     path("role-management/", include(role_management_patterns)),
     path("system/", include(system_health_patterns)),
     path("billing-history/", include(billing_patterns)),
+    path("billing-overview/", include(billing_overview_patterns)),
     path("wallet-logs/", include(wallet_logs_patterns)),
     path("prorata-approvals/", include(prorata_approvals_patterns)),
     path("subscriptions/", include(subscriptions_patterns)),

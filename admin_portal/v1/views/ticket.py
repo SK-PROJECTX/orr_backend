@@ -20,6 +20,7 @@ from ..serializers.ticket import (
     TicketStatsSerializer,
     TicketUpdateSerializer,
 )
+from ..serializers.settings import AdminUserListSerializer
 
 
 @extend_schema(
@@ -111,6 +112,21 @@ class TicketDetailView(generics.RetrieveUpdateAPIView):
         if self.request.method == "GET":
             return TicketDetailSerializer
         return TicketUpdateSerializer
+    
+    def perform_update(self, serializer):
+        # Get the old assigned user before update
+        old_assigned_to = self.get_object().assigned_to
+        
+        # Save the updated ticket
+        ticket = serializer.save()
+        
+        # Check if assignment changed
+        new_assigned_to = ticket.assigned_to
+        if old_assigned_to != new_assigned_to and new_assigned_to:
+            # Send notification to newly assigned user
+            NotificationService.send_ticket_notification(
+                ticket, "assigned", new_assigned_to
+            )
 
 
 @extend_schema(
@@ -347,6 +363,26 @@ class MyTicketsView(generics.ListAPIView):
     def get_queryset(self):
         return (
             Ticket.objects.filter(assigned_to=self.request.user)
-            .select_related("client__user")
+            .select_related("client__user", "assigned_to")
             .order_by("-created_at")
         )
+
+
+@extend_schema(
+    tags=["Ticket Management"],
+    summary="Get available users for ticket assignment",
+    description="Retrieve list of admin users who can be assigned to tickets.",
+)
+class TicketAssignableUsersView(generics.ListAPIView):
+    """Get users available for ticket assignment"""
+
+    serializer_class = AdminUserListSerializer
+    permission_classes = [CanManageTickets]
+
+    def get_queryset(self):
+        from django.contrib.auth.models import User
+        # Return users who have admin profiles (can be assigned tickets)
+        return User.objects.filter(
+            admin_profile__isnull=False,
+            is_active=True
+        ).select_related('admin_profile__role').order_by('first_name', 'last_name', 'username')

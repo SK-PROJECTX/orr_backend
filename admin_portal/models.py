@@ -506,3 +506,116 @@ class ClientDocument(Audit):
 
     def __str__(self):
         return f"{self.client.user.get_full_name()} - {self.title}"
+
+
+class ProRataApproval(Audit):
+    """Pro-rata billing approval requests"""
+
+    ADJUSTMENT_TYPE_CHOICES = [
+        ('upgrade', 'Plan Upgrade'),
+        ('downgrade', 'Plan Downgrade'),
+        ('addon', 'Add-on Service'),
+        ('removal', 'Service Removal'),
+    ]
+
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    ]
+
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name='prorata_approvals')
+    subscription_id = models.CharField(max_length=255)
+    old_plan_name = models.CharField(max_length=100)
+    new_plan_name = models.CharField(max_length=100)
+    change_date = models.DateField()
+    prorated_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    adjustment_type = models.CharField(max_length=20, choices=ADJUSTMENT_TYPE_CHOICES)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    requested_by = models.CharField(max_length=50)
+    notes = models.TextField(blank=True)
+    approved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='approved_prorata')
+    approved_at = models.DateTimeField(null=True, blank=True)
+    rejection_reason = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.client.user.get_full_name()} - {self.adjustment_type} - ${self.prorated_amount}"
+
+
+class PaymentDispute(Audit):
+    """Payment dispute management"""
+
+    DISPUTE_TYPE_CHOICES = [
+        ('chargeback', 'Chargeback'),
+        ('inquiry', 'Inquiry'),
+        ('refund_request', 'Refund Request'),
+    ]
+
+    STATUS_CHOICES = [
+        ('open', 'Open'),
+        ('under_review', 'Under Review'),
+        ('resolved', 'Resolved'),
+        ('closed', 'Closed'),
+    ]
+
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name='payment_disputes')
+    invoice = models.ForeignKey('payment.Invoice', on_delete=models.CASCADE, related_name='disputes')
+    dispute_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    dispute_reason = models.TextField()
+    dispute_type = models.CharField(max_length=20, choices=DISPUTE_TYPE_CHOICES)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='open')
+    stripe_dispute_id = models.CharField(max_length=255, blank=True)
+    evidence_due_date = models.DateTimeField(null=True, blank=True)
+    resolved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='resolved_disputes')
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    resolution_notes = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.client.user.get_full_name()} - {self.dispute_type} - ${self.dispute_amount}"
+
+
+class DisputeNote(Audit):
+    """Notes for payment disputes"""
+
+    dispute = models.ForeignKey(PaymentDispute, on_delete=models.CASCADE, related_name='notes')
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    note = models.TextField()
+    is_internal = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"{self.dispute} - Note by {self.created_by.username}"
+
+
+class WalletTransaction(Audit):
+    """Client wallet transaction history"""
+
+    TRANSACTION_TYPE_CHOICES = [
+        ('credit', 'Credit'),
+        ('debit', 'Debit'),
+        ('refund', 'Refund'),
+        ('adjustment', 'Adjustment'),
+    ]
+
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name='wallet_transactions')
+    transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPE_CHOICES)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    balance_before = models.DecimalField(max_digits=10, decimal_places=2)
+    balance_after = models.DecimalField(max_digits=10, decimal_places=2)
+    description = models.TextField()
+    reference_id = models.CharField(max_length=100, blank=True)
+    processed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.client.user.get_full_name()} - {self.transaction_type} - ${self.amount}"

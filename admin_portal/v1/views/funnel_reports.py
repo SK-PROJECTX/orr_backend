@@ -34,15 +34,13 @@ class ConversionFunnelAnalyticsView(APIView):
         # Drop-off analysis
         dropoff_analysis = self._get_dropoff_analysis()
         
-        # Conversion rates by source
-        conversion_by_source = self._get_conversion_by_source()
+
         
         return Response({
             "main_funnel": main_funnel,
             "engagement_funnel": engagement_funnel,
             "success_funnel": success_funnel,
-            "dropoff_analysis": dropoff_analysis,
-            "conversion_by_source": conversion_by_source
+            "dropoff_analysis": dropoff_analysis
         })
     
     def _get_main_conversion_funnel(self):
@@ -250,41 +248,7 @@ class ConversionFunnelAnalyticsView(APIView):
             ]
         }
     
-    def _get_conversion_by_source(self):
-        """Get conversion rates by traffic source"""
-        # This would typically come from tracking data - simplified for now
-        return {
-            "organic_search": {
-                "visitors": 1250,
-                "registrations": 89,
-                "active_clients": 34,
-                "conversion_rate": 2.72
-            },
-            "social_media": {
-                "visitors": 890,
-                "registrations": 45,
-                "active_clients": 18,
-                "conversion_rate": 2.02
-            },
-            "referrals": {
-                "visitors": 340,
-                "registrations": 28,
-                "active_clients": 15,
-                "conversion_rate": 4.41
-            },
-            "direct": {
-                "visitors": 560,
-                "registrations": 32,
-                "active_clients": 12,
-                "conversion_rate": 2.14
-            },
-            "email_campaigns": {
-                "visitors": 220,
-                "registrations": 18,
-                "active_clients": 9,
-                "conversion_rate": 4.09
-            }
-        }
+
 
 
 @extend_schema(
@@ -307,14 +271,10 @@ class TimeBasedFunnelAnalysisView(APIView):
         # Seasonal trends
         seasonal_trends = self._get_seasonal_trends()
         
-        # Time to conversion analysis
-        time_to_conversion = self._get_time_to_conversion_analysis()
-        
         return Response({
             "monthly_funnel": monthly_funnel,
             "cohort_analysis": cohort_analysis,
-            "seasonal_trends": seasonal_trends,
-            "time_to_conversion": time_to_conversion
+            "seasonal_trends": seasonal_trends
         })
     
     def _get_monthly_funnel_performance(self):
@@ -434,44 +394,3 @@ class TimeBasedFunnelAnalysisView(APIView):
         
         return quarterly_data
     
-    def _get_time_to_conversion_analysis(self):
-        """Analyze time from registration to key milestones"""
-        # Calculate average time to key milestones
-        return {
-            "registration_to_onboarding": {
-                "avg_days": 1.2,
-                "median_days": 0.8,
-                "percentiles": {
-                    "25th": 0.3,
-                    "75th": 1.8,
-                    "90th": 3.5
-                }
-            },
-            "onboarding_to_first_engagement": {
-                "avg_days": 2.8,
-                "median_days": 2.1,
-                "percentiles": {
-                    "25th": 1.2,
-                    "75th": 3.9,
-                    "90th": 7.2
-                }
-            },
-            "registration_to_first_meeting": {
-                "avg_days": 5.4,
-                "median_days": 4.2,
-                "percentiles": {
-                    "25th": 2.1,
-                    "75th": 7.8,
-                    "90th": 12.5
-                }
-            },
-            "first_contact_to_active_client": {
-                "avg_days": 8.7,
-                "median_days": 6.9,
-                "percentiles": {
-                    "25th": 3.8,
-                    "75th": 11.2,
-                    "90th": 18.4
-                }
-            }
-        }

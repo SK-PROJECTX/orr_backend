@@ -4,6 +4,7 @@ from . import (
     auth,
     behavior_analytics,
     billing,
+    billing_overview,
     client,
     client_profile,
     cms,

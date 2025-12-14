@@ -8,7 +8,20 @@ from rest_framework.views import APIView
 
 from admin_portal.models import Meeting
 from admin_portal.permissions import CanManageMeetings
-from admin_portal.services import CalendarService, NotificationService
+# Import services with error handling
+try:
+    from admin_portal.services import CalendarService, NotificationService
+except ImportError:
+    # Create dummy services if not available
+    class CalendarService:
+        @staticmethod
+        def create_calendar_event(meeting):
+            return None
+    
+    class NotificationService:
+        @staticmethod
+        def send_meeting_notification(meeting, action, user):
+            pass
 
 from ..serializers.meeting import (
     MeetingActionSerializer,
@@ -37,6 +50,9 @@ class MeetingListView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         queryset = Meeting.objects.select_related("client__user", "host").all()
+        
+        # Debug: Log total meetings count
+        print(f"Total meetings in database: {queryset.count()}")
 
         # Search functionality
         search = self.request.query_params.get("search", None)
@@ -51,18 +67,23 @@ class MeetingListView(generics.ListCreateAPIView):
         # Filters
         status_filter = self.request.query_params.get("status", None)
         if status_filter:
+            print(f"Filtering by status: {status_filter}")
             queryset = queryset.filter(status=status_filter)
+            print(f"Meetings after status filter: {queryset.count()}")
 
         meeting_type = self.request.query_params.get("type", None)
         if meeting_type:
             queryset = queryset.filter(meeting_type=meeting_type)
 
         host = self.request.query_params.get("host", None)
+        host_id = self.request.query_params.get("host_id", None)
         if host:
             if host == "unassigned":
                 queryset = queryset.filter(host__isnull=True)
             else:
                 queryset = queryset.filter(host_id=host)
+        elif host_id:
+            queryset = queryset.filter(host_id=host_id)
 
         # Date range filters
         date_from = self.request.query_params.get("date_from", None)
@@ -79,26 +100,38 @@ class MeetingListView(generics.ListCreateAPIView):
                 confirmed_datetime__gte=timezone.now(), status="confirmed"
             )
 
-        return queryset.order_by("-created_at")
+        final_queryset = queryset.order_by("-created_at")
+        print(f"Final queryset count: {final_queryset.count()}")
+        return final_queryset
         
     def perform_create(self, serializer):
         """Create a new meeting request"""
-        from django.contrib.auth.models import User
         from admin_portal.models import Client
         
-        # Find client by email
-        client_email = serializer.validated_data.get('client_email')
+        # Find client by ID
+        client_id = serializer.validated_data.get('client_id')
         try:
-            user = User.objects.get(email=client_email)
-            client = Client.objects.get(user=user)
-            serializer.save(client=client, status='requested')
-        except (User.DoesNotExist, Client.DoesNotExist):
-            raise serializers.ValidationError({"client_email": "Client with this email not found"})
+            client = Client.objects.get(id=client_id)
+            
+            # Save meeting with all provided data
+            meeting = serializer.save(
+                client=client, 
+                status='requested',
+                host=self.request.user if hasattr(self.request, 'user') else None
+            )
+            
+        except Client.DoesNotExist:
+            raise serializers.ValidationError({"client_id": "Client with this ID not found"})
             
         # Send notification to client
-        from admin_portal.services import NotificationService
-        meeting = serializer.instance
-        NotificationService.send_meeting_notification(meeting, "requested", client.user)
+        try:
+            from admin_portal.services import NotificationService
+            NotificationService.send_meeting_notification(meeting, "requested", client.user)
+        except Exception as e:
+            # Don't fail the meeting creation if notification fails
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Failed to send meeting notification: {e}")
 
 
 @extend_schema(
@@ -378,8 +411,60 @@ class MyMeetingsView(generics.ListAPIView):
         return (
             Meeting.objects.filter(host=self.request.user)
             .select_related("client__user")
+            .order_by("-created_at")
+        )
+
+
+@extend_schema(
+    tags=["Meeting Management"],
+    summary="Get confirmed meetings",
+    description="Retrieve all confirmed meetings, optionally filtered by assigned host.",
+)
+class ConfirmedMeetingsView(generics.ListAPIView):
+    """Get confirmed meetings"""
+
+    serializer_class = MeetingListSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = (
+            Meeting.objects.filter(status="confirmed")
+            .select_related("client__user", "host")
             .order_by("confirmed_datetime")
         )
+        
+        # Filter by assigned host if requested
+        host_id = self.request.query_params.get('host_id')
+        if host_id:
+            queryset = queryset.filter(host_id=host_id)
+        
+        return queryset
+
+
+@extend_schema(
+    tags=["Meeting Management"],
+    summary="Get requested meetings",
+    description="Retrieve all requested meetings, optionally filtered by assigned host.",
+)
+class RequestedMeetingsView(generics.ListAPIView):
+    """Get requested meetings"""
+
+    serializer_class = MeetingListSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = (
+            Meeting.objects.filter(status="requested")
+            .select_related("client__user", "host")
+            .order_by("-created_at")
+        )
+        
+        # Filter by assigned host if requested
+        host_id = self.request.query_params.get('host_id')
+        if host_id:
+            queryset = queryset.filter(host_id=host_id)
+        
+        return queryset
 
 
 @extend_schema(

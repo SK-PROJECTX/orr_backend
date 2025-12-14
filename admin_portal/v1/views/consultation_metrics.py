@@ -135,8 +135,8 @@ class ConsultationPerformanceView(APIView):
     
     def _get_meeting_feedback_score(self):
         """Get average meeting feedback score"""
-        # This would be based on actual feedback data - simulated for now
-        return 4.3  # out of 5
+        # No feedback system implemented yet
+        return 0
     
     def _calculate_client_retention_post_meeting(self):
         """Calculate client retention rate after meetings"""
@@ -167,29 +167,35 @@ class ConsultationPerformanceView(APIView):
     
     def _get_consultant_performance_metrics(self):
         """Get performance metrics by consultant"""
-        from django.contrib.auth.models import User
-        
-        consultants = User.objects.filter(
-            hosted_meetings__isnull=False
-        ).distinct()
-        
-        performance_data = []
-        
-        for consultant in consultants:
-            meetings_hosted = Meeting.objects.filter(host=consultant).count()
-            completed_meetings = Meeting.objects.filter(
-                host=consultant, status='completed'
-            ).count()
+        try:
+            from django.contrib.auth.models import User
             
-            performance_data.append({
-                "consultant_name": consultant.get_full_name() or consultant.username,
-                "meetings_hosted": meetings_hosted,
-                "completion_rate": round((completed_meetings / meetings_hosted) * 100, 2) if meetings_hosted > 0 else 0,
-                "avg_rating": 4.2 + (hash(consultant.username) % 8) / 10,  # Simulated rating
-                "client_satisfaction": 85 + (hash(consultant.username) % 15)  # Simulated satisfaction
-            })
-        
-        return performance_data
+            consultants = User.objects.filter(
+                hosted_meetings__isnull=False
+            ).distinct()
+            
+            performance_data = []
+            
+            for consultant in consultants:
+                try:
+                    meetings_hosted = Meeting.objects.filter(host=consultant).count()
+                    completed_meetings = Meeting.objects.filter(
+                        host=consultant, status='completed'
+                    ).count()
+                    
+                    performance_data.append({
+                        "consultant_name": consultant.get_full_name() or consultant.username,
+                        "meetings_hosted": meetings_hosted,
+                        "completion_rate": round((completed_meetings / meetings_hosted) * 100, 2) if meetings_hosted > 0 else 0,
+                        "avg_rating": 0,  # No rating system implemented
+                        "client_satisfaction": 0  # No satisfaction tracking implemented
+                    })
+                except Exception:
+                    continue
+            
+            return performance_data
+        except Exception:
+            return []
 
 
 @extend_schema(
@@ -232,38 +238,79 @@ class ConsultationSchedulingAnalyticsView(APIView):
         })
     
     def _get_peak_request_hours(self):
-        """Get peak hours for meeting requests"""
-        # Simplified - would analyze actual request timestamps
-        return {
-            "9-10": 15,
-            "10-11": 25,
-            "11-12": 20,
-            "14-15": 18,
-            "15-16": 22
-        }
+        """Get peak hours for meeting requests from actual data"""
+        try:
+            from django.db.models import Extract
+            
+            meeting_hours = Meeting.objects.filter(
+                created_at__isnull=False
+            ).annotate(
+                hour=Extract('created_at', 'hour')
+            ).values('hour').annotate(count=Count('id'))
+            
+            hourly_data = {}
+            for item in meeting_hours:
+                hour = item.get('hour')
+                count = item.get('count', 0)
+                if hour is not None:
+                    hour_range = f"{hour}-{hour+1}"
+                    hourly_data[hour_range] = count
+            
+            return hourly_data
+        except Exception:
+            return {}
     
     def _get_peak_request_days(self):
-        """Get peak days for meeting requests"""
-        return {
-            "monday": 18,
-            "tuesday": 22,
-            "wednesday": 25,
-            "thursday": 20,
-            "friday": 15
-        }
+        """Get peak days for meeting requests from actual data"""
+        try:
+            from django.db.models import Extract
+            
+            meeting_days = Meeting.objects.filter(
+                created_at__isnull=False
+            ).annotate(
+                weekday=Extract('created_at', 'week_day')
+            ).values('weekday').annotate(count=Count('id'))
+            
+            day_names = {1: 'sunday', 2: 'monday', 3: 'tuesday', 4: 'wednesday', 5: 'thursday', 6: 'friday', 7: 'saturday'}
+            daily_data = {}
+            
+            for item in meeting_days:
+                weekday = item.get('weekday')
+                count = item.get('count', 0)
+                if weekday is not None:
+                    day_name = day_names.get(weekday, 'unknown')
+                    daily_data[day_name] = count
+            
+            return daily_data
+        except Exception:
+            return {}
     
     def _calculate_avg_lead_time(self):
         """Calculate average lead time from request to meeting"""
-        # Simplified calculation
-        meetings_with_lead_time = Meeting.objects.filter(
-            requested_datetime__isnull=False,
-            confirmed_datetime__isnull=False
-        )
-        
-        if meetings_with_lead_time.exists():
-            # This would calculate actual time differences
-            return 3.2  # days (simplified)
-        return 0
+        try:
+            meetings_with_lead_time = Meeting.objects.filter(
+                requested_datetime__isnull=False,
+                confirmed_datetime__isnull=False
+            )
+            
+            if meetings_with_lead_time.exists():
+                total_days = 0
+                valid_meetings = 0
+                
+                for meeting in meetings_with_lead_time:
+                    try:
+                        if meeting.confirmed_datetime and meeting.requested_datetime:
+                            days_diff = (meeting.confirmed_datetime.date() - meeting.requested_datetime.date()).days
+                            if days_diff >= 0:  # Only count positive lead times
+                                total_days += days_diff
+                                valid_meetings += 1
+                    except Exception:
+                        continue
+                
+                return round(total_days / valid_meetings, 1) if valid_meetings > 0 else 0
+            return 0
+        except Exception:
+            return 0
     
     def _calculate_rescheduling_rate(self):
         """Calculate meeting rescheduling rate"""
@@ -276,76 +323,195 @@ class ConsultationSchedulingAnalyticsView(APIView):
     
     def _get_consultant_utilization(self):
         """Get consultant utilization rates"""
-        from django.contrib.auth.models import User
-        
-        consultants = User.objects.filter(hosted_meetings__isnull=False).distinct()
-        utilization_data = []
-        
-        for consultant in consultants:
-            meetings_this_month = Meeting.objects.filter(
-                host=consultant,
-                created_at__gte=timezone.now() - timedelta(days=30)
-            ).count()
+        try:
+            from django.contrib.auth.models import User
             
-            # Assuming 20 working days per month, 8 hours per day, 1-hour meetings
-            max_capacity = 20 * 8  # 160 meetings per month max
-            utilization_rate = round((meetings_this_month / max_capacity) * 100, 2) if max_capacity > 0 else 0
+            consultants = User.objects.filter(hosted_meetings__isnull=False).distinct()
+            utilization_data = []
             
-            utilization_data.append({
-                "consultant": consultant.get_full_name() or consultant.username,
-                "meetings_this_month": meetings_this_month,
-                "utilization_rate": min(utilization_rate, 100)  # Cap at 100%
-            })
-        
-        return utilization_data
+            for consultant in consultants:
+                try:
+                    meetings_this_month = Meeting.objects.filter(
+                        host=consultant,
+                        created_at__gte=timezone.now() - timedelta(days=30)
+                    ).count()
+                    
+                    # Assuming 20 working days per month, 8 hours per day, 1-hour meetings
+                    max_capacity = 20 * 8  # 160 meetings per month max
+                    utilization_rate = round((meetings_this_month / max_capacity) * 100, 2) if max_capacity > 0 else 0
+                    
+                    utilization_data.append({
+                        "consultant": consultant.get_full_name() or consultant.username,
+                        "meetings_this_month": meetings_this_month,
+                        "utilization_rate": min(utilization_rate, 100)  # Cap at 100%
+                    })
+                except Exception:
+                    continue
+            
+            return utilization_data
+        except Exception:
+            return []
     
     def _get_time_slot_popularity(self):
-        """Get popularity of different time slots"""
-        # Simplified - would analyze actual meeting times
-        return {
-            "morning": 35,
-            "afternoon": 45,
-            "evening": 20
-        }
+        """Get popularity of different time slots from actual data"""
+        try:
+            from django.db.models import Extract
+            
+            meeting_hours = Meeting.objects.filter(
+                confirmed_datetime__isnull=False
+            ).annotate(
+                hour=Extract('confirmed_datetime', 'hour')
+            ).values('hour').annotate(count=Count('id'))
+            
+            periods = {"morning": 0, "afternoon": 0, "evening": 0}
+            total_meetings = sum(item['count'] for item in meeting_hours)
+            
+            for item in meeting_hours:
+                hour = item.get('hour')
+                count = item.get('count', 0)
+                
+                if hour is not None:
+                    if 6 <= hour < 12:
+                        periods["morning"] += count
+                    elif 12 <= hour < 18:
+                        periods["afternoon"] += count
+                    else:
+                        periods["evening"] += count
+            
+            if total_meetings > 0:
+                for period in periods:
+                    periods[period] = round((periods[period] / total_meetings) * 100, 1)
+            
+            return periods
+        except Exception:
+            return {"morning": 0, "afternoon": 0, "evening": 0}
     
     def _analyze_capacity_vs_demand(self):
-        """Analyze capacity vs demand patterns"""
-        return {
-            "current_capacity": 160,  # meetings per month
-            "current_demand": 120,   # meeting requests per month
-            "utilization_rate": 75,  # percentage
-            "capacity_gap": 40       # unused capacity
-        }
+        """Analyze capacity vs demand patterns from actual data"""
+        try:
+            last_30_days = timezone.now() - timedelta(days=30)
+            
+            current_demand = Meeting.objects.filter(
+                created_at__gte=last_30_days
+            ).count()
+            
+            # Estimate capacity based on available consultants
+            from django.contrib.auth.models import User
+            consultants_count = User.objects.filter(hosted_meetings__isnull=False).distinct().count()
+            estimated_capacity = max(1, consultants_count * 20 * 8)  # 20 days * 8 hours per consultant, minimum 1
+            
+            utilization_rate = round((current_demand / estimated_capacity) * 100, 1) if estimated_capacity > 0 else 0
+            capacity_gap = max(0, estimated_capacity - current_demand)
+            
+            return {
+                "current_capacity": estimated_capacity,
+                "current_demand": current_demand,
+                "utilization_rate": utilization_rate,
+                "capacity_gap": capacity_gap
+            }
+        except Exception:
+            return {
+                "current_capacity": 160,
+                "current_demand": 0,
+                "utilization_rate": 0,
+                "capacity_gap": 160
+            }
     
     def _identify_underutilized_slots(self):
-        """Identify underutilized time slots"""
-        return [
-            {"time": "08:00-09:00", "utilization": 15},
-            {"time": "17:00-18:00", "utilization": 25},
-            {"time": "Friday afternoon", "utilization": 30}
-        ]
+        """Identify underutilized time slots from actual data"""
+        try:
+            from django.db.models import Extract
+            
+            # Get meeting distribution by hour
+            meeting_hours = Meeting.objects.filter(
+                confirmed_datetime__isnull=False
+            ).annotate(
+                hour=Extract('confirmed_datetime', 'hour')
+            ).values('hour').annotate(count=Count('id'))
+            
+            total_meetings = sum(item['count'] for item in meeting_hours)
+            underutilized = []
+            
+            for item in meeting_hours:
+                hour = item.get('hour')
+                count = item.get('count', 0)
+                
+                if hour is not None and total_meetings > 0:
+                    utilization = round((count / total_meetings) * 100, 1)
+                    if utilization < 5:  # Less than 5% utilization
+                        underutilized.append({
+                            "time": f"{hour:02d}:00-{hour+1:02d}:00",
+                            "utilization": utilization
+                        })
+            
+            return underutilized[:5]  # Return top 5
+        except Exception:
+            return []
     
     def _identify_high_demand_periods(self):
-        """Identify high demand periods"""
-        return [
-            {"period": "Tuesday 10:00-12:00", "demand_score": 95},
-            {"period": "Wednesday 14:00-16:00", "demand_score": 88},
-            {"period": "Thursday 09:00-11:00", "demand_score": 82}
-        ]
+        """Identify high demand periods from actual data"""
+        try:
+            from django.db.models import Extract
+            
+            # Get meeting distribution by day and hour
+            meeting_patterns = Meeting.objects.filter(
+                confirmed_datetime__isnull=False
+            ).annotate(
+                weekday=Extract('confirmed_datetime', 'week_day'),
+                hour=Extract('confirmed_datetime', 'hour')
+            ).values('weekday', 'hour').annotate(count=Count('id')).order_by('-count')
+            
+            day_names = {1: 'Sunday', 2: 'Monday', 3: 'Tuesday', 4: 'Wednesday', 5: 'Thursday', 6: 'Friday', 7: 'Saturday'}
+            high_demand = []
+            
+            total_meetings = Meeting.objects.count()
+            
+            for pattern in meeting_patterns[:5]:  # Top 5 high demand periods
+                weekday = pattern.get('weekday')
+                hour = pattern.get('hour')
+                count = pattern.get('count', 0)
+                
+                if weekday is not None and hour is not None and total_meetings > 0:
+                    day_name = day_names.get(weekday, 'Unknown')
+                    demand_score = round((count / total_meetings) * 100, 1)
+                    
+                    high_demand.append({
+                        "period": f"{day_name} {hour:02d}:00-{hour+1:02d}:00",
+                        "demand_score": demand_score
+                    })
+            
+            return high_demand
+        except Exception:
+            return []
     
     def _suggest_capacity_adjustments(self):
-        """Suggest capacity adjustments"""
-        return [
-            {
-                "suggestion": "Add morning slots on Fridays",
-                "impact": "Could increase capacity by 15%"
-            },
-            {
-                "suggestion": "Extend Tuesday availability",
-                "impact": "Could reduce wait times by 20%"
-            },
-            {
-                "suggestion": "Add evening slots for international clients",
-                "impact": "Could serve 25% more clients"
-            }
-        ]
+        """Suggest capacity adjustments based on actual data"""
+        suggestions = []
+        
+        # Analyze current utilization
+        capacity_data = self._analyze_capacity_vs_demand()
+        
+        if capacity_data['utilization_rate'] > 80:
+            suggestions.append({
+                "suggestion": "Consider adding more consultant availability",
+                "impact": f"Current utilization at {capacity_data['utilization_rate']}%"
+            })
+        
+        if capacity_data['utilization_rate'] < 50:
+            suggestions.append({
+                "suggestion": "Optimize consultant schedules",
+                "impact": f"Current utilization only {capacity_data['utilization_rate']}%"
+            })
+        
+        # Check for underutilized periods
+        underutilized = self._identify_underutilized_slots()
+        if underutilized:
+            suggestions.append({
+                "suggestion": "Promote availability during low-demand hours",
+                "impact": f"Could better utilize {len(underutilized)} time slots"
+            })
+        
+        return suggestions if suggestions else [{
+            "suggestion": "Current capacity appears well-balanced",
+            "impact": "No immediate adjustments needed"
+        }]

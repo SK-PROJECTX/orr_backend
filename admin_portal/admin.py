@@ -7,6 +7,7 @@ from django.apps import apps
 from .models import (
     AdminProfile, AdminRole, AIConversation, AuditLog, Client, ClientDocument,
     Content, Meeting, SystemNotification, SystemSettings, Ticket, TicketMessage,
+    ProRataApproval, PaymentDispute, DisputeNote, WalletTransaction,
 )
 from .models_cms import (
     HomePage, ServiceCard, Testimonial, FAQ, BlogPost, ContactInfo, SiteSettings,
@@ -151,6 +152,68 @@ class ClientDocumentAdmin(admin.ModelAdmin):
     list_filter = ["document_type", "is_visible_to_client", "uploaded_by"]
     search_fields = ["client__user__email", "title", "description"]
     raw_id_fields = ["client", "uploaded_by"]
+
+
+@admin.register(ProRataApproval)
+class ProRataApprovalAdmin(admin.ModelAdmin):
+    list_display = [
+        "client",
+        "adjustment_type",
+        "prorated_amount",
+        "status",
+        "change_date",
+        "approved_by",
+        "created_at",
+    ]
+    list_filter = ["status", "adjustment_type", "approved_by", "change_date"]
+    search_fields = ["client__user__email", "client__company", "subscription_id", "notes"]
+    raw_id_fields = ["client", "approved_by"]
+    readonly_fields = ["created_at", "updated_at"]
+    date_hierarchy = "change_date"
+
+
+@admin.register(PaymentDispute)
+class PaymentDisputeAdmin(admin.ModelAdmin):
+    list_display = [
+        "client",
+        "dispute_type",
+        "dispute_amount",
+        "status",
+        "evidence_due_date",
+        "resolved_by",
+        "created_at",
+    ]
+    list_filter = ["dispute_type", "status", "resolved_by", "created_at"]
+    search_fields = ["client__user__email", "client__company", "stripe_dispute_id", "dispute_reason"]
+    raw_id_fields = ["client", "invoice", "resolved_by"]
+    readonly_fields = ["created_at", "updated_at"]
+    date_hierarchy = "created_at"
+
+
+@admin.register(DisputeNote)
+class DisputeNoteAdmin(admin.ModelAdmin):
+    list_display = ["dispute", "created_by", "is_internal", "created_at"]
+    list_filter = ["is_internal", "created_by", "created_at"]
+    search_fields = ["dispute__client__user__email", "note"]
+    raw_id_fields = ["dispute", "created_by"]
+    readonly_fields = ["created_at", "updated_at"]
+
+
+@admin.register(WalletTransaction)
+class WalletTransactionAdmin(admin.ModelAdmin):
+    list_display = [
+        "client",
+        "transaction_type",
+        "amount",
+        "balance_after",
+        "processed_by",
+        "created_at",
+    ]
+    list_filter = ["transaction_type", "processed_by", "created_at"]
+    search_fields = ["client__user__email", "client__company", "description", "reference_id"]
+    raw_id_fields = ["client", "processed_by"]
+    readonly_fields = ["created_at", "updated_at"]
+    date_hierarchy = "created_at"
 
 
 # CMS Admin Registration
