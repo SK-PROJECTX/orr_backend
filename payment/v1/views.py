@@ -64,6 +64,7 @@ class CreateCheckoutSession(APIView):
             session = stripe.checkout.Session.create(
                 mode="subscription",
                 payment_method_types=["card"],
+                customer_creation="always",
                 line_items=[{"price": price_id, "quantity": 1}],
                 metadata={
                     "user_id": request.user.id,

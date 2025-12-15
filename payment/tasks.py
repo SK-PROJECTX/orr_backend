@@ -95,9 +95,7 @@ def handle_stripe_event(self, event: dict):
             
             return
 
-        # ------------------------------------------------------------------
-        # INVOICE EVENTS (multiple come for same invoice = must dedupe)
-        # ------------------------------------------------------------------
+      
         if event_type in ("invoice.finalized", "invoice.paid", "invoice.payment_succeeded"):
 
             invoice_id = data.get("id")
@@ -116,8 +114,12 @@ def handle_stripe_event(self, event: dict):
                 ).first()
 
                 if not subscription:
-                    logger.warning("Subscription not found for customer %s — retrying", customer_id)
-                    raise Subscription.DoesNotExist()
+                    logger.warning(
+                        "Invoice %s arrived before subscription exists (customer=%s). Skipping.",
+                        invoice_id,
+                        customer_id,
+                    )
+                    return 
 
                 user = subscription.user
 
