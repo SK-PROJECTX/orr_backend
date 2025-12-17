@@ -389,10 +389,9 @@ class AddPaymentMethodView(APIView):
 
         pm_id = serializer.validated_data["payment_method_id"]
         try:
-            # Attach
+    
             stripe.PaymentMethod.attach(pm_id, customer=customer_id)
 
-            # Set default
             stripe.Customer.modify(
                 customer_id,
                 invoice_settings={"default_payment_method": pm_id}

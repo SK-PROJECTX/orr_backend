@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}New Support Ticket{% endblock title %}
+
+{% block content %}
+<h2 style="margin: 0 0 15px 0; font-size: 22px; font-weight: 600; color: #0d1b2a;">
+    New Support Ticket Created
+</h2>
+
+<p style="margin: 0 0 15px 0;">
+    Hello Admin,
+</p>
+
+<p style="margin: 0 0 20px 0;">
+    A new support ticket has been created in the system.
+    Below are the ticket details:
+</p>
+
+<table cellpadding="0" cellspacing="0"
+       style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 15px;">
+
+    <tr>
+        <td style="padding: 6px 0; font-weight: 600; width: 160px;">Ticket ID:</td>
+        <td style="padding: 6px 0;">{{ ticket_id }}</td>
+    </tr>
+
+    <tr>
+        <td style="padding: 6px 0; font-weight: 600;">Subject:</td>
+        <td style="padding: 6px 0;">{{ subject }}</td>
+    </tr>
+
+    <tr>
+        <td style="padding: 6px 0; font-weight: 600;">Priority:</td>
+        <td style="padding: 6px 0;">
+            {% if priority == "urgent" %}
+                <span style="color: #c62828; font-weight: 600;">URGENT</span>
+            {% elif priority == "high" %}
+                <span style="color: #ef6c00; font-weight: 600;">High</span>
+            {% else %}
+                {{ priority|title }}
+            {% endif %}
+        </td>
+    </tr>
+
+    <tr>
+        <td style="padding: 6px 0; font-weight: 600;">Status:</td>
+        <td style="padding: 6px 0;">{{ status|title }}</td>
+    </tr>
+
+    <tr>
+        <td style="padding: 6px 0; font-weight: 600;">Source:</td>
+        <td style="padding: 6px 0;">{{ source|title }}</td>
+    </tr>
+
+    <tr>
+        <td style="padding: 6px 0; font-weight: 600;">Client Name:</td>
+        <td style="padding: 6px 0;">
+            {{ client_name|default:"N/A" }}
+        </td>
+    </tr>
+
+    <tr>
+        <td style="padding: 6px 0; font-weight: 600;">Client Email:</td>
+        <td style="padding: 6px 0;">
+            {% if client_email %}
+                <a href="mailto:{{ client_email }}" style="color: #0d47a1; text-decoration: none;">
+                    {{ client_email }}
+                </a>
+            {% else %}
+                N/A
+            {% endif %}
+        </td>
+    </tr>
+
+    <tr>
+        <td style="padding: 6px 0; font-weight: 600; vertical-align: top;">
+            Message:
+        </td>
+        <td style="padding: 6px 0;">{{ description }}</td>
+    </tr>
+
+    <tr>
+        <td style="padding: 6px 0; font-weight: 600;">Created At:</td>
+        <td style="padding: 6px 0;">{{ created_at }}</td>
+    </tr>
+</table>
+
+<p style="margin: 0 0 10px 0;">
+    Please review and assign this ticket as soon as possible.
+</p>
+
+<p style="margin: 20px 0 0 0;">
+    <strong>ORR Solutions System</strong>
+</p>
+{% endblock content %}

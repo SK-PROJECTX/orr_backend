@@ -2,6 +2,8 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from .views.document import ClientDocumentsView
+
+from .views.tickets import ClientTicketCreateAPIView, ClientTicketHistoryAPIView
 from .views.account import (
     AccountSettingsView,
     ChangePasswordView,
@@ -71,4 +73,14 @@ urlpatterns = [
     path("favorites/<int:pk>/delete/", FavoriteDeleteView.as_view(), name="favorites-delete"),
      path("client/documents/", ClientDocumentsView.as_view(), name="client-documents"),
     path("profile/", GetProfileView.as_view(), name="get-profile"),
+    path(
+        "tickets/create/",
+        ClientTicketCreateAPIView.as_view(),
+        name="ticket-create",
+    ),
+    path(
+        "tickets/history/",
+        ClientTicketHistoryAPIView.as_view(),
+        name="ticket-history",
+    ),
 ]

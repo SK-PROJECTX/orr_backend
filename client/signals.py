@@ -3,7 +3,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 import threading
 
-from admin_portal.models import AdminProfile, Meeting
+from admin_portal.models import AdminProfile, Meeting, Ticket
 from notification.utils import notify_user
 
 from .models import Activity, ContactMessage
@@ -48,6 +48,52 @@ def send_contact_notifications(sender, instance, created, **kwargs):
         "We received your message. Our team will contact you soon.",
         ["inapp"],
     )
+
+
+
+
+@receiver(post_save, sender=Ticket)
+def notify_admins_on_ticket_created(sender, instance, created, **kwargs):
+    if not created:
+        return
+
+    ticket = instance
+
+    admin_profiles = AdminProfile.objects.exclude(role__name="content_editor")
+    admin_users = [profile.user for profile in admin_profiles if profile.user.is_active]
+
+    for admin in admin_users:
+        notify_user(
+            admin,
+            "New Support Ticket",
+            f"New ticket {ticket.ticket_id} created",
+            ["inapp", "email"],
+            {
+                "type": "ticket",
+                "template": "support/ticket_created_admin.html",
+                "context": {
+                    "ticket_id": ticket.ticket_id,
+                    "subject": ticket.subject,
+                    "priority": ticket.priority,
+                    "status": ticket.status,
+                    "source": ticket.source,
+                    "client_name": (
+                        ticket.client.user.first_name
+                        if ticket.client and ticket.client.user
+                        else ticket.contact_name
+                    ),
+                    "client_email": (
+                        ticket.client.user.email
+                        if ticket.client and ticket.client.user
+                        else ticket.contact_email
+                    ),
+                    "description": ticket.description,
+                    "created_at": ticket.created_at,
+                },
+            },
+        )
+
+
 
 
 @receiver(post_save)
