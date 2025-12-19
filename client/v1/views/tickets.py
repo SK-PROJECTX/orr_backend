@@ -15,7 +15,7 @@ class ClientTicketHistoryAPIView(APIView):
     serializer_class = TicketHistorySerializer
     def get(self, request):
         user = request.user
-        client = Client.objects.get(user=user)
+        client, created = Client.objects.get_or_create(user=user)
 
         if not client:
             return Response(
@@ -42,7 +42,7 @@ class ClientTicketCreateAPIView(APIView):
     serializer_class = ClientInquiryTicketSerializer
     def post(self, request):
         user = request.user
-        client = Client.objects.get(user=user)
+        client, created = Client.objects.get_or_create(user=user)
 
         if not client:
             return Response(
