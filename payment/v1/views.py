@@ -241,81 +241,6 @@ class BillingPortalView(APIView):
             return Response({"error": str(e)}, status=400)
 
 
-@extend_schema(
-    tags=["payment"],
-)
-class StripeWebhookView(APIView):
-
-    def post(self, request):
-        payload = request.body
-        sig = request.META.get("HTTP_STRIPE_SIGNATURE")
-
-        try:
-            event = stripe.Webhook.construct_event(
-                payload, sig, settings.STRIPE_WEBHOOK_SECRET
-            )
-        except Exception:
-            return HttpResponse(status=400)
-        if event["type"] == "invoice.payment_succeeded":
-            data = event["data"]["object"]
-
-            user = User.objects.filter(customer_id=data["customer"]).first()
-            if not user:
-                return HttpResponse(status=200)
-
-            invoice_number = data.get("number") or data["id"]
-            billing_date = datetime.fromtimestamp(data["created"]).date()
-
-            Invoice.objects.update_or_create(
-                stripe_invoice_id=data["id"],
-                defaults={
-                    "user": user,
-                    "billing_title": f"Billing #{invoice_number} – {billing_date.strftime('%b %Y')}",
-                    "status": data["status"].capitalize(),
-                    "billing_date": billing_date,
-                    "amount": data["amount_paid"] / 100,
-                    "currency": data["currency"].upper(),
-                    "plan": (
-                        data["lines"]["data"][0]["plan"]["nickname"]
-                        if data["lines"]["data"]
-                        else "Unknown"
-                    ),
-                    "users": (
-                        data["lines"]["data"][0]["quantity"]
-                        if data["lines"]["data"]
-                        else 1
-                    ),
-                    "invoice_pdf": data.get("invoice_pdf"),
-                    "hosted_invoice_url": data.get("hosted_invoice_url"),
-                },
-            )
-            
-        elif event["type"] == "invoice.payment_failed":
-            data = event["data"]["object"]
-            user = User.objects.filter(customer_id=data["customer"]).first()
-            if user:
-                invoice = Invoice.objects.filter(stripe_invoice_id=data["id"]).first()
-                if invoice:
-                    PaymentTicketService.create_payment_failed_ticket(invoice)
-                    
-        elif event["type"] == "invoice.payment_action_required":
-            data = event["data"]["object"]
-            user = User.objects.filter(customer_id=data["customer"]).first()
-            if user:
-                invoice = Invoice.objects.filter(stripe_invoice_id=data["id"]).first()
-                if invoice:
-                    PaymentTicketService.create_payment_failed_ticket(invoice)
-                    
-        elif event["type"] == "customer.dispute.created":
-            data = event["data"]["object"]
-            charge_id = data.get("charge")
-            if charge_id:
-                # Find invoice by charge and create dispute ticket
-                invoice = Invoice.objects.filter(stripe_invoice_id__contains=charge_id[:10]).first()
-                if invoice:
-                    PaymentTicketService.create_dispute_ticket(invoice)
-
-        return HttpResponse(status=200)
 
 
 @extend_schema(
@@ -373,7 +298,17 @@ class CreateStripeCustomerView(APIView):
             {"stripe_customer_id": customer_id},
             status=status.HTTP_200_OK
         )
+    
+@extend_schema(tags=["payment"])
+class GetStripeCustomerView(APIView):
+    permission_classes = [IsAuthenticated]
 
+    def get(self, request):
+        customer_id = get_or_create_stripe_customer(request.user)
+        return Response(
+            {"stripe_customer_id": customer_id},
+            status=status.HTTP_200_OK
+        )
 
 @extend_schema(
     tags=["payment"],
