@@ -6,48 +6,13 @@ import threading
 from admin_portal.models import AdminProfile, Meeting, Ticket
 from notification.utils import notify_user
 
-from .models import Activity, ContactMessage
+from .models import Activity
 
 User = get_user_model()
 from admin_portal.models import Client
 from client.tasks.activities import invalidate_recommendations_cache
 
 from .models import Profile
-
-
-@receiver(post_save, sender=ContactMessage)
-def send_contact_notifications(sender, instance, created, **kwargs):
-    if not created:
-        return
-
-    contact = instance
-    admin_profiles = AdminProfile.objects.exclude(role__name="content_editor")
-    admin_users = [profile.user for profile in admin_profiles]
-
-    for admin in admin_users:
-        notify_user(
-            admin,
-            "New Support Message",
-            f"You received a support message from {contact.name}",
-            ["inapp", "email"],
-            {
-                "type": "contact",
-                "template": "support/support_message_admin.html",
-                "context": {
-                    "name": contact.name,
-                    "email": contact.email,
-                    "website": contact.website,
-                    "message": contact.message,
-                    "submitted_at": contact.created_at,
-                },
-            },
-        )
-    notify_user(
-        contact.user,
-        "Message Received",
-        "We received your message. Our team will contact you soon.",
-        ["inapp"],
-    )
 
 
 

@@ -17,11 +17,6 @@ from .views.admin_auth import AdminSignupView
 from .views.admin_roles import AdminRolesView
 from .views.auth import LoginView, SignupView
 from .views.client_auth import ClientSignupView
-from .views.contact import (
-    ContactRequestView,
-    SupportHistoryListView,
-    SupportMessageUpdateView,
-)
 from .views.onboarding import OnboardingQuestionnaireViewSet
 from .views.profile import CreateOrUpdateProfileView, GetProfileView
 from .views.role_check import RoleCheckView
@@ -50,21 +45,6 @@ urlpatterns = [
     path("change-password/", ChangePasswordView.as_view(), name="change-password"),
     path("profile/create/", CreateOrUpdateProfileView.as_view(), name="profile-create"),
     path("account/settings/", AccountSettingsView.as_view(), name="account-settings"),
-    path(
-        "support/history/",
-        SupportHistoryListView.as_view(),
-        name="support-messages-list",
-    ),
-    path(
-        "support/messages/<int:message_id>/",
-        SupportMessageUpdateView.as_view(),
-        name="support-message-update",
-    ),
-    path(
-        "support",
-        ContactRequestView.as_view(),
-        name="support",
-    ),
     path("activities/", DashboardOverviewView.as_view(), name="activities"),
     path("role-check/", RoleCheckView.as_view(), name="role-check"),
     path("admin-roles/", AdminRolesView.as_view(), name="admin-roles"),
