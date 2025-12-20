@@ -65,10 +65,12 @@ class CreateCheckoutSession(APIView):
                 mode="subscription",
                 payment_method_types=["card"],
                 line_items=[{"price": price_id, "quantity": 1}],
+                customer_email=request.user.email,
                 metadata={
                     "user_id": request.user.id,
                     "plan_id": plan.id,
                     "billing_type": plan.billing_type,
+                    "email": request.user.email,
                 },
                 success_url=settings.STRIPE_SUCCESS_URL
                 + "?session_id={CHECKOUT_SESSION_ID}",

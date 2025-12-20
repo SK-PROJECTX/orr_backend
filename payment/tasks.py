@@ -67,7 +67,7 @@ def handle_stripe_event(self, event: dict):
                 current_period_end = make_aware(datetime.fromtimestamp(period_end)) if period_end else None
 
                 item = sub.get("items", {}).get("data", [{}])[0]
-                plan_name = item.get("price", {}).get("nickname") or item.get("plan", {}).get("nickname") or "Unknown Plan"
+                plan_name = plan.name if plan else "Unknown Plan"
                 subscription_item_id = item["id"]
             except Exception:
                 logger.exception("Failed retrieving subscription %s", subscription_id)
@@ -114,12 +114,10 @@ def handle_stripe_event(self, event: dict):
                 ).first()
 
                 if not subscription:
-                    logger.warning(
-                        "Invoice %s arrived before subscription exists (customer=%s). Skipping.",
-                        invoice_id,
-                        customer_id,
-                    )
-                    return 
+                    if self.request.retries < 3:
+                        raise self.retry(countdown=5)
+                    logger.error("Invoice %s dropped after retries", invoice_id)
+                    return
 
                 user = subscription.user
 
