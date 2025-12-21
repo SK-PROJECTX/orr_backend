@@ -13,7 +13,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 import traceback
 from common.permissions import IsAdminUser
-from admin_portal.payment_ticket_service import PaymentTicketService
+from ..utils import StripeSubscriptionService
 from ..tasks import handle_stripe_event
 from ..models import Invoice, PricingPlan, Subscription, CheckoutSessionLog, StripeCustomer
 from .serializers import (
@@ -433,3 +433,29 @@ class CreateSetupIntent(APIView):
             "client_secret": setup_intent.client_secret,
             "customer_id": customer.id
         })
+    
+@extend_schema(
+    tags=["payment"],
+)
+class SubscriptionStatusAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+
+        try:
+            stripe_profile = user.stripe_profile
+        except StripeCustomer.DoesNotExist:
+            return Response(
+                {"is_subscribed": False},
+                status=status.HTTP_200_OK
+            )
+
+        is_active = StripeSubscriptionService.has_active_subscription(
+            stripe_profile.stripe_customer_id
+        )
+
+        return Response(
+            {"is_subscribed": is_active},
+            status=status.HTTP_200_OK
+        )

@@ -15,6 +15,7 @@ from .views import (
     CreateStripeCustomerView,
     ListPaymentMethodsView,
     GetStripeCustomerView,
+    SubscriptionStatusAPIView
 )
 
 router = DefaultRouter()
@@ -58,6 +59,7 @@ urlpatterns = [
         DeletePaymentMethodView.as_view(),
         name="delete-payment-method",
     ),
+     path("subscription/status/", SubscriptionStatusAPIView.as_view()),
 ]
 
 urlpatterns += router.urls
