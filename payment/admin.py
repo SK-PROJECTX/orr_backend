@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import PricingPlan, Subscription, Invoice, CheckoutSessionLog
+from .models import PricingPlan, Subscription, Invoice, CheckoutSessionLog, StripeCustomer
 
 
 @admin.register(PricingPlan)
@@ -54,3 +54,37 @@ class CheckoutSessionLogAdmin(admin.ModelAdmin):
     search_fields = ("stripe_session_id", "user__username", "plan__name")
     readonly_fields = ("stripe_session_id", "created_at", "updated_at")
     ordering = ("-created_at",)
+
+@admin.register(StripeCustomer)
+class StripeCustomerAdmin(admin.ModelAdmin):
+    list_display = (
+        "user",
+        "stripe_customer_id",
+        "stripe_card_id",
+        "created_at",
+        "updated_at",
+    )
+    list_select_related = ("user",)
+    search_fields = (
+        "user__username",
+        "user__email",
+        "stripe_customer_id",
+    )
+    readonly_fields = (
+        "stripe_customer_id",
+        "created_at",
+        "updated_at",
+    )
+    ordering = ("-created_at",)
+
+    fieldsets = (
+        ("User", {
+            "fields": ("user",),
+        }),
+        ("Stripe Details", {
+            "fields": ("stripe_customer_id", "stripe_card_id"),
+        }),
+        ("Timestamps", {
+            "fields": ("created_at", "updated_at"),
+        }),
+    )
