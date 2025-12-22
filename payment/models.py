@@ -87,6 +87,12 @@ class StripeCustomer(Audit):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="stripe_profile")
     stripe_customer_id = models.CharField(max_length=255, unique=True)
     stripe_card_id = models.CharField(max_length=255, blank=True, null=True)  
+    default_payment_method = models.CharField(
+        max_length=255, null=True, blank=True
+    )
+
+    has_valid_payment_method = models.BooleanField(default=False)
+    last_payment_failed = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.user.username} Stripe Customer"

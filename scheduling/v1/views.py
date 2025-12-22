@@ -15,7 +15,7 @@ from django.conf import settings
 import requests
 from client.models import Activity
 from services.meetings.calendly import CalendlyAPI
-from common.permissions import HasActiveMeteredSubscription
+from common.permissions import HasActivePaidSubscription
 
 from .serializers import (
     MeetingCalendarSerializer,
@@ -137,7 +137,7 @@ class AvailableSlotsView(APIView):
 
 @extend_schema(tags=["scheduling"])
 class CreateMeetingView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,  HasActivePaidSubscription,]
     serializer_class = MeetingRequestSerializer
 
     def post(self, request):
@@ -396,6 +396,14 @@ class CalendlyWebhookView(APIView):
             meeting.status = "rescheduled"
             meeting.confirmed_datetime = start_time
             meeting.save()
+
+
+
+
+
+
+
+
 
 
 class CreateCalendlyWebhook(APIView):

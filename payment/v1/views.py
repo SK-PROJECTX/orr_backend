@@ -13,6 +13,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from common.permissions import IsAdminUser
 from ..tasks import handle_stripe_event
+from django.utils.timezone import make_aware
 from ..models import Invoice, PricingPlan, Subscription, CheckoutSessionLog, StripeCustomer
 from .serializers import (
     BillingPortalSerializer,
@@ -51,41 +52,92 @@ class CreateCheckoutSession(APIView):
         except PricingPlan.DoesNotExist:
             logger.error(f"PricingPlan not found for price_id: {price_id}")
             return Response({"error": "Invalid price_id"}, status=400)
-        if plan.billing_type == "metered":
-            return Response(
-                {"error": "This plan cannot be purchased directly."},
-                status=400
-            )
+        if plan.billing_type == "monthly":
+            try:
+                logger.info(f"Creating Stripe session for user: {request.user.id} with plan: {plan.id}")
+                stripe_profile = get_or_create_stripe_customer(request.user)
+                session = stripe.checkout.Session.create(
+                    mode="subscription",
+                    payment_method_types=["card"],
+                    line_items=[{"price": price_id, "quantity": 1}],
+                    customer_email=request.user.email,
+                    metadata={
+                        "user_id": request.user.id,
+                        "plan_id": plan.id,
+                        "billing_type": plan.billing_type,
+                        "email": request.user.email,
+                    },
+                    success_url=settings.STRIPE_SUCCESS_URL
+                    + "?session_id={CHECKOUT_SESSION_ID}",
+                    cancel_url=settings.STRIPE_CANCEL_URL,
+                )
+                CheckoutSessionLog.objects.create(
+                    user=request.user,
+                    plan=plan,
+                    stripe_session_id=session.id,
+                    status="initiated" 
+                )
+                logger.info(f"Stripe session created successfully, session_id: {session.id}")
+                return Response({"checkout_url": session.url})
 
-        try:
-            logger.info(f"Creating Stripe session for user: {request.user.id} with plan: {plan.id}")
-            session = stripe.checkout.Session.create(
-                mode="subscription",
-                payment_method_types=["card"],
-                line_items=[{"price": price_id, "quantity": 1}],
-                customer_email=request.user.email,
-                metadata={
-                    "user_id": request.user.id,
-                    "plan_id": plan.id,
-                    "billing_type": plan.billing_type,
-                    "email": request.user.email,
-                },
-                success_url=settings.STRIPE_SUCCESS_URL
-                + "?session_id={CHECKOUT_SESSION_ID}",
-                cancel_url=settings.STRIPE_CANCEL_URL,
-            )
-            CheckoutSessionLog.objects.create(
-                user=request.user,
-                plan=plan,
-                stripe_session_id=session.id,
-                status="initiated" 
-            )
-            logger.info(f"Stripe session created successfully, session_id: {session.id}")
-            return Response({"checkout_url": session.url})
+            except Exception as e:
+                logger.error(f"Error creating Stripe session: {str(e)}")
+                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        elif plan.billing_type == "metered":
+            try:
+                stripe_profile = getattr(request.user, "stripe_profile", None)
 
-        except Exception as e:
-            logger.error(f"Error creating Stripe session: {str(e)}")
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+                if not stripe_profile or not stripe_profile.has_valid_payment_method:
+                    return Response(
+                        {"error": "Add a valid payment method before subscribing"},
+                        status=403,
+                    )
+
+                stripe_profile = get_or_create_stripe_customer(request.user)
+                customer_id = stripe_profile.stripe_customer_id
+
+                subscription = stripe.Subscription.create(
+                    customer=customer_id,
+                    items=[{"price": price_id, "quantity": 1}],
+                    expand=["latest_invoice.payment_intent"],
+                    metadata={
+                        "user_id": request.user.id,
+                        "plan_id": plan.id,
+                        "billing_type": plan.billing_type,
+                    }
+                )
+                
+                stripe_item_id = subscription["items"]["data"][0]["id"]
+                current_period_end = make_aware(
+                    datetime.fromtimestamp(subscription.current_period_end)
+                )
+
+                Subscription.objects.update_or_create(
+                    user=request.user,
+                    defaults={
+                        "stripe_subscription_id": subscription.id,
+                        "stripe_customer_id": customer_id,
+                        "plan": plan,
+                        "plan_name": plan.name,
+                        "stripe_subscription_item_id": stripe_item_id,
+                        "current_period_end": current_period_end,
+                        "is_active": True,
+                        "used_hours": 0,
+                    },
+                )
+                return Response(
+                    {
+                        "message": "Metered subscription created",
+                        "subscription_id": subscription.id,
+                    },
+                    status=201,
+                )
+              
+            except Exception as e:
+                return Response({"error": str(e)}, status=400)
+        else:
+           return Response({"error": "Invalid billing type"}, status=400)
+
 
 @csrf_exempt
 def stripe_webhook(request):
@@ -320,8 +372,8 @@ class AddPaymentMethodView(APIView):
         serializer = AddPaymentMethodSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        customer_id = get_or_create_stripe_customer(request.user)
-
+        stripe_profile  = get_or_create_stripe_customer(request.user)
+        customer_id = stripe_profile.stripe_customer_id
         pm_id = serializer.validated_data["payment_method_id"]
         try:
     
@@ -331,7 +383,16 @@ class AddPaymentMethodView(APIView):
                 customer_id,
                 invoice_settings={"default_payment_method": pm_id}
             )
-
+            stripe_profile.default_payment_method = pm_id
+            stripe_profile.has_valid_payment_method = True
+            stripe_profile.last_payment_failed = False
+            stripe_profile.save(
+                update_fields=[
+                    "default_payment_method",
+                    "has_valid_payment_method",
+                    "last_payment_failed",
+                ]
+            )
         except stripe.error.InvalidRequestError as e:
             return Response(
                 {
