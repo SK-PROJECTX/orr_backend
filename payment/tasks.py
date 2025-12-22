@@ -6,7 +6,7 @@ from django.db import transaction
 from django.utils.timezone import make_aware
 import stripe
 
-from .models import User, PricingPlan, Subscription, CheckoutSessionLog, Invoice
+from .models import User, PricingPlan, Subscription, CheckoutSessionLog, Invoice, StripeEvent
 from admin_portal.payment_ticket_service import PaymentTicketService
 
 logger = get_task_logger(__name__)
@@ -18,14 +18,22 @@ def handle_stripe_event(self, event: dict):
     Unified handler for all Stripe webhooks.
     Ensures idempotency, race-condition recovery, and safe DB operations.
     """
+    event_id = event.get("id")
     event_type = event.get("type")
+    if not event_id:
+        logger.error("Stripe event missing id")
+        return
+    
+    if StripeEvent.objects.filter(event_id=event_id).exists():
+        logger.info("Duplicate event ignored: %s", event_id)
+        return
     data = event.get("data", {}).get("object", {}) or {}
     session_id = data.get("id") if "session" in event_type else None
 
     logger.info("Received Stripe event: %s", event_type)
 
     try:
-
+        
         if event_type == "checkout.session.completed":
 
             if session_id:
@@ -94,7 +102,78 @@ def handle_stripe_event(self, event: dict):
                 logger.exception("Error saving local subscription")
             
             return
+        
+        if event_type == "customer.subscription.created":
+            sub = data
 
+            subscription_id = sub.get("id")
+            customer_id = sub.get("customer")
+            period_end = sub.get("current_period_end")
+
+            current_period_end = (
+                make_aware(datetime.fromtimestamp(period_end))
+                if period_end else None
+            )
+            subscription = Subscription.objects.filter(stripe_subscription_id=subscription_id).first()
+            if not subscription:
+                logger.warning(
+                    f"Subscription {subscription_id} received before checkout.session.completed. Retrying..."
+                )
+                raise self.retry(countdown=10, max_retries=2)
+
+            updated = Subscription.objects.filter(
+            stripe_subscription_id=subscription_id
+            ).update(
+                stripe_customer_id=customer_id,
+                current_period_end=current_period_end,
+                is_active=True,
+            )
+
+            if not updated:
+                logger.warning(
+                    "subscription.created before checkout.session.completed | sub=%s",
+                    subscription_id,
+                )
+
+        
+        elif event_type == "customer.subscription.updated":
+            sub = data
+
+            subscription_id = sub.get("id")
+            status = sub.get("status")
+            period_end = sub.get("current_period_end")
+
+            current_period_end = (
+                make_aware(datetime.fromtimestamp(period_end))
+                if period_end else None
+            )
+
+            is_active = status in ("active", "trialing")
+            subscription = Subscription.objects.filter(stripe_subscription_id=subscription_id).first()
+            if not subscription:
+                logger.warning(
+                    f"Subscription {subscription_id} received before checkout.session.completed. Retrying..."
+                )
+                raise self.retry(countdown=10, max_retries=5)
+            updated = Subscription.objects.filter(
+            stripe_subscription_id=subscription_id
+            ).update(
+                is_active=is_active,
+                current_period_end=current_period_end,
+            )
+
+            if not updated:
+                logger.warning(
+                    "subscription.updated before checkout.session.completed | sub=%s",
+                    subscription_id,
+                )
+
+        
+        invoice_id = data.get("id")
+
+        if Invoice.objects.filter(stripe_invoice_id=invoice_id).exists():
+            logger.info("Duplicate invoice ignored: %s", invoice_id)
+            return
       
         if event_type in ("invoice.finalized", "invoice.paid", "invoice.payment_succeeded"):
 
@@ -114,8 +193,8 @@ def handle_stripe_event(self, event: dict):
                 ).first()
 
                 if not subscription:
-                    if self.request.retries < 3:
-                        raise self.retry(countdown=5)
+                    if self.request.retries < 2:
+                        raise self.retry(countdown=10)
                     logger.error("Invoice %s dropped after retries", invoice_id)
                     return
 
@@ -213,6 +292,8 @@ def handle_stripe_event(self, event: dict):
             return
 
         logger.debug("Unhandled Stripe event type: %s", event_type)
+
+        
 
     except Exception as exc:
         logger.exception("Unhandled error processing %s", event_type)

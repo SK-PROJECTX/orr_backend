@@ -11,9 +11,7 @@ from rest_framework.generics import ListAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-import traceback
 from common.permissions import IsAdminUser
-from ..utils import StripeSubscriptionService
 from ..tasks import handle_stripe_event
 from ..models import Invoice, PricingPlan, Subscription, CheckoutSessionLog, StripeCustomer
 from .serializers import (
@@ -441,21 +439,15 @@ class SubscriptionStatusAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        user = request.user
+        subscription = getattr(request.user, "subscription", None)
 
-        try:
-            stripe_profile = user.stripe_profile
-        except StripeCustomer.DoesNotExist:
-            return Response(
-                {"is_subscribed": False},
-                status=status.HTTP_200_OK
-            )
+        if not subscription:
+            return Response({"is_subscribed": False})
 
-        is_active = StripeSubscriptionService.has_active_subscription(
-            stripe_profile.stripe_customer_id
+        is_active = (
+            subscription.is_active
+            and subscription.current_period_end
+            and subscription.current_period_end > timezone.now()
         )
 
-        return Response(
-            {"is_subscribed": is_active},
-            status=status.HTTP_200_OK
-        )
+        return Response({"is_subscribed": is_active})

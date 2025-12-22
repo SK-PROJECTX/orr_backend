@@ -19,6 +19,13 @@ class PricingPlan(Audit):
     def __str__(self):
         return f"{self.name} ({self.billing_type})"
 
+class StripeEvent(Audit):
+    event_id = models.CharField(max_length=255, unique=True)
+    event_type = models.CharField(max_length=100)
+
+    def __str__(self):
+        return f"{self.event_type} ({self.event_id})"
+
 
 class Subscription(Audit):
     user = models.OneToOneField(

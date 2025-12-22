@@ -30,18 +30,3 @@ def get_or_create_stripe_customer(user):
 
 
 
-class StripeSubscriptionService:
-
-    @staticmethod
-    def has_active_subscription(stripe_customer_id: str) -> bool:
-        subscriptions = stripe.Subscription.list(
-            customer=stripe_customer_id,
-            status="all",
-            limit=10
-        )
-
-        for sub in subscriptions.data:
-            if sub.status in ("active", "trialing"):
-                return True
-
-        return False
