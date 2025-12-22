@@ -5,6 +5,8 @@ from decimal import Decimal
 from django.db import transaction
 from django.utils.timezone import make_aware
 import stripe
+from django.utils import timezone
+
 
 from .models import User, PricingPlan, Subscription, CheckoutSessionLog, Invoice, StripeEvent
 from admin_portal.payment_ticket_service import PaymentTicketService
@@ -154,7 +156,7 @@ def handle_stripe_event(self, event: dict):
                 logger.warning(
                     f"Subscription {subscription_id} received before checkout.session.completed. Retrying..."
                 )
-                raise self.retry(countdown=10, max_retries=5)
+                raise self.retry(countdown=10, max_retries=2)
             updated = Subscription.objects.filter(
             stripe_subscription_id=subscription_id
             ).update(
@@ -298,3 +300,29 @@ def handle_stripe_event(self, event: dict):
     except Exception as exc:
         logger.exception("Unhandled error processing %s", event_type)
         raise self.retry(exc=exc, countdown=5)
+
+
+
+
+
+
+
+
+@shared_task(bind=True, autoretry_for=(Exception,), retry_kwargs={"max_retries": 3, "countdown": 30})
+def deactivate_expired_subscriptions(self):
+    now = timezone.now()
+
+    subs = Subscription.objects.filter(
+        is_active=True,
+        current_period_end__isnull=False,
+        current_period_end__lte=now,
+    )
+
+    count = 0
+    for sub in subs.select_related("user"):
+        from ..services.subscriptions.deactivate_sub import deactivate_subscription
+        if deactivate_subscription(sub, reason="period_end_reached"):
+            count += 1
+
+    logger.info("Celery deactivated %s subscriptions", count)
+    return count
