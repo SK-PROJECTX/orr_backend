@@ -107,9 +107,12 @@ class CreateCheckoutSession(APIView):
                 )
                 
                 stripe_item_id = subscription["items"]["data"][0]["id"]
-                current_period_end = make_aware(
-                    datetime.fromtimestamp(subscription.current_period_end)
-                )
+
+                current_period_end = None
+                if subscription.current_period_end:
+                    current_period_end = make_aware(
+                        datetime.fromtimestamp(subscription.current_period_end)
+                    )
 
                 Subscription.objects.update_or_create(
                     user=request.user,
