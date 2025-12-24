@@ -115,9 +115,9 @@ class CreateCheckoutSession(APIView):
                     )
 
                 Subscription.objects.update_or_create(
-                    user=request.user,
+                    stripe_subscription_id=subscription.id,
                     defaults={
-                        "stripe_subscription_id": subscription.id,
+                        "user": request.user,
                         "stripe_customer_id": customer_id,
                         "plan": plan,
                         "plan_name": plan.name,
@@ -127,6 +127,7 @@ class CreateCheckoutSession(APIView):
                         "used_hours": 0,
                     },
                 )
+
                 return Response(
                     {
                         "message": "Metered subscription created",

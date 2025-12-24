@@ -28,8 +28,10 @@ class StripeEvent(Audit):
 
 
 class Subscription(Audit):
-    user = models.OneToOneField(
-        User, on_delete=models.CASCADE, related_name="subscription"
+    user = models.ForeignKey(
+    User,
+    on_delete=models.CASCADE,
+    related_name="subscriptions"
     )
     stripe_subscription_id = models.CharField(max_length=255, unique=True)
     stripe_customer_id = models.CharField(max_length=255)
