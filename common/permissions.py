@@ -94,11 +94,6 @@ class HasActivePaidSubscription(BasePermission):
         if not subscription:
             raise PermissionDenied("Active subscription required.")
 
-        if subscription.plan.billing_type != "metered":
-            raise PermissionDenied(
-                "This action requires a meeting billing subscription."
-            )
-
         stripe_profile = getattr(user, "stripe_profile", None)
         if not stripe_profile:
             raise PermissionDenied("No payment method on file.")
