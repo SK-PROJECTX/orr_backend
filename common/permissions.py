@@ -79,9 +79,9 @@ class HasActivePaidSubscription(BasePermission):
 
      
         if not user or not user.is_authenticated:
-            return False
+            raise PermissionDenied("Authentication required.")
 
-        subscription = getattr(user, "subscription", None)
+        subscription = getattr(user, "subscriptions", None)
         if not subscription:
             raise PermissionDenied("Active subscription required.")
 
