@@ -82,8 +82,12 @@ class HasActivePaidSubscription(BasePermission):
 
         subscription = (
             user.subscriptions
-            .filter(is_active=True)
+            .filter(
+                is_active=True,
+                plan__billing_type="metered",
+            )
             .select_related("plan")
+            .order_by("-id")  
             .first()
         )
 
