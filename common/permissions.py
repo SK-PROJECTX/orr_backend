@@ -77,18 +77,19 @@ class HasActivePaidSubscription(BasePermission):
     def has_permission(self, request, view):
         user = request.user
 
-     
         if not user or not user.is_authenticated:
             raise PermissionDenied("Authentication required.")
 
-        subscription = getattr(user, "subscriptions", None)
+        subscription = (
+            user.subscriptions
+            .filter(is_active=True)
+            .select_related("plan")
+            .first()
+        )
+
         if not subscription:
             raise PermissionDenied("Active subscription required.")
 
-       
-        if not subscription.is_active:
-            raise PermissionDenied("Subscription is not active.")
-        
         if subscription.plan.billing_type != "metered":
             raise PermissionDenied(
                 "This action requires a meeting billing subscription."
