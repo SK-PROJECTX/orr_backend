@@ -208,6 +208,11 @@ CELERY_REDIS_BACKEND_USE_SSL = {
     "ssl_cert_reqs": ssl.CERT_REQUIRED,
 }
 
+CELERY_BROKER_TRANSPORT_OPTIONS = {
+    "ssl_cert_reqs": ssl.CERT_REQUIRED,
+}
+
+
 
 FRONTEND_VERIFY_EMAIL_URL = config("FRONTEND_VERIFY_EMAIL_URL", default="http://localhost:3000/verify")
 FRONTEND_RESET_PASSWORD_URL = config("FRONTEND_RESET_PASSWORD_URL", default="http://localhost:3000/reset")
