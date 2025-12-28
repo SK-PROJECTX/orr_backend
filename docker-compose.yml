@@ -15,6 +15,7 @@ services:
       - SECRET_KEY=${SECRET_KEY}
     command: >
       sh -c "./wait-for-it.sh $(echo ${DATABASE_URL} | sed -E 's|.*@([^:/]+).*|\1|'):5432 --
+             python manage.py migrate admin_portal 0008_add_missing_strategic_advisory_fields --fake &&
              python manage.py migrate &&
              python manage.py collectstatic --noinput &&
              gunicorn core.wsgi:application --bind 0.0.0.0:8000"
