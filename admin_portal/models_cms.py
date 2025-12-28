@@ -615,3 +615,396 @@ class SiteSettings(Audit):
     
     def __str__(self):
         return f"{self.site_name} Settings"
+
+
+# NEW COMPREHENSIVE CMS MODELS
+
+class HowWeOperatePageContent(Audit):
+    """How We Operate page content management"""
+    
+    hero_title = models.CharField(max_length=200, default="How We Operate")
+    meta_title = models.CharField(max_length=60, blank=True)
+    meta_description = models.CharField(max_length=160, blank=True)
+    is_active = models.BooleanField(default=True)
+    
+    class Meta:
+        verbose_name = "How We Operate Page Content"
+        verbose_name_plural = "How We Operate Page Content"
+    
+    def __str__(self):
+        return f"How We Operate - {self.hero_title}"
+
+
+class ProcessStep(Audit):
+    """Process steps for How We Operate page"""
+    
+    step_number = models.CharField(max_length=10, default="01")
+    title = models.CharField(max_length=200, default="Step Title")
+    subtitle = models.CharField(max_length=200, blank=True)
+    description = models.TextField(blank=True)
+    bullet1 = models.TextField(blank=True)
+    bullet2 = models.TextField(blank=True)
+    bullet3 = models.TextField(blank=True)
+    bullet4 = models.TextField(blank=True)
+    bullet5 = models.TextField(blank=True)
+    bullet6 = models.TextField(blank=True)
+    bullet7 = models.TextField(blank=True)
+    bullet8 = models.TextField(blank=True)
+    bullet9 = models.TextField(blank=True)
+    wordbreak = models.CharField(max_length=50, blank=True)
+    description1 = models.TextField(blank=True)
+    description2 = models.TextField(blank=True)
+    description3 = models.TextField(blank=True)
+    description4 = models.TextField(blank=True)
+    image_url = models.URLField(default="https://images.unsplash.com/photo-1557804506-669a67965ba0?w=800&h=600&fit=crop")
+    button_text = models.CharField(max_length=100, blank=True)
+    button_text2 = models.CharField(max_length=100, blank=True)
+    button_text3 = models.CharField(max_length=100, blank=True)
+    order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    
+    class Meta:
+        ordering = ['order']
+        verbose_name = "Process Step"
+        verbose_name_plural = "Process Steps"
+    
+    def __str__(self):
+        return f"{self.step_number} - {self.title}"
+
+
+class ServicesPageContent(Audit):
+    """Services page content management"""
+    
+    hero_title = models.CharField(max_length=200, default="ORR Solutions - Listen. Solve. Optimise.")
+    hero_subtitle = models.TextField(default="We treat your organisation as a whole system — digital, regulatory, and living. We listen first, then design the right mix of advisory, systems, AI, and on-the-ground projects so you can move better and grow smarter too.")
+    pillars_title = models.CharField(max_length=200, default="The Three Pillars")
+    business_gp_title = models.CharField(max_length=200, default="ORR is your Business GP for")
+    business_gp_subtitle = models.CharField(max_length=200, default="complex systems — digital and living.")
+    business_gp_description = models.TextField(default="We listen to the whole organisation, solve with structure and insight, and optimise so you can grow with confidence.")
+    business_gp_button_text = models.CharField(max_length=50, default="Contact Us")
+    business_gp_image = models.CharField(max_length=500, default="/images/handshake.png")
+    meta_title = models.CharField(max_length=60, blank=True)
+    meta_description = models.CharField(max_length=160, blank=True)
+    is_active = models.BooleanField(default=True)
+    
+    class Meta:
+        verbose_name = "Services Page Content"
+        verbose_name_plural = "Services Page Content"
+    
+    def __str__(self):
+        return f"Services Page - {self.hero_title}"
+
+
+class ServiceStage(Audit):
+    """Service stages for Services page"""
+    
+    stage_number = models.PositiveIntegerField(default=1)
+    title = models.CharField(max_length=200, default="STAGE 1 - DISCOVER")
+    subtitle = models.CharField(max_length=200, default="Listen.")
+    description = models.TextField(default="Stage description")
+    focus_content = models.TextField(default="Focus points")
+    button_text = models.CharField(max_length=100, default="Learn More")
+    order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    
+    class Meta:
+        ordering = ['order']
+        verbose_name = "Service Stage"
+        verbose_name_plural = "Service Stages"
+    
+    def __str__(self):
+        return f"Stage {self.stage_number} - {self.title}"
+
+
+class ServicePillar(Audit):
+    """Service pillars for Services page"""
+    
+    title = models.CharField(max_length=200, default="Digital Systems, Automation & AI")
+    description = models.TextField(default="Pillar description")
+    button_text = models.CharField(max_length=50, default="Learn More")
+    order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    
+    class Meta:
+        ordering = ['order']
+        verbose_name = "Service Pillar"
+        verbose_name_plural = "Service Pillars"
+    
+    def __str__(self):
+        return self.title
+
+
+class ResourcesBlogsPageContent(Audit):
+    """Resources & Blogs page content management"""
+    
+    hero_title = models.CharField(max_length=200, default="Resources & Client Portal")
+    hero_description1 = models.TextField(default="Your digital HQ for business clarity, timelines, and real-time status. This isn't a traditional blog.")
+    hero_description2 = models.TextField(default="Our resources are organized around the ORR client portal — a dashboard where you can read FAQs, download material, request meetings, and chat with a live operator or consultant.")
+    hero_description3 = models.TextField(default="Instead of scattered articles, you get structured guidance that follows our live project — following blogs have insight, how-to — and real-time alerts. Everything is organized around live project management, AI marketing systems & implementation.")
+    hero_button1_text = models.CharField(max_length=100, default="Request access to the client portal")
+    hero_button2_text = models.CharField(max_length=100, default="Learn how we operate")
+    meta_title = models.CharField(max_length=60, blank=True)
+    meta_description = models.CharField(max_length=160, blank=True)
+    is_active = models.BooleanField(default=True)
+    
+    class Meta:
+        verbose_name = "Resources & Blogs Page Content"
+        verbose_name_plural = "Resources & Blogs Page Content"
+    
+    def __str__(self):
+        return f"Resources & Blogs Page - {self.hero_title}"
+
+
+class ContentCard(Audit):
+    """Content cards for Resources & Blogs page"""
+    
+    badge = models.CharField(max_length=50, default="Blog")
+    title = models.CharField(max_length=200, default="Content Title")
+    content = models.JSONField(default=list)  # Array of content strings
+    image_url = models.URLField(default="https://res.cloudinary.com/depeqzb6z/image/upload/v1765559589/21743692_6495306_uay57y.jpg")
+    button1_text = models.CharField(max_length=100, blank=True)
+    button2_text = models.CharField(max_length=100, blank=True)
+    order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    
+    class Meta:
+        ordering = ['order']
+        verbose_name = "Content Card"
+        verbose_name_plural = "Content Cards"
+    
+    def __str__(self):
+        return self.title
+
+
+class LegalPolicyPageContent(Audit):
+    """Legal & Policy page content management"""
+    
+    hero_title = models.CharField(max_length=200, default="Legacy & Policy")
+    hero_description = models.TextField(default="Lorem ipsm jgdu mplexity. From regulatory and sustainability frameworks to biotechnology and compliance consulting, our experts guide clients through evolving legal, scientific, and operational standards. Our approach combines deep technical insight with strategic foresight — ensuring every initiative is compliant, sustainable, and built for growth.")
+    meta_title = models.CharField(max_length=60, blank=True)
+    meta_description = models.CharField(max_length=160, blank=True)
+    is_active = models.BooleanField(default=True)
+    
+    class Meta:
+        verbose_name = "Legal & Policy Page Content"
+        verbose_name_plural = "Legal & Policy Page Content"
+    
+    def __str__(self):
+        return f"Legal & Policy Page - {self.hero_title}"
+
+
+class PolicyItem(Audit):
+    """Policy items for Legal & Policy page"""
+    
+    number = models.CharField(max_length=10, default="01")
+    description = models.TextField(default="Policy description")
+    order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    
+    class Meta:
+        ordering = ['order']
+        verbose_name = "Policy Item"
+        verbose_name_plural = "Policy Items"
+    
+    def __str__(self):
+        return f"{self.number} - Policy Item"
+
+
+class ContactPageContent(Audit):
+    """Contact page content management"""
+    
+    hero_title = models.CharField(max_length=200, default="Contact Us")
+    contact_info_title = models.CharField(max_length=200, default="Contact Information")
+    contact_info_subtitle = models.CharField(max_length=200, default="Say something to start a live chat!")
+    phone_number = models.CharField(max_length=50, default="+012 3456 789")
+    email_address = models.EmailField(default="demo@gmail.com")
+    address = models.TextField(default="132 Dartmouth Street Boston, Massachusetts 02156 United States")
+    first_name_label = models.CharField(max_length=50, default="First Name")
+    last_name_label = models.CharField(max_length=50, default="Last Name")
+    email_label = models.CharField(max_length=50, default="Email")
+    phone_label = models.CharField(max_length=50, default="Phone Number")
+    subject_label = models.CharField(max_length=50, default="Select Subject?")
+    message_label = models.CharField(max_length=50, default="Message")
+    first_name_placeholder = models.CharField(max_length=50, default="John")
+    last_name_placeholder = models.CharField(max_length=50, default="Doe")
+    email_placeholder = models.CharField(max_length=50, default="your@email.com")
+    phone_placeholder = models.CharField(max_length=50, default="+1 012 3456 789")
+    message_placeholder = models.CharField(max_length=100, default="Write your message...")
+    subject_option_1 = models.CharField(max_length=100, default="General Inquiry")
+    subject_option_2 = models.CharField(max_length=100, default="General Inquiry")
+    subject_option_3 = models.CharField(max_length=100, default="General Inquiry")
+    subject_option_4 = models.CharField(max_length=100, default="General Inquiry")
+    submit_button_text = models.CharField(max_length=50, default="Send Message")
+    meta_title = models.CharField(max_length=60, blank=True)
+    meta_description = models.CharField(max_length=160, blank=True)
+    is_active = models.BooleanField(default=True)
+    
+    class Meta:
+        verbose_name = "Contact Page Content"
+        verbose_name_plural = "Contact Page Content"
+    
+    def __str__(self):
+        return f"Contact Page - {self.hero_title}"
+
+
+# NEW SERVICE PILLAR PAGES
+
+class StrategicAdvisoryPageContent(Audit):
+    """Strategic Advisory & Compliance page content management"""
+    
+    hero_title = models.CharField(max_length=200, default="Strategic Advisory & Compliance")
+    hero_subtitle = models.TextField(default="We deliver clarity to complexity. From regulatory and sustainability frameworks to biotechnology and compliance consulting, our experts guide clients through evolving landscapes with confidence.")
+    hero_description = models.TextField(default="Our approach combines deep technical insight with strategic foresight, ensuring every initiative is compliant, sustainable, and built for growth.")
+    hero_image = models.URLField(default="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&h=600&fit=crop")
+    
+    # Services Section
+    services_title = models.CharField(max_length=200, default="Our Strategic Services")
+    service_1_title = models.CharField(max_length=100, default="Regulatory Compliance")
+    service_1_description = models.TextField(default="Navigate complex regulatory frameworks with confidence")
+    service_2_title = models.CharField(max_length=100, default="ESG & Sustainability")
+    service_2_description = models.TextField(default="Build sustainable business practices that drive growth")
+    service_3_title = models.CharField(max_length=100, default="Risk Management")
+    service_3_description = models.TextField(default="Identify and mitigate business risks proactively")
+    
+    # Process Section
+    process_title = models.CharField(max_length=200, default="Our Strategic Process")
+    process_subtitle = models.CharField(max_length=200, default="Listen . Solve . Optimize")
+    process_description = models.TextField(default="Like your Business GP, we diagnose compliance challenges and prescribe strategic solutions tailored to your organization's unique context.")
+    process_step_1_title = models.CharField(max_length=100, default="Listen & Report")
+    process_step_1_subtitle = models.CharField(max_length=100, default="(Initial Discovery)")
+    process_step_1 = models.TextField(default="We start with a focused initial meeting to understand your compliance challenges, regulatory environment, and strategic objectives.")
+    process_step_2_title = models.CharField(max_length=100, default="Decide: Document or Partnership")
+    process_step_2 = models.TextField(default="Once you receive the report, you choose your path forward: Use the report independently or engage ORR for ongoing implementation support.")
+    process_step_3_title = models.CharField(max_length=100, default="Optimize (For Clients Who Continue)")
+    process_step_3 = models.TextField(default="For clients who choose ongoing partnership, we move into implementation and optimization.")
+    
+    # Network Section
+    network_title = models.CharField(max_length=200, default="The ORR Network Advantage")
+    network_description = models.TextField(default="Complex compliance challenges require diverse expertise. We activate our global network of specialists to deliver comprehensive solutions.")
+    network_cards = models.JSONField(default=list)
+    
+    # Digital Solutions Section
+    digital_title = models.CharField(max_length=200, default="Digital Solutions for")
+    digital_subtitle = models.CharField(max_length=200, default="Compliance Management")
+    digital_description = models.TextField(default="We don't just advise — we build digital infrastructure to operationalize compliance:")
+    digital_image_alt = models.CharField(max_length=200, default="Network visualization showing connected nodes and data flows")
+    digital_who_is_this_for = models.JSONField(default=list)
+    digital_features = models.JSONField(default=list)
+    
+    # Case Example Section
+    case_challenge = models.TextField(blank=True)
+    case_solution = models.TextField(blank=True)
+    case_result = models.TextField(blank=True)
+    case_image_alt = models.CharField(max_length=200, default="Business documents and reports on a desk")
+    
+    # CTA Section
+    cta_title = models.CharField(max_length=200, default="Ready to Transform Your Strategy?")
+    cta_description = models.TextField(default="Let's discuss how our strategic advisory services can help your organization thrive.")
+    cta_button_text = models.CharField(max_length=50, default="Get Started")
+    
+    meta_title = models.CharField(max_length=60, blank=True)
+    meta_description = models.CharField(max_length=160, blank=True)
+    is_active = models.BooleanField(default=True)
+    
+    class Meta:
+        verbose_name = "Strategic Advisory Page Content"
+        verbose_name_plural = "Strategic Advisory Page Content"
+    
+    def __str__(self):
+        return f"Strategic Advisory - {self.hero_title}"
+
+
+class OperationalSystemsPageContent(Audit):
+    """Operational Systems & Infrastructure page content management"""
+    
+    hero_title = models.CharField(max_length=200, default="Operational Systems & Infrastructure")
+    hero_subtitle = models.TextField(default="We design, build and streamline the systems that power modern organizations. Whether it's creating SOPs, structuring workflows, or coordinating complex setups.")
+    hero_description = models.TextField(default="We turn operations into well-functioning ecosystems. Our trusted network of builders and tech specialists delivers reliability from planning to execution.")
+    hero_image = models.URLField(default="https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&h=600&fit=crop")
+    
+    # Services Section
+    services_title = models.CharField(max_length=200, default="Our Operational Services")
+    service_1_title = models.CharField(max_length=100, default="Process Optimization")
+    service_1_description = models.TextField(default="Streamline workflows and eliminate operational bottlenecks")
+    service_2_title = models.CharField(max_length=100, default="System Integration")
+    service_2_description = models.TextField(default="Connect your tools and platforms for seamless operations")
+    service_3_title = models.CharField(max_length=100, default="Infrastructure Setup")
+    service_3_description = models.TextField(default="Build robust operational foundations that scale")
+    
+    # Process Section
+    process_title = models.CharField(max_length=200, default="Our Implementation Process")
+    process_description = models.TextField(default="Just like your Business GP, we follow a systematic diagnostic and treatment approach to restore operational health.")
+    process_step_1 = models.TextField(default="Current State Analysis")
+    process_step_2 = models.TextField(default="System Design")
+    process_step_3 = models.TextField(default="Implementation & Testing")
+    process_step_4 = models.TextField(default="Training & Optimization")
+    
+    # Case Example Section
+    case_challenge = models.TextField(blank=True)
+    case_solution = models.TextField(blank=True)
+    case_result = models.TextField(blank=True)
+    case_image_alt = models.CharField(max_length=200, default="Business documents and reports on a desk")
+    
+    # CTA Section
+    cta_title = models.CharField(max_length=200, default="Ready to Optimize Your Operations?")
+    cta_description = models.TextField(default="Let's build systems that work as hard as your team does.")
+    cta_button_text = models.CharField(max_length=50, default="Get Started")
+    
+    meta_title = models.CharField(max_length=60, blank=True)
+    meta_description = models.CharField(max_length=160, blank=True)
+    is_active = models.BooleanField(default=True)
+    
+    class Meta:
+        verbose_name = "Operational Systems Page Content"
+        verbose_name_plural = "Operational Systems Page Content"
+    
+    def __str__(self):
+        return f"Operational Systems - {self.hero_title}"
+
+
+class LivingSystemsPageContent(Audit):
+    """Living Systems & Regeneration page content management"""
+    
+    hero_title = models.CharField(max_length=200, default="Living Systems & Regeneration")
+    hero_subtitle = models.TextField(default="Support for land, water, species, and ecosystems — from production systems to restoration and incident response.")
+    hero_description = models.TextField(default="We help organizations integrate regenerative practices that benefit both business outcomes and environmental health.")
+    hero_image = models.URLField(default="https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800&h=600&fit=crop")
+    
+    # Services Section
+    services_title = models.CharField(max_length=200, default="Our Regenerative Services")
+    service_1_title = models.CharField(max_length=100, default="Ecosystem Restoration")
+    service_1_description = models.TextField(default="Restore and regenerate natural systems for long-term sustainability")
+    service_2_title = models.CharField(max_length=100, default="Sustainable Production")
+    service_2_description = models.TextField(default="Design production systems that work with natural processes")
+    service_3_title = models.CharField(max_length=100, default="Environmental Monitoring")
+    service_3_description = models.TextField(default="Track and measure environmental impact and recovery")
+    
+    # Process Section
+    process_title = models.CharField(max_length=200, default="Our Regenerative Approach")
+    process_description = models.TextField(default="At the heart of our work, we take a systems approach to understanding and regenerating living systems. We observe the current state, design regenerative solutions, and implement systems that restore ecological health while creating economic value.")
+    process_step_1 = models.TextField(default="Ecosystem Assessment")
+    process_step_2 = models.TextField(default="Regenerative Design")
+    process_step_3 = models.TextField(default="Implementation & Monitoring")
+    process_step_4 = models.TextField(default="Adaptive Management")
+    
+    # Case Example Section
+    case_challenge = models.TextField(blank=True)
+    case_solution = models.TextField(blank=True)
+    case_result = models.TextField(blank=True)
+    case_image_alt = models.CharField(max_length=200, default="Regenerative agriculture landscape showing restored soil and biodiversity")
+    
+    # CTA Section
+    cta_title = models.CharField(max_length=200, default="Ready to Regenerate Your Impact?")
+    cta_description = models.TextField(default="Let's create systems that restore while they produce.")
+    cta_button_text = models.CharField(max_length=50, default="Get Started")
+    
+    meta_title = models.CharField(max_length=60, blank=True)
+    meta_description = models.CharField(max_length=160, blank=True)
+    is_active = models.BooleanField(default=True)
+    
+    class Meta:
+        verbose_name = "Living Systems Page Content"
+        verbose_name_plural = "Living Systems Page Content"
+    
+    def __str__(self):
+        return f"Living Systems - {self.hero_title}"

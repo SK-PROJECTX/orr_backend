@@ -16,7 +16,10 @@ from admin_portal.models_cms import (
     HomePage, ServiceCard, Testimonial, FAQ, BlogPost, 
     ContactInfo, SiteSettings, ApproachSection, BusinessSystemSection,
     ORRRoleSection, MessageStrip, ProcessSection, ORRReportSection,
-    ServicesPage, ResourcesBlogsPage, LegacyPolicyPage, ContactPage
+    ServicesPage, ResourcesBlogsPage, LegacyPolicyPage, ContactPage,
+    # New comprehensive models
+    HowWeOperatePageContent, ProcessStep, ServicesPageContent, ServiceStage, ServicePillar,
+    ResourcesBlogsPageContent, ContentCard, LegalPolicyPageContent, PolicyItem, ContactPageContent
 )
 from ..serializers.cms import (
     HomePageSerializer, ServiceCardSerializer, TestimonialSerializer,
@@ -261,15 +264,20 @@ class ContactInfoView(APIView):
         return []
     
     def get(self, request):
-        contact_info, created = ContactInfo.objects.get_or_create(
-            is_active=True,
-            defaults={'company_name': 'ORR', 'email': 'info@orr.com'}
-        )
+        contact_info = ContactInfo.objects.filter(is_active=True).first()
+        if not contact_info:
+            contact_info = ContactInfo.objects.create(
+                is_active=True,
+                company_name='ORR', 
+                email='info@orr.com'
+            )
         serializer = ContactInfoSerializer(contact_info)
         return Response(serializer.data)
     
     def put(self, request):
-        contact_info, created = ContactInfo.objects.get_or_create(is_active=True)
+        contact_info = ContactInfo.objects.filter(is_active=True).first()
+        if not contact_info:
+            contact_info = ContactInfo.objects.create(is_active=True)
         serializer = ContactInfoSerializer(contact_info, data=request.data, partial=True)
         
         if serializer.is_valid():
@@ -709,7 +717,9 @@ class ContactPageView(APIView):
         return []
     
     def get(self, request):
-        contact_page, created = ContactPage.objects.get_or_create(is_active=True)
+        contact_page = ContactPage.objects.filter(is_active=True).first()
+        if not contact_page:
+            contact_page = ContactPage.objects.create(is_active=True)
         serializer = ContactPageSerializer(contact_page)
         return Response({
             'success': True,
@@ -719,7 +729,9 @@ class ContactPageView(APIView):
         })
     
     def put(self, request):
-        contact_page, created = ContactPage.objects.get_or_create(is_active=True)
+        contact_page = ContactPage.objects.filter(is_active=True).first()
+        if not contact_page:
+            contact_page = ContactPage.objects.create(is_active=True)
         serializer = ContactPageSerializer(contact_page, data=request.data, partial=True)
         
         if serializer.is_valid():
