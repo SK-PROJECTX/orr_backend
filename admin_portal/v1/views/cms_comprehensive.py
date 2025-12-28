@@ -1,0 +1,1020 @@
+# NEW COMPREHENSIVE CMS VIEWS
+
+from rest_framework import generics, status
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from drf_spectacular.utils import extend_schema
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+
+from admin_portal.models_cms import (
+    HowWeOperatePageContent, ProcessStep, ServicesPageContent, ServiceStage, ServicePillar,
+    ResourcesBlogsPageContent, ContentCard, LegalPolicyPageContent, PolicyItem, ContactPageContent,
+    StrategicAdvisoryPageContent, OperationalSystemsPageContent, LivingSystemsPageContent
+)
+
+
+@extend_schema(
+    tags=["CMS - How We Operate"],
+    summary="Get or update How We Operate page content",
+    description="Manage How We Operate page content and process steps."
+)
+@method_decorator(csrf_exempt, name='dispatch')
+class HowWeOperatePageView(APIView):
+    """How We Operate page content management"""
+    
+    def get_permissions(self):
+        return []
+    
+    def get(self, request):
+        page, created = HowWeOperatePageContent.objects.get_or_create(is_active=True)
+        steps = ProcessStep.objects.filter(is_active=True).order_by('order')
+        
+        data = {
+            'page': {
+                'id': page.id,
+                'hero_title': page.hero_title,
+                'meta_title': page.meta_title,
+                'meta_description': page.meta_description,
+                'is_active': page.is_active,
+            },
+            'steps': [{
+                'id': step.id,
+                'step_number': step.step_number,
+                'title': step.title,
+                'subtitle': step.subtitle,
+                'description': step.description,
+                'bullet1': step.bullet1,
+                'bullet2': step.bullet2,
+                'bullet3': step.bullet3,
+                'bullet4': step.bullet4,
+                'bullet5': step.bullet5,
+                'bullet6': step.bullet6,
+                'bullet7': step.bullet7,
+                'bullet8': step.bullet8,
+                'bullet9': step.bullet9,
+                'wordbreak': step.wordbreak,
+                'description1': step.description1,
+                'description2': step.description2,
+                'description3': step.description3,
+                'description4': step.description4,
+                'image_url': step.image_url,
+                'button_text': step.button_text,
+                'button_text2': step.button_text2,
+                'button_text3': step.button_text3,
+                'order': step.order,
+                'is_active': step.is_active,
+            } for step in steps]
+        }
+        
+        return Response({
+            'success': True,
+            'status': 200,
+            'message': 'Request successful',
+            'data': data
+        })
+    
+    def put(self, request):
+        page, created = HowWeOperatePageContent.objects.get_or_create(is_active=True)
+        
+        # Update page data
+        page_data = request.data.get('page', {})
+        for field in ['hero_title', 'meta_title', 'meta_description']:
+            if field in page_data:
+                setattr(page, field, page_data[field])
+        page.save()
+        
+        # Update steps data
+        steps_data = request.data.get('steps', [])
+        for step_data in steps_data:
+            step_id = step_data.get('id')
+            if step_id:
+                try:
+                    step = ProcessStep.objects.get(id=step_id)
+                    for field in ['step_number', 'title', 'subtitle', 'description', 'bullet1', 'bullet2', 'bullet3', 'bullet4', 'bullet5', 'bullet6', 'bullet7', 'bullet8', 'bullet9', 'wordbreak', 'description1', 'description2', 'description3', 'description4', 'image_url', 'button_text', 'button_text2', 'button_text3', 'order']:
+                        if field in step_data:
+                            setattr(step, field, step_data[field])
+                    step.save()
+                except ProcessStep.DoesNotExist:
+                    continue
+        
+        return Response({
+            'success': True,
+            'status': 200,
+            'message': 'How We Operate page updated successfully',
+            'data': {'updated': True}
+        })
+
+
+@extend_schema(
+    tags=["CMS - Services Page New"],
+    summary="Get or update Services page content",
+    description="Manage Services page content including stages and pillars."
+)
+@method_decorator(csrf_exempt, name='dispatch')
+class ServicesPageContentView(APIView):
+    """Services page content management"""
+    
+    def get_permissions(self):
+        return []
+    
+    def get(self, request):
+        page, created = ServicesPageContent.objects.get_or_create(is_active=True)
+        stages = ServiceStage.objects.filter(is_active=True).order_by('order')
+        pillars = ServicePillar.objects.filter(is_active=True).order_by('order')
+        
+        data = {
+            'page': {
+                'id': page.id,
+                'hero_title': page.hero_title,
+                'hero_subtitle': page.hero_subtitle,
+                'pillars_title': page.pillars_title,
+                'business_gp_title': page.business_gp_title,
+                'business_gp_subtitle': page.business_gp_subtitle,
+                'business_gp_description': page.business_gp_description,
+                'business_gp_button_text': page.business_gp_button_text,
+                'business_gp_image': page.business_gp_image,
+                'meta_title': page.meta_title,
+                'meta_description': page.meta_description,
+                'is_active': page.is_active,
+            },
+            'stages': [{
+                'id': stage.id,
+                'stage_number': stage.stage_number,
+                'title': stage.title,
+                'subtitle': stage.subtitle,
+                'description': stage.description,
+                'focus_content': stage.focus_content,
+                'button_text': stage.button_text,
+                'order': stage.order,
+                'is_active': stage.is_active,
+            } for stage in stages],
+            'pillars': [{
+                'id': pillar.id,
+                'title': pillar.title,
+                'description': pillar.description,
+                'button_text': pillar.button_text,
+                'order': pillar.order,
+                'is_active': pillar.is_active,
+            } for pillar in pillars]
+        }
+        
+        return Response({
+            'success': True,
+            'status': 200,
+            'message': 'Request successful',
+            'data': data
+        })
+    
+    def put(self, request):
+        page, created = ServicesPageContent.objects.get_or_create(is_active=True)
+        
+        # Update page data
+        page_data = request.data.get('page', {})
+        for field in ['hero_title', 'hero_subtitle', 'pillars_title', 'business_gp_title', 'business_gp_subtitle', 'business_gp_description', 'business_gp_button_text', 'business_gp_image', 'meta_title', 'meta_description']:
+            if field in page_data:
+                setattr(page, field, page_data[field])
+        page.save()
+        
+        return Response({
+            'success': True,
+            'status': 200,
+            'message': 'Services page updated successfully',
+            'data': {'updated': True}
+        })
+
+
+@extend_schema(
+    tags=["CMS - Resources & Blogs New"],
+    summary="Get or update Resources & Blogs page content",
+    description="Manage Resources & Blogs page content including content cards."
+)
+@method_decorator(csrf_exempt, name='dispatch')
+class ResourcesBlogsPageContentView(APIView):
+    """Resources & Blogs page content management"""
+    
+    authentication_classes = []
+    permission_classes = []
+    
+    def get(self, request):
+        page, created = ResourcesBlogsPageContent.objects.get_or_create(is_active=True)
+        cards = ContentCard.objects.filter(is_active=True).order_by('order')
+        
+        data = {
+            'page': {
+                'id': page.id,
+                'hero_title': page.hero_title,
+                'hero_description1': page.hero_description1,
+                'hero_description2': page.hero_description2,
+                'hero_description3': page.hero_description3,
+                'hero_button1_text': page.hero_button1_text,
+                'hero_button2_text': page.hero_button2_text,
+                'meta_title': page.meta_title,
+                'meta_description': page.meta_description,
+                'is_active': page.is_active,
+            },
+            'cards': [{
+                'id': card.id,
+                'badge': card.badge,
+                'title': card.title,
+                'content': card.content,
+                'image_url': card.image_url,
+                'button1_text': card.button1_text,
+                'button2_text': card.button2_text,
+                'order': card.order,
+                'is_active': card.is_active,
+            } for card in cards]
+        }
+        
+        return Response({
+            'success': True,
+            'status': 200,
+            'message': 'Request successful',
+            'data': data
+        })
+    
+    def put(self, request):
+        page, created = ResourcesBlogsPageContent.objects.get_or_create(is_active=True)
+        
+        # Update page data
+        page_data = request.data.get('page', {})
+        for field in ['hero_title', 'hero_description1', 'hero_description2', 'hero_description3', 'hero_button1_text', 'hero_button2_text', 'meta_title', 'meta_description']:
+            if field in page_data:
+                setattr(page, field, page_data[field])
+        page.save()
+        
+        return Response({
+            'success': True,
+            'status': 200,
+            'message': 'Resources & Blogs page updated successfully',
+            'data': {'updated': True}
+        })
+
+
+@extend_schema(
+    tags=["CMS - Legal & Policy New"],
+    summary="Get or update Legal & Policy page content",
+    description="Manage Legal & Policy page content including policy items."
+)
+@method_decorator(csrf_exempt, name='dispatch')
+class LegalPolicyPageContentView(APIView):
+    """Legal & Policy page content management"""
+    
+    authentication_classes = []
+    permission_classes = []
+    
+    def get(self, request):
+        page, created = LegalPolicyPageContent.objects.get_or_create(is_active=True)
+        items = PolicyItem.objects.filter(is_active=True).order_by('order')
+        
+        data = {
+            'page': {
+                'id': page.id,
+                'hero_title': page.hero_title,
+                'hero_description': page.hero_description,
+                'meta_title': page.meta_title,
+                'meta_description': page.meta_description,
+                'is_active': page.is_active,
+            },
+            'items': [{
+                'id': item.id,
+                'number': item.number,
+                'description': item.description,
+                'order': item.order,
+                'is_active': item.is_active,
+            } for item in items]
+        }
+        
+        return Response({
+            'success': True,
+            'status': 200,
+            'message': 'Request successful',
+            'data': data
+        })
+    
+    def put(self, request):
+        page, created = LegalPolicyPageContent.objects.get_or_create(is_active=True)
+        
+        # Update page data
+        page_data = request.data.get('page', {})
+        for field in ['hero_title', 'hero_description', 'meta_title', 'meta_description']:
+            if field in page_data:
+                setattr(page, field, page_data[field])
+        page.save()
+        
+        # Update items data
+        items_data = request.data.get('items', [])
+        for item_data in items_data:
+            item_id = item_data.get('id')
+            if item_id:
+                try:
+                    item = PolicyItem.objects.get(id=item_id)
+                    for field in ['number', 'description', 'order']:
+                        if field in item_data:
+                            setattr(item, field, item_data[field])
+                    item.save()
+                except PolicyItem.DoesNotExist:
+                    continue
+        
+        return Response({
+            'success': True,
+            'status': 200,
+            'message': 'Legal & Policy page updated successfully',
+            'data': {'updated': True}
+        })
+
+
+@extend_schema(
+    tags=["CMS - Contact Page New"],
+    summary="Get or update Contact page content",
+    description="Manage Contact page content including form labels and contact information."
+)
+@method_decorator(csrf_exempt, name='dispatch')
+class ContactPageContentView(APIView):
+    """Contact page content management"""
+    
+    authentication_classes = []
+    permission_classes = []
+    
+    def get(self, request):
+        page = ContactPageContent.objects.filter(is_active=True).first()
+        if not page:
+            page = ContactPageContent.objects.create(is_active=True)
+        
+        data = {
+            'id': page.id,
+            'hero_title': page.hero_title,
+            'contact_info_title': page.contact_info_title,
+            'contact_info_subtitle': page.contact_info_subtitle,
+            'phone_number': page.phone_number,
+            'email_address': page.email_address,
+            'address': page.address,
+            'first_name_label': page.first_name_label,
+            'last_name_label': page.last_name_label,
+            'email_label': page.email_label,
+            'phone_label': page.phone_label,
+            'subject_label': page.subject_label,
+            'message_label': page.message_label,
+            'first_name_placeholder': page.first_name_placeholder,
+            'last_name_placeholder': page.last_name_placeholder,
+            'email_placeholder': page.email_placeholder,
+            'phone_placeholder': page.phone_placeholder,
+            'message_placeholder': page.message_placeholder,
+            'subject_option_1': page.subject_option_1,
+            'subject_option_2': page.subject_option_2,
+            'subject_option_3': page.subject_option_3,
+            'subject_option_4': page.subject_option_4,
+            'submit_button_text': page.submit_button_text,
+            'meta_title': page.meta_title,
+            'meta_description': page.meta_description,
+            'is_active': page.is_active,
+        }
+        
+        return Response({
+            'success': True,
+            'status': 200,
+            'message': 'Request successful',
+            'data': data
+        })
+    
+    def put(self, request):
+        page = ContactPageContent.objects.filter(is_active=True).first()
+        if not page:
+            page = ContactPageContent.objects.create(is_active=True)
+        
+        # Update page data
+        for field in ['hero_title', 'contact_info_title', 'contact_info_subtitle', 'phone_number', 'email_address', 'address', 'first_name_label', 'last_name_label', 'email_label', 'phone_label', 'subject_label', 'message_label', 'first_name_placeholder', 'last_name_placeholder', 'email_placeholder', 'phone_placeholder', 'message_placeholder', 'subject_option_1', 'subject_option_2', 'subject_option_3', 'subject_option_4', 'submit_button_text', 'meta_title', 'meta_description']:
+            if field in request.data:
+                setattr(page, field, request.data[field])
+        page.save()
+        
+        return Response({
+            'success': True,
+            'status': 200,
+            'message': 'Contact page updated successfully',
+            'data': {'updated': True}
+        })
+
+
+@extend_schema(
+    tags=["CMS - Service Stages"],
+    summary="Update individual service stage",
+    description="Update individual service stage content."
+)
+@method_decorator(csrf_exempt, name='dispatch')
+class ServiceStageDetailView(APIView):
+    """Individual service stage management"""
+    
+    authentication_classes = []
+    permission_classes = []
+    
+    def put(self, request, pk):
+        try:
+            stage = ServiceStage.objects.get(id=pk, is_active=True)
+            
+            # Update stage data
+            for field in ['title', 'subtitle', 'description', 'focus_content', 'button_text']:
+                if field in request.data:
+                    setattr(stage, field, request.data[field])
+            stage.save()
+            
+            return Response({
+                'success': True,
+                'status': 200,
+                'message': 'Service stage updated successfully',
+                'data': {
+                    'id': stage.id,
+                    'title': stage.title,
+                    'subtitle': stage.subtitle,
+                    'description': stage.description,
+                    'focus_content': stage.focus_content,
+                    'button_text': stage.button_text,
+                }
+            })
+            
+        except ServiceStage.DoesNotExist:
+            return Response({
+                'success': False,
+                'status': 404,
+                'message': 'Service stage not found',
+                'data': None
+            }, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({
+                'success': False,
+                'status': 500,
+                'message': f'Error updating service stage: {str(e)}',
+                'data': None
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def get(self, request, pk):
+        try:
+            stage = ServiceStage.objects.get(id=pk, is_active=True)
+            return Response({
+                'success': True,
+                'status': 200,
+                'message': 'Service stage retrieved successfully',
+                'data': {
+                    'id': stage.id,
+                    'title': stage.title,
+                    'subtitle': stage.subtitle,
+                    'description': stage.description,
+                    'focus_content': stage.focus_content,
+                    'button_text': stage.button_text,
+                }
+            })
+        except ServiceStage.DoesNotExist:
+            return Response({
+                'success': False,
+                'status': 404,
+                'message': 'Service stage not found',
+                'data': None
+            }, status=status.HTTP_404_NOT_FOUND)
+
+
+@extend_schema(
+    tags=["CMS - Service Pillars"],
+    summary="Update individual service pillar",
+    description="Update individual service pillar content."
+)
+@method_decorator(csrf_exempt, name='dispatch')
+class ServicePillarDetailView(APIView):
+    """Individual service pillar management"""
+    
+    authentication_classes = []
+    permission_classes = []
+    
+    def put(self, request, pk):
+        try:
+            pillar = ServicePillar.objects.get(id=pk, is_active=True)
+            
+            # Update pillar data
+            for field in ['title', 'description', 'button_text']:
+                if field in request.data:
+                    setattr(pillar, field, request.data[field])
+            pillar.save()
+            
+            return Response({
+                'success': True,
+                'status': 200,
+                'message': 'Service pillar updated successfully',
+                'data': {
+                    'id': pillar.id,
+                    'title': pillar.title,
+                    'description': pillar.description,
+                    'button_text': pillar.button_text,
+                }
+            })
+            
+        except ServicePillar.DoesNotExist:
+            return Response({
+                'success': False,
+                'status': 404,
+                'message': 'Service pillar not found',
+                'data': None
+            }, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({
+                'success': False,
+                'status': 500,
+                'message': f'Error updating service pillar: {str(e)}',
+                'data': None
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    def get(self, request, pk):
+        try:
+            pillar = ServicePillar.objects.get(id=pk, is_active=True)
+            return Response({
+                'success': True,
+                'status': 200,
+                'message': 'Service pillar retrieved successfully',
+                'data': {
+                    'id': pillar.id,
+                    'title': pillar.title,
+                    'description': pillar.description,
+                    'button_text': pillar.button_text,
+                }
+            })
+        except ServicePillar.DoesNotExist:
+            return Response({
+                'success': False,
+                'status': 404,
+                'message': 'Service pillar not found',
+                'data': None
+            }, status=status.HTTP_404_NOT_FOUND)
+
+
+@extend_schema(
+    tags=["CMS - Process Steps"],
+    summary="Update individual process step",
+    description="Update individual process step content."
+)
+@method_decorator(csrf_exempt, name='dispatch')
+class ProcessStepDetailView(APIView):
+    """Individual process step management"""
+    
+    authentication_classes = []
+    permission_classes = []
+    
+    def put(self, request, pk):
+        try:
+            step = ProcessStep.objects.get(id=pk, is_active=True)
+            
+            # Update step data
+            for field in ['step_number', 'title', 'subtitle', 'description', 'bullet1', 'bullet2', 'bullet3', 'bullet4', 'bullet5', 'bullet6', 'bullet7', 'bullet8', 'bullet9', 'wordbreak', 'description1', 'description2', 'description3', 'description4', 'image_url', 'button_text', 'button_text2', 'button_text3']:
+                if field in request.data:
+                    setattr(step, field, request.data[field])
+            step.save()
+            
+            return Response({
+                'success': True,
+                'status': 200,
+                'message': 'Process step updated successfully',
+                'data': {
+                    'id': step.id,
+                    'step_number': step.step_number,
+                    'title': step.title,
+                    'subtitle': step.subtitle,
+                    'description': step.description,
+                    'bullet1': step.bullet1,
+                    'bullet2': step.bullet2,
+                    'bullet3': step.bullet3,
+                    'bullet4': step.bullet4,
+                    'bullet5': step.bullet5,
+                    'bullet6': step.bullet6,
+                    'bullet7': step.bullet7,
+                    'bullet8': step.bullet8,
+                    'bullet9': step.bullet9,
+                    'wordbreak': step.wordbreak,
+                    'description1': step.description1,
+                    'description2': step.description2,
+                    'description3': step.description3,
+                    'description4': step.description4,
+                    'image_url': step.image_url,
+                    'button_text': step.button_text,
+                    'button_text2': step.button_text2,
+                    'button_text3': step.button_text3,
+                }
+            })
+            
+        except ProcessStep.DoesNotExist:
+            return Response({
+                'success': False,
+                'status': 404,
+                'message': 'Process step not found',
+                'data': None
+            }, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({
+                'success': False,
+                'status': 500,
+                'message': f'Error updating process step: {str(e)}',
+                'data': None
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@extend_schema(
+    tags=["CMS - Content Cards"],
+    summary="Update individual content card",
+    description="Update individual content card content."
+)
+@method_decorator(csrf_exempt, name='dispatch')
+class ContentCardDetailView(APIView):
+    """Individual content card management"""
+    
+    authentication_classes = []
+    permission_classes = []
+    
+    def put(self, request, pk):
+        try:
+            card = ContentCard.objects.get(id=pk, is_active=True)
+            
+            # Update card data
+            for field in ['badge', 'title', 'content', 'image_url', 'button1_text', 'button2_text']:
+                if field in request.data:
+                    setattr(card, field, request.data[field])
+            card.save()
+            
+            return Response({
+                'success': True,
+                'status': 200,
+                'message': 'Content card updated successfully',
+                'data': {
+                    'id': card.id,
+                    'badge': card.badge,
+                    'title': card.title,
+                    'content': card.content,
+                    'image_url': card.image_url,
+                    'button1_text': card.button1_text,
+                    'button2_text': card.button2_text,
+                }
+            })
+            
+        except ContentCard.DoesNotExist:
+            return Response({
+                'success': False,
+                'status': 404,
+                'message': 'Content card not found',
+                'data': None
+            }, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({
+                'success': False,
+                'status': 500,
+                'message': f'Error updating content card: {str(e)}',
+                'data': None
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@extend_schema(
+    tags=["CMS - Policy Items"],
+    summary="Update individual policy item",
+    description="Update individual policy item content."
+)
+@method_decorator(csrf_exempt, name='dispatch')
+class PolicyItemDetailView(APIView):
+    """Individual policy item management"""
+    
+    authentication_classes = []
+    permission_classes = []
+    
+    def put(self, request, pk):
+        try:
+            item = PolicyItem.objects.get(id=pk, is_active=True)
+            
+            # Update item data
+            for field in ['number', 'description']:
+                if field in request.data:
+                    setattr(item, field, request.data[field])
+            item.save()
+            
+            return Response({
+                'success': True,
+                'status': 200,
+                'message': 'Policy item updated successfully',
+                'data': {
+                    'id': item.id,
+                    'number': item.number,
+                    'description': item.description,
+                }
+            })
+            
+        except PolicyItem.DoesNotExist:
+            return Response({
+                'success': False,
+                'status': 404,
+                'message': 'Policy item not found',
+                'data': None
+            }, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({
+                'success': False,
+                'status': 500,
+                'message': f'Error updating policy item: {str(e)}',
+                'data': None
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# NEW SERVICE PILLAR PAGES ENDPOINTS
+
+@extend_schema(
+    tags=["CMS - Strategic Advisory Page"],
+    summary="Get Strategic Advisory page content",
+    description="Retrieve Strategic Advisory & Compliance page content."
+)
+@method_decorator(csrf_exempt, name='dispatch')
+class StrategicAdvisoryPageView(APIView):
+    """Strategic Advisory page content management"""
+    
+    authentication_classes = []
+    permission_classes = []
+    
+    def get(self, request):
+        try:
+            page_content = StrategicAdvisoryPageContent.objects.filter(is_active=True).first()
+            
+            if not page_content:
+                # Create default content if none exists
+                page_content = StrategicAdvisoryPageContent.objects.create()
+            
+            return Response({
+                'success': True,
+                'status': 200,
+                'message': 'Strategic Advisory page content retrieved successfully',
+                'data': {
+                    'id': page_content.id,
+                    'hero_title': page_content.hero_title,
+                    'hero_subtitle': page_content.hero_subtitle,
+                    'hero_description': page_content.hero_description,
+                    'hero_image': page_content.hero_image,
+                    'services_title': page_content.services_title,
+                    'service_1_title': page_content.service_1_title,
+                    'service_1_description': page_content.service_1_description,
+                    'service_2_title': page_content.service_2_title,
+                    'service_2_description': page_content.service_2_description,
+                    'service_3_title': page_content.service_3_title,
+                    'service_3_description': page_content.service_3_description,
+                    'process_title': page_content.process_title,
+                    'process_subtitle': page_content.process_subtitle,
+                    'process_description': page_content.process_description,
+                    'process_step_1_title': page_content.process_step_1_title,
+                    'process_step_1_subtitle': page_content.process_step_1_subtitle,
+                    'process_step_1': page_content.process_step_1,
+                    'process_step_2_title': page_content.process_step_2_title,
+                    'process_step_2': page_content.process_step_2,
+                    'process_step_3_title': page_content.process_step_3_title,
+                    'process_step_3': page_content.process_step_3,
+                    'network_title': page_content.network_title,
+                    'network_description': page_content.network_description,
+                    'network_cards': page_content.network_cards,
+                    'digital_title': page_content.digital_title,
+                    'digital_subtitle': page_content.digital_subtitle,
+                    'digital_description': page_content.digital_description,
+                    'digital_image_alt': page_content.digital_image_alt,
+                    'digital_who_is_this_for': page_content.digital_who_is_this_for,
+                    'digital_features': page_content.digital_features,
+                    'case_challenge': page_content.case_challenge,
+                    'case_solution': page_content.case_solution,
+                    'case_result': page_content.case_result,
+                    'case_image_alt': page_content.case_image_alt,
+                    'cta_title': page_content.cta_title,
+                    'cta_description': page_content.cta_description,
+                    'cta_button_text': page_content.cta_button_text,
+                    'meta_title': page_content.meta_title,
+                    'meta_description': page_content.meta_description,
+                }
+            })
+        except Exception as e:
+            return Response({
+                'success': False,
+                'status': 500,
+                'message': f'Error retrieving Strategic Advisory page content: {str(e)}',
+                'data': None
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def put(self, request):
+        try:
+            page_content = StrategicAdvisoryPageContent.objects.filter(is_active=True).first()
+            
+            if not page_content:
+                page_content = StrategicAdvisoryPageContent.objects.create()
+            
+            # Update fields
+            for field in ['hero_title', 'hero_subtitle', 'hero_description', 'hero_image', 'services_title', 
+                         'service_1_title', 'service_1_description', 'service_2_title', 'service_2_description',
+                         'service_3_title', 'service_3_description', 'process_title', 'process_subtitle',
+                         'process_description', 'process_step_1_title', 'process_step_1_subtitle', 'process_step_1',
+                         'process_step_2_title', 'process_step_2', 'process_step_3_title', 'process_step_3',
+                         'network_title', 'network_description', 'network_cards', 'digital_title', 'digital_subtitle',
+                         'digital_description', 'digital_image_alt', 'digital_who_is_this_for', 'digital_features',
+                         'case_challenge', 'case_solution', 'case_result', 'case_image_alt', 'cta_title', 
+                         'cta_description', 'cta_button_text', 'meta_title', 'meta_description']:
+                if field in request.data:
+                    setattr(page_content, field, request.data[field])
+            
+            page_content.save()
+            
+            return Response({
+                'success': True,
+                'status': 200,
+                'message': 'Strategic Advisory page content updated successfully',
+                'data': {'id': page_content.id}
+            })
+        except Exception as e:
+            return Response({
+                'success': False,
+                'status': 500,
+                'message': f'Error updating Strategic Advisory page content: {str(e)}',
+                'data': None
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@extend_schema(
+    tags=["CMS - Operational Systems Page"],
+    summary="Get Operational Systems page content",
+    description="Retrieve Operational Systems & Infrastructure page content."
+)
+@method_decorator(csrf_exempt, name='dispatch')
+class OperationalSystemsPageView(APIView):
+    """Operational Systems page content management"""
+    
+    authentication_classes = []
+    permission_classes = []
+    
+    def get(self, request):
+        try:
+            page_content = OperationalSystemsPageContent.objects.filter(is_active=True).first()
+            
+            if not page_content:
+                page_content = OperationalSystemsPageContent.objects.create()
+            
+            return Response({
+                'success': True,
+                'status': 200,
+                'message': 'Operational Systems page content retrieved successfully',
+                'data': {
+                    'id': page_content.id,
+                    'hero_title': page_content.hero_title,
+                    'hero_subtitle': page_content.hero_subtitle,
+                    'hero_description': page_content.hero_description,
+                    'hero_image': page_content.hero_image,
+                    'services_title': page_content.services_title,
+                    'service_1_title': page_content.service_1_title,
+                    'service_1_description': page_content.service_1_description,
+                    'service_2_title': page_content.service_2_title,
+                    'service_2_description': page_content.service_2_description,
+                    'service_3_title': page_content.service_3_title,
+                    'service_3_description': page_content.service_3_description,
+                    'process_title': page_content.process_title,
+                    'process_description': page_content.process_description,
+                    'process_step_1': page_content.process_step_1,
+                    'process_step_2': page_content.process_step_2,
+                    'process_step_3': page_content.process_step_3,
+                    'process_step_4': page_content.process_step_4,
+                    'case_challenge': page_content.case_challenge,
+                    'case_solution': page_content.case_solution,
+                    'case_result': page_content.case_result,
+                    'case_image_alt': page_content.case_image_alt,
+                    'cta_title': page_content.cta_title,
+                    'cta_description': page_content.cta_description,
+                    'cta_button_text': page_content.cta_button_text,
+                    'meta_title': page_content.meta_title,
+                    'meta_description': page_content.meta_description,
+                }
+            })
+        except Exception as e:
+            return Response({
+                'success': False,
+                'status': 500,
+                'message': f'Error retrieving Operational Systems page content: {str(e)}',
+                'data': None
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def put(self, request):
+        try:
+            page_content = OperationalSystemsPageContent.objects.filter(is_active=True).first()
+            
+            if not page_content:
+                page_content = OperationalSystemsPageContent.objects.create()
+            
+            # Update fields
+            for field in ['hero_title', 'hero_subtitle', 'hero_description', 'hero_image', 'services_title', 
+                         'service_1_title', 'service_1_description', 'service_2_title', 'service_2_description',
+                         'service_3_title', 'service_3_description', 'process_title', 'process_description',
+                         'process_step_1', 'process_step_2', 'process_step_3', 'process_step_4',
+                         'case_challenge', 'case_solution', 'case_result', 'case_image_alt',
+                         'cta_title', 'cta_description', 'cta_button_text', 'meta_title', 'meta_description']:
+                if field in request.data:
+                    setattr(page_content, field, request.data[field])
+            
+            page_content.save()
+            
+            return Response({
+                'success': True,
+                'status': 200,
+                'message': 'Operational Systems page content updated successfully',
+                'data': {'id': page_content.id}
+            })
+        except Exception as e:
+            return Response({
+                'success': False,
+                'status': 500,
+                'message': f'Error updating Operational Systems page content: {str(e)}',
+                'data': None
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@extend_schema(
+    tags=["CMS - Living Systems Page"],
+    summary="Get Living Systems page content",
+    description="Retrieve Living Systems & Regeneration page content."
+)
+@method_decorator(csrf_exempt, name='dispatch')
+class LivingSystemsPageView(APIView):
+    """Living Systems page content management"""
+    
+    authentication_classes = []
+    permission_classes = []
+    
+    def get(self, request):
+        try:
+            page_content = LivingSystemsPageContent.objects.filter(is_active=True).first()
+            
+            if not page_content:
+                page_content = LivingSystemsPageContent.objects.create()
+            
+            return Response({
+                'success': True,
+                'status': 200,
+                'message': 'Living Systems page content retrieved successfully',
+                'data': {
+                    'id': page_content.id,
+                    'hero_title': page_content.hero_title,
+                    'hero_subtitle': page_content.hero_subtitle,
+                    'hero_description': page_content.hero_description,
+                    'hero_image': page_content.hero_image,
+                    'services_title': page_content.services_title,
+                    'service_1_title': page_content.service_1_title,
+                    'service_1_description': page_content.service_1_description,
+                    'service_2_title': page_content.service_2_title,
+                    'service_2_description': page_content.service_2_description,
+                    'service_3_title': page_content.service_3_title,
+                    'service_3_description': page_content.service_3_description,
+                    'process_title': page_content.process_title,
+                    'process_description': page_content.process_description,
+                    'process_step_1': page_content.process_step_1,
+                    'process_step_2': page_content.process_step_2,
+                    'process_step_3': page_content.process_step_3,
+                    'process_step_4': page_content.process_step_4,
+                    'case_challenge': page_content.case_challenge,
+                    'case_solution': page_content.case_solution,
+                    'case_result': page_content.case_result,
+                    'case_image_alt': page_content.case_image_alt,
+                    'cta_title': page_content.cta_title,
+                    'cta_description': page_content.cta_description,
+                    'cta_button_text': page_content.cta_button_text,
+                    'meta_title': page_content.meta_title,
+                    'meta_description': page_content.meta_description,
+                }
+            })
+        except Exception as e:
+            return Response({
+                'success': False,
+                'status': 500,
+                'message': f'Error retrieving Living Systems page content: {str(e)}',
+                'data': None
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def put(self, request):
+        try:
+            page_content = LivingSystemsPageContent.objects.filter(is_active=True).first()
+            
+            if not page_content:
+                page_content = LivingSystemsPageContent.objects.create()
+            
+            # Update fields
+            for field in ['hero_title', 'hero_subtitle', 'hero_description', 'hero_image', 'services_title', 
+                         'service_1_title', 'service_1_description', 'service_2_title', 'service_2_description',
+                         'service_3_title', 'service_3_description', 'process_title', 'process_description',
+                         'process_step_1', 'process_step_2', 'process_step_3', 'process_step_4',
+                         'case_challenge', 'case_solution', 'case_result', 'case_image_alt',
+                         'cta_title', 'cta_description', 'cta_button_text', 'meta_title', 'meta_description']:
+                if field in request.data:
+                    setattr(page_content, field, request.data[field])
+            
+            page_content.save()
+            
+            return Response({
+                'success': True,
+                'status': 200,
+                'message': 'Living Systems page content updated successfully',
+                'data': {'id': page_content.id}
+            })
+        except Exception as e:
+            return Response({
+                'success': False,
+                'status': 500,
+                'message': f'Error updating Living Systems page content: {str(e)}',
+                'data': None
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

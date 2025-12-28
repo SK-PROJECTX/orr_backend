@@ -176,12 +176,12 @@ class PaymentActivityAnalyticsView(APIView):
     def _calculate_mrr(self):
         """Calculate Monthly Recurring Revenue"""
         active_subscriptions = Subscription.objects.filter(is_active=True)
-        # This would need to be calculated based on subscription amounts
         # Calculate based on actual subscription data
         total_mrr = 0
         for subscription in active_subscriptions:
-            if hasattr(subscription, 'plan') and subscription.plan:
-                total_mrr += float(subscription.plan.price)
+            if subscription.plan and hasattr(subscription.plan, 'amount'):
+                # Convert from cents to dollars
+                total_mrr += float(subscription.plan.amount) / 100
         return total_mrr
     
     def _get_payment_method_analytics(self):

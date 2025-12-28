@@ -14,6 +14,12 @@ from .models_cms import (
     ApproachSection, BusinessSystemCard, BusinessSystemSection, ORRRoleSection,
     MessageStrip, ProcessStage, ProcessSection, ORRReportSection, ServicesPage,
     ResourcesBlogsPage, LegacyPolicyPage, ContactPage,
+    # Comprehensive CMS Models
+    HowWeOperatePageContent, ProcessStep, ServicesPageContent, ServiceStage,
+    ServicePillar, ResourcesBlogsPageContent, ContentCard, LegalPolicyPageContent,
+    PolicyItem, ContactPageContent,
+    # Service Pillar Pages
+    StrategicAdvisoryPageContent, OperationalSystemsPageContent, LivingSystemsPageContent,
 )
 
 
@@ -346,6 +352,185 @@ class ContactPageAdmin(admin.ModelAdmin):
 class SiteSettingsAdmin(admin.ModelAdmin):
     list_display = ["site_name", "primary_color", "is_active"]
     list_filter = ["is_active"]
+
+
+# Comprehensive CMS Admin Registration
+@admin.register(HowWeOperatePageContent)
+class HowWeOperatePageContentAdmin(admin.ModelAdmin):
+    list_display = ["hero_title", "is_active", "updated_at"]
+    list_filter = ["is_active"]
+    readonly_fields = ["created_at", "updated_at"]
+
+
+@admin.register(ProcessStep)
+class ProcessStepAdmin(admin.ModelAdmin):
+    list_display = ["step_number", "title", "order", "is_active"]
+    list_filter = ["is_active"]
+    list_editable = ["order", "is_active"]
+    ordering = ["order"]
+
+
+@admin.register(ServicesPageContent)
+class ServicesPageContentAdmin(admin.ModelAdmin):
+    list_display = ["hero_title", "is_active", "updated_at"]
+    list_filter = ["is_active"]
+    readonly_fields = ["created_at", "updated_at"]
+
+
+@admin.register(ServiceStage)
+class ServiceStageAdmin(admin.ModelAdmin):
+    list_display = ["title", "stage_number", "order", "is_active"]
+    list_filter = ["is_active"]
+    list_editable = ["order", "is_active"]
+    ordering = ["order"]
+
+
+@admin.register(ServicePillar)
+class ServicePillarAdmin(admin.ModelAdmin):
+    list_display = ["title", "order", "is_active"]
+    list_filter = ["is_active"]
+    list_editable = ["order", "is_active"]
+    ordering = ["order"]
+
+
+@admin.register(ResourcesBlogsPageContent)
+class ResourcesBlogsPageContentAdmin(admin.ModelAdmin):
+    list_display = ["hero_title", "is_active", "updated_at"]
+    list_filter = ["is_active"]
+    readonly_fields = ["created_at", "updated_at"]
+
+
+@admin.register(ContentCard)
+class ContentCardAdmin(admin.ModelAdmin):
+    list_display = ["title", "badge", "order", "is_active"]
+    list_filter = ["is_active"]
+    list_editable = ["order", "is_active"]
+    ordering = ["order"]
+
+
+@admin.register(LegalPolicyPageContent)
+class LegalPolicyPageContentAdmin(admin.ModelAdmin):
+    list_display = ["hero_title", "is_active", "updated_at"]
+    list_filter = ["is_active"]
+    readonly_fields = ["created_at", "updated_at"]
+
+
+@admin.register(PolicyItem)
+class PolicyItemAdmin(admin.ModelAdmin):
+    list_display = ["number", "order", "is_active"]
+    list_filter = ["is_active"]
+    list_editable = ["order", "is_active"]
+    ordering = ["order"]
+
+
+@admin.register(ContactPageContent)
+class ContactPageContentAdmin(admin.ModelAdmin):
+    list_display = ["hero_title", "is_active", "updated_at"]
+    list_filter = ["is_active"]
+    readonly_fields = ["created_at", "updated_at"]
+
+
+# Service Pillar Pages Admin
+@admin.register(StrategicAdvisoryPageContent)
+class StrategicAdvisoryPageContentAdmin(admin.ModelAdmin):
+    list_display = ["hero_title", "is_active", "updated_at"]
+    list_filter = ["is_active"]
+    readonly_fields = ["created_at", "updated_at"]
+    fieldsets = (
+        ("Hero Section", {
+            "fields": ("hero_title", "hero_subtitle", "hero_description", "hero_image")
+        }),
+        ("Services Section", {
+            "fields": ("services_title", "service_1_title", "service_1_description", 
+                      "service_2_title", "service_2_description", "service_3_title", "service_3_description")
+        }),
+        ("Process Section", {
+            "fields": ("process_title", "process_subtitle", "process_description",
+                      "process_step_1_title", "process_step_1_subtitle", "process_step_1",
+                      "process_step_2_title", "process_step_2", "process_step_3_title", "process_step_3")
+        }),
+        ("Network Section", {
+            "fields": ("network_title", "network_description", "network_cards")
+        }),
+        ("Digital Solutions Section", {
+            "fields": ("digital_title", "digital_subtitle", "digital_description", "digital_image_alt",
+                      "digital_who_is_this_for", "digital_features")
+        }),
+        ("Case Example Section", {
+            "fields": ("case_challenge", "case_solution", "case_result", "case_image_alt")
+        }),
+        ("CTA Section", {
+            "fields": ("cta_title", "cta_description", "cta_button_text")
+        }),
+        ("SEO", {
+            "fields": ("meta_title", "meta_description")
+        }),
+        ("Status", {
+            "fields": ("is_active",)
+        })
+    )
+
+
+@admin.register(OperationalSystemsPageContent)
+class OperationalSystemsPageContentAdmin(admin.ModelAdmin):
+    list_display = ["hero_title", "is_active", "updated_at"]
+    list_filter = ["is_active"]
+    readonly_fields = ["created_at", "updated_at"]
+    fieldsets = (
+        ("Hero Section", {
+            "fields": ("hero_title", "hero_subtitle", "hero_description", "hero_image")
+        }),
+        ("Services Section", {
+            "fields": ("services_title", "service_1_title", "service_1_description", 
+                      "service_2_title", "service_2_description", "service_3_title", "service_3_description")
+        }),
+        ("Process Section", {
+            "fields": ("process_title", "process_description", "process_step_1", "process_step_2", "process_step_3", "process_step_4")
+        }),
+        ("Case Example Section", {
+            "fields": ("case_challenge", "case_solution", "case_result", "case_image_alt")
+        }),
+        ("CTA Section", {
+            "fields": ("cta_title", "cta_description", "cta_button_text")
+        }),
+        ("SEO", {
+            "fields": ("meta_title", "meta_description")
+        }),
+        ("Status", {
+            "fields": ("is_active",)
+        })
+    )
+
+
+@admin.register(LivingSystemsPageContent)
+class LivingSystemsPageContentAdmin(admin.ModelAdmin):
+    list_display = ["hero_title", "is_active", "updated_at"]
+    list_filter = ["is_active"]
+    readonly_fields = ["created_at", "updated_at"]
+    fieldsets = (
+        ("Hero Section", {
+            "fields": ("hero_title", "hero_subtitle", "hero_description", "hero_image")
+        }),
+        ("Services Section", {
+            "fields": ("services_title", "service_1_title", "service_1_description", 
+                      "service_2_title", "service_2_description", "service_3_title", "service_3_description")
+        }),
+        ("Process Section", {
+            "fields": ("process_title", "process_description", "process_step_1", "process_step_2", "process_step_3", "process_step_4")
+        }),
+        ("Case Example Section", {
+            "fields": ("case_challenge", "case_solution", "case_result", "case_image_alt")
+        }),
+        ("CTA Section", {
+            "fields": ("cta_title", "cta_description", "cta_button_text")
+        }),
+        ("SEO", {
+            "fields": ("meta_title", "meta_description")
+        }),
+        ("Status", {
+            "fields": ("is_active",)
+        })
+    )
 
 
 # Auto-register models from other apps (skip already registered ones)

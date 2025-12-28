@@ -4,6 +4,9 @@ from django.utils import timezone
 
 from common.models import Audit
 
+# Import CMS models
+from .models_cms import *
+
 
 class AdminRole(models.Model):
     """Admin roles with flexible permissions"""

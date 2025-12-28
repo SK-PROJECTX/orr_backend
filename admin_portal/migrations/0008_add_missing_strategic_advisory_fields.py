@@ -1,0 +1,28 @@
+# Generated manually to add missing fields to StrategicAdvisoryPageContent
+
+from django.db import migrations, models
+
+
+class Migration(migrations.Migration):
+
+    dependencies = [
+        ('admin_portal', '0007_remove_strategicadvisorypagecontent_process_step_4_and_more'),
+    ]
+
+    operations = [
+        migrations.AddField(
+            model_name='strategicadvisorypagecontent',
+            name='network_cards',
+            field=models.JSONField(default=list),
+        ),
+        migrations.AddField(
+            model_name='strategicadvisorypagecontent',
+            name='digital_who_is_this_for',
+            field=models.JSONField(default=list),
+        ),
+        migrations.AddField(
+            model_name='strategicadvisorypagecontent',
+            name='digital_features',
+            field=models.JSONField(default=list),
+        ),
+    ]

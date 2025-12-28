@@ -11,6 +11,7 @@ from .views import (
     client,
     client_profile,
     cms,
+    cms_comprehensive,
     compliance,
     consultation_metrics,
     content,
@@ -524,6 +525,21 @@ cms_patterns = [
     path("blog/<int:pk>/publish/", cms.BlogPostPublishView.as_view(), name="cms-blog-publish"),
     path("contact-info/", cms.ContactInfoView.as_view(), name="cms-contact-info"),
     path("site-settings/", cms.SiteSettingsView.as_view(), name="cms-settings"),
+    # New comprehensive CMS endpoints
+    path("how-we-operate/", cms_comprehensive.HowWeOperatePageView.as_view(), name="cms-how-we-operate"),
+    path("services-content/", cms_comprehensive.ServicesPageContentView.as_view(), name="cms-services-content"),
+    path("resources-content/", cms_comprehensive.ResourcesBlogsPageContentView.as_view(), name="cms-resources-content"),
+    path("legal-policy-content/", cms_comprehensive.LegalPolicyPageContentView.as_view(), name="cms-legal-policy-content"),
+    path("contact-content/", cms_comprehensive.ContactPageContentView.as_view(), name="cms-contact-content"),
+    path("service-stages/<int:pk>/", cms_comprehensive.ServiceStageDetailView.as_view(), name="cms-service-stage-detail"),
+    path("service-pillars/<int:pk>/", cms_comprehensive.ServicePillarDetailView.as_view(), name="cms-service-pillar-detail"),
+    path("process-steps/<int:pk>/", cms_comprehensive.ProcessStepDetailView.as_view(), name="cms-process-step-detail"),
+    path("content-cards/<int:pk>/", cms_comprehensive.ContentCardDetailView.as_view(), name="cms-content-card-detail"),
+    path("policy-items/<int:pk>/", cms_comprehensive.PolicyItemDetailView.as_view(), name="cms-policy-item-detail"),
+    # New service pillar pages
+    path("strategic-advisory/", cms_comprehensive.StrategicAdvisoryPageView.as_view(), name="cms-strategic-advisory"),
+    path("operational-systems/", cms_comprehensive.OperationalSystemsPageView.as_view(), name="cms-operational-systems"),
+    path("living-systems/", cms_comprehensive.LivingSystemsPageView.as_view(), name="cms-living-systems"),
 ]
 
 urlpatterns = [
