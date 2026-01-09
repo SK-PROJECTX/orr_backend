@@ -11,9 +11,9 @@ from .models import (
     Meeting,
     SystemNotification,
     Ticket,
+    TicketMessage,
 )
 from .auto_reply_service import AutoReplyService
-from client.models import ContactMessage
 
 
 @receiver(post_save, sender=Ticket)
@@ -97,12 +97,12 @@ def create_admin_profile(sender, instance, created, **kwargs):
         )
 
 
-@receiver(post_save, sender=ContactMessage)
-def contact_message_auto_reply(sender, instance, created, **kwargs):
-    """Handle auto-reply for contact messages by converting to tickets"""
-    if created and instance.user:
-        # Convert contact message to ticket and send auto-reply
-        ticket = AutoReplyService.handle_contact_message_auto_reply(instance)
+@receiver(post_save, sender=TicketMessage)
+def ticket_message_auto_reply(sender, instance, created, **kwargs):
+    """Handle auto-reply for ticket messages"""
+    if created and not instance.is_internal and instance.sender.username != 'system_auto_reply':
+        # Handle auto-reply for new client messages
+        ticket = AutoReplyService.handle_ticket_message_auto_reply(instance)
         
         if ticket:
             # Schedule WhatsApp notification to admin
@@ -114,6 +114,8 @@ def contact_message_auto_reply(sender, instance, created, **kwargs):
                 )
             except ImportError:
                 # Celery not available, log instead
+                import logging
+                logger = logging.getLogger(__name__)
                 logger.info(f"WhatsApp notification would be sent for ticket {ticket.ticket_id}")
 
 
