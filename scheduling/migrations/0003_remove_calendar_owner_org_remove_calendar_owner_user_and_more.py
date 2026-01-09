@@ -12,10 +12,6 @@ class Migration(migrations.Migration):
     operations = [
         migrations.RemoveField(
             model_name='calendar',
-            name='owner_org',
-        ),
-        migrations.RemoveField(
-            model_name='calendar',
             name='owner_user',
         ),
         migrations.RemoveField(

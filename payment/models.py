@@ -19,10 +19,19 @@ class PricingPlan(Audit):
     def __str__(self):
         return f"{self.name} ({self.billing_type})"
 
+class StripeEvent(Audit):
+    event_id = models.CharField(max_length=255, unique=True)
+    event_type = models.CharField(max_length=100)
+
+    def __str__(self):
+        return f"{self.event_type} ({self.event_id})"
+
 
 class Subscription(Audit):
-    user = models.OneToOneField(
-        User, on_delete=models.CASCADE, related_name="subscription"
+    user = models.ForeignKey(
+    User,
+    on_delete=models.CASCADE,
+    related_name="subscriptions"
     )
     stripe_subscription_id = models.CharField(max_length=255, unique=True)
     stripe_customer_id = models.CharField(max_length=255)
@@ -76,11 +85,16 @@ class Invoice(Audit):
     def __str__(self):
         return f"Invoice {self.stripe_invoice_id}"
 
-
 class StripeCustomer(Audit):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="stripe_profile")
     stripe_customer_id = models.CharField(max_length=255, unique=True)
-    stripe_card_id = models.CharField(max_length=255, unique=True)
+    stripe_card_id = models.CharField(max_length=255, blank=True, null=True)  
+    default_payment_method = models.CharField(
+        max_length=255, null=True, blank=True
+    )
+
+    has_valid_payment_method = models.BooleanField(default=False)
+    last_payment_failed = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.user.username} Stripe Customer"

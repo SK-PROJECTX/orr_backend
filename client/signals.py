@@ -3,10 +3,10 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 import threading
 
-from admin_portal.models import AdminProfile, Meeting
+from admin_portal.models import AdminProfile, Meeting, Ticket
 from notification.utils import notify_user
 
-from .models import Activity, ContactMessage
+from .models import Activity
 
 User = get_user_model()
 from admin_portal.models import Client
@@ -15,39 +15,50 @@ from client.tasks.activities import invalidate_recommendations_cache
 from .models import Profile
 
 
-@receiver(post_save, sender=ContactMessage)
-def send_contact_notifications(sender, instance, created, **kwargs):
+
+
+@receiver(post_save, sender=Ticket)
+def notify_admins_on_ticket_created(sender, instance, created, **kwargs):
     if not created:
         return
 
-    contact = instance
+    ticket = instance
+
     admin_profiles = AdminProfile.objects.exclude(role__name="content_editor")
-    admin_users = [profile.user for profile in admin_profiles]
+    admin_users = [profile.user for profile in admin_profiles if profile.user.is_active]
 
     for admin in admin_users:
         notify_user(
             admin,
-            "New Support Message",
-            f"You received a support message from {contact.name}",
+            "New Support Ticket",
+            f"New ticket {ticket.ticket_id} created",
             ["inapp", "email"],
             {
-                "type": "contact",
-                "template": "support/support_message_admin.html",
+                "type": "ticket",
+                "template": "support/ticket_created_admin.html",
                 "context": {
-                    "name": contact.name,
-                    "email": contact.email,
-                    "website": contact.website,
-                    "message": contact.message,
-                    "submitted_at": contact.created_at,
+                    "ticket_id": ticket.ticket_id,
+                    "subject": ticket.subject,
+                    "priority": ticket.priority,
+                    "status": ticket.status,
+                    "source": ticket.source,
+                    "client_name": (
+                        ticket.client.user.first_name
+                        if ticket.client and ticket.client.user
+                        else ticket.contact_name
+                    ),
+                    "client_email": (
+                        ticket.client.user.email
+                        if ticket.client and ticket.client.user
+                        else ticket.contact_email
+                    ),
+                    "description": ticket.description,
+                    "created_at": ticket.created_at,
                 },
             },
         )
-    notify_user(
-        contact.user,
-        "Message Received",
-        "We received your message. Our team will contact you soon.",
-        ["inapp"],
-    )
+
+
 
 
 @receiver(post_save)

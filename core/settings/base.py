@@ -11,7 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
-
+import ssl
 from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -198,7 +198,8 @@ SPECTACULAR_SETTINGS = {
 }
 
 CELERY_BROKER_URL = config("CELERY_BROKER_URL", "redis://localhost:6379/0")
-CELERY_RESULT_BACKEND = config("CELERY_BROKER_URL", "redis://localhost:6379/0")
+CELERY_RESULT_BACKEND = CELERY_BROKER_URL
+
 
 
 FRONTEND_VERIFY_EMAIL_URL = config("FRONTEND_VERIFY_EMAIL_URL", default="http://localhost:3000/verify")

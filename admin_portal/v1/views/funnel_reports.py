@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from admin_portal.models import Client, Meeting, Ticket, AIConversation, Content
-from client.models import OnboardingQuestionnaire, Activity, ContactMessage
+from client.models import OnboardingQuestionnaire, Activity
 from common.permissions import IsAdminUser
 
 
@@ -46,7 +46,7 @@ class ConversionFunnelAnalyticsView(APIView):
     def _get_main_conversion_funnel(self):
         """Get main conversion funnel from contact to client"""
         # Contact form submissions
-        contact_submissions = ContactMessage.objects.count()
+        contact_submissions = Ticket.objects.count()
         
         # User registrations
         user_registrations = Client.objects.count()
@@ -209,7 +209,7 @@ class ConversionFunnelAnalyticsView(APIView):
     
     def _get_dropoff_analysis(self):
         """Analyze where users drop off in the funnel"""
-        total_contacts = ContactMessage.objects.count()
+        total_contacts = Ticket.objects.count()
         registrations = Client.objects.count()
         onboarding_starts = OnboardingQuestionnaire.objects.count()
         onboarding_completions = OnboardingQuestionnaire.objects.filter(is_completed=True).count()
@@ -286,7 +286,7 @@ class TimeBasedFunnelAnalysisView(APIView):
             month_start = (now - timedelta(days=30 * i)).replace(day=1)
             month_end = (month_start + timedelta(days=32)).replace(day=1) - timedelta(days=1)
             
-            contacts = ContactMessage.objects.filter(
+            contacts = Ticket.objects.filter(
                 created_at__gte=month_start,
                 created_at__lte=month_end
             ).count()
@@ -372,7 +372,7 @@ class TimeBasedFunnelAnalysisView(APIView):
             quarter_start = now - timedelta(days=90 * (i + 1))
             quarter_end = now - timedelta(days=90 * i)
             
-            contacts = ContactMessage.objects.filter(
+            contacts = Ticket.objects.filter(
                 created_at__gte=quarter_start,
                 created_at__lt=quarter_end
             ).count()

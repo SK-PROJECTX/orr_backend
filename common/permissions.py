@@ -1,5 +1,5 @@
 from rest_framework.permissions import BasePermission
-
+from rest_framework.exceptions import PermissionDenied
 
 class IsClientUser(BasePermission):
     """Permission for client portal users"""
@@ -71,31 +71,36 @@ class HasSubscriptionPlan(BasePermission):
 
 
 
-class HasActiveMeteredSubscription(BasePermission):
-    """
-    Allows access only to users who have an active metered subscription.
-    """
-
-    message = "You must have an active meeting subscription to access this."
+class HasActivePaidSubscription(BasePermission):
+    message = "Active subscription with valid payment method required."
 
     def has_permission(self, request, view):
         user = request.user
-        if not user.is_authenticated:
-            return False
 
-        subscription = getattr(user, "subscription", None)
+        if not user or not user.is_authenticated:
+            raise PermissionDenied("Authentication required.")
+
+        subscription = (
+            user.subscriptions
+            .filter(
+                is_active=True,
+                plan__billing_type="metered",
+            )
+            .select_related("plan")
+            .order_by("-id")  
+            .first()
+        )
+
         if not subscription:
-            return False
+            raise PermissionDenied("Active subscription required.")
 
-        # Check if subscription is active and plan is metered
-        if not subscription.is_active:
-            return False
+        stripe_profile = getattr(user, "stripe_profile", None)
+        if not stripe_profile:
+            raise PermissionDenied("No payment method on file.")
 
-        plan = subscription.plan
-        if not plan:
-            return False
-
-        if plan.billing_type != "metered":
-            return False
+        if stripe_profile.last_payment_failed:
+            raise PermissionDenied(
+                "Payment failed. Please update your card to continue."
+            )
 
         return True

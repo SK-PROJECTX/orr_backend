@@ -137,6 +137,9 @@ class Ticket(Audit):
     )
 
     subject = models.CharField(max_length=200)
+    contact_name = models.CharField(max_length=150, blank=True)
+    contact_email = models.EmailField(blank=True)
+    contact_website = models.URLField(blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="new")
     priority = models.CharField(
         max_length=10, choices=PRIORITY_CHOICES, default="normal"
@@ -167,12 +170,13 @@ class Ticket(Audit):
         pass
     
     def save(self, *args, **kwargs):
-        if not self.ticket_id:
-            self.ticket_id = (
-                f"TKT-{timezone.now().strftime('%Y%m%d')}-{self.pk or '001'}"
-            )
-        self.clean()
+        is_new = self.pk is None
+
         super().save(*args, **kwargs)
+        
+        if is_new and not self.ticket_id:
+            self.ticket_id = f"TKT-{timezone.now().strftime('%Y%m%d')}-{self.pk}"
+            super().save(update_fields=["ticket_id"])
 
     def __str__(self):
         return f"{self.ticket_id} - {self.subject}"

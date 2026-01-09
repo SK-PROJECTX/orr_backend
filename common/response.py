@@ -44,18 +44,21 @@ class CustomJSONRenderer(JSONRenderer):
             message = "Validation error" if status_code == 400 else "Request failed"
         if not success and isinstance(data, dict):
             if "detail" in data:
-                message = data.get("detail")
-                data.pop("detail", None)
+                message = data.pop("detail")
+            elif "error" in data and isinstance(data["error"], dict):
+                message = self.flatten_errors(data["error"])
             else:
                 message = self.flatten_errors(data)
+
 
         if isinstance(data, dict):
             if "message" in data:
                 message = data.pop("message")
             elif "detail" in data:
                 message = data.pop("detail")
-            elif "error" in data:
-                message = data.pop("error")
+            elif "error" in data and not isinstance(data.get("error"), dict):
+               message = data.pop("error")
+
 
         if isinstance(data, dict) and "data" in data and isinstance(data["data"], dict):
             inner_data = data["data"]

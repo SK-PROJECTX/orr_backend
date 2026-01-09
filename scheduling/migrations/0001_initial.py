@@ -29,16 +29,6 @@ class Migration(migrations.Migration):
                 ("updated_at", models.DateTimeField(auto_now=True)),
                 ("name", models.CharField(max_length=255)),
                 (
-                    "owner_org",
-                    models.ForeignKey(
-                        blank=True,
-                        null=True,
-                        on_delete=django.db.models.deletion.CASCADE,
-                        related_name="calendars",
-                        to="organization.organization",
-                    ),
-                ),
-                (
                     "owner_user",
                     models.OneToOneField(
                         blank=True,
@@ -207,16 +197,6 @@ class Migration(migrations.Migration):
                 ("is_free", models.BooleanField(default=False)),
                 ("recurrence_rule", models.CharField(blank=True, max_length=512)),
                 ("note", models.TextField(blank=True)),
-                (
-                    "owner_org",
-                    models.ForeignKey(
-                        blank=True,
-                        null=True,
-                        on_delete=django.db.models.deletion.CASCADE,
-                        related_name="availabilities",
-                        to="organization.organization",
-                    ),
-                ),
                 (
                     "owner_user",
                     models.ForeignKey(
