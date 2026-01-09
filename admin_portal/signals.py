@@ -13,8 +13,12 @@ from .models import (
     Ticket,
     TicketMessage,
 )
+import logging
+logger = logging.getLogger(__name__)
 from .auto_reply_service import AutoReplyService
 
+
+import logging
 
 @receiver(post_save, sender=Ticket)
 def ticket_created_notification(sender, instance, created, **kwargs):
