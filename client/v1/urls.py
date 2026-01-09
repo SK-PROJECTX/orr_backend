@@ -23,6 +23,12 @@ from .views.contact import (
 from .views.onboarding import OnboardingQuestionnaireViewSet
 from .views.profile import CreateOrUpdateProfileView, GetProfileView
 from .views.role_check import RoleCheckView
+from .views.ticket import (
+    ClientTicketListView,
+    ClientTicketDetailView,
+    ClientTicketMessagesView,
+    ClientSendMessageView,
+)
 
 router = DefaultRouter()
 router.register(r"onboarding", OnboardingQuestionnaireViewSet, basename="onboarding")
@@ -69,6 +75,11 @@ urlpatterns = [
     path("favorites/", FavoriteListView.as_view(), name="favorites-list"),
     path("favorites/<int:document_id>/toggle/", ToggleFavoriteView.as_view(), name="favorites-toggle"),
     path("favorites/<int:pk>/delete/", FavoriteDeleteView.as_view(), name="favorites-delete"),
-     path("client/documents/", ClientDocumentsView.as_view(), name="client-documents"),
+    path("client/documents/", ClientDocumentsView.as_view(), name="client-documents"),
     path("profile/", GetProfileView.as_view(), name="get-profile"),
+    # Ticket URLs
+    path("tickets/", ClientTicketListView.as_view(), name="client-tickets"),
+    path("tickets/<int:pk>/", ClientTicketDetailView.as_view(), name="client-ticket-detail"),
+    path("tickets/<int:ticket_id>/messages/", ClientTicketMessagesView.as_view(), name="client-ticket-messages"),
+    path("tickets/<int:ticket_id>/send-message/", ClientSendMessageView.as_view(), name="client-send-message"),
 ]

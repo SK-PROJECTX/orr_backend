@@ -12,12 +12,17 @@ from .models import (
     SystemNotification,
     Ticket,
 )
+from .auto_reply_service import AutoReplyService
+from client.models import ContactMessage
 
 
 @receiver(post_save, sender=Ticket)
 def ticket_created_notification(sender, instance, created, **kwargs):
-    """Create notification when new ticket is created"""
+    """Create notification and auto-reply when new ticket is created"""
     if created:
+        # Send automatic reply to client
+        AutoReplyService.send_initial_auto_reply(instance)
+        
         # Notify assigned admin if any
         if instance.assigned_to:
             SystemNotification.objects.create(
@@ -90,6 +95,26 @@ def create_admin_profile(sender, instance, created, **kwargs):
         AdminProfile.objects.get_or_create(
             user=instance, defaults={"role": admin_role, "is_active": True}
         )
+
+
+@receiver(post_save, sender=ContactMessage)
+def contact_message_auto_reply(sender, instance, created, **kwargs):
+    """Handle auto-reply for contact messages by converting to tickets"""
+    if created and instance.user:
+        # Convert contact message to ticket and send auto-reply
+        ticket = AutoReplyService.handle_contact_message_auto_reply(instance)
+        
+        if ticket:
+            # Schedule WhatsApp notification to admin
+            try:
+                from .tasks import send_admin_whatsapp_notification
+                send_admin_whatsapp_notification.apply_async(
+                    args=[ticket.id],
+                    countdown=10  # Send after 10 seconds
+                )
+            except ImportError:
+                # Celery not available, log instead
+                logger.info(f"WhatsApp notification would be sent for ticket {ticket.ticket_id}")
 
 
 @receiver(post_delete, sender=Content)
