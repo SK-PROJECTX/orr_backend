@@ -22,8 +22,10 @@ RUN curl -sSL https://github.com/stripe/stripe-cli/releases/download/v1.10.0/str
     && rm stripe-cli.tar.gz
 
 # Install Poetry
-RUN curl -sSL https://install.python-poetry.org | python3 -
-
+RUN apt-get update && apt-get install -y python3-pip python3-venv build-essential libpq-dev curl \
+    && python3 -m pip install --upgrade pip \
+    && pip install poetry
+    
 # Add Poetry to PATH
 ENV PATH="/root/.local/bin:$PATH"
 

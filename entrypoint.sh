@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+export PATH="$HOME/.local/bin:$PATH"
+
 echo "Running migrations..."
 poetry run python manage.py migrate
 
