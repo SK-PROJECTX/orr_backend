@@ -5,6 +5,7 @@ from .views import (
     ai_oversight,
     analytics,
     auth,
+    auto_reply,
     behavior_analytics,
     billing,
     billing_overview,
@@ -108,6 +109,22 @@ ticket_patterns = [
     path("my-tickets/", ticket.MyTicketsView.as_view(), name="my-tickets"),
     path("assignable-users/", ticket.TicketAssignableUsersView.as_view(), name="ticket-assignable-users"),
     path("stats/", ticket.TicketStatsView.as_view(), name="ticket-stats"),
+    # Auto-reply URLs
+    path(
+        "<int:ticket_id>/auto-reply/",
+        auto_reply.AutoReplyView.as_view(),
+        name="ticket-auto-reply"
+    ),
+    path(
+        "<int:ticket_id>/schedule-reply/",
+        auto_reply.ScheduleAutoReplyView.as_view(),
+        name="ticket-schedule-reply"
+    ),
+    path(
+        "auto-reply-templates/",
+        auto_reply.AutoReplyTemplatesView.as_view(),
+        name="auto-reply-templates"
+    ),
 ]
 
 # Content Management URLs
