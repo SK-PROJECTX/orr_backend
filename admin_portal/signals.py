@@ -12,9 +12,12 @@ from .models import (
     SystemNotification,
     Ticket,
 )
+import logging
+logger = logging.getLogger(__name__)
 from .auto_reply_service import AutoReplyService
-from client.models import ContactMessage
 
+
+import logging
 
 @receiver(post_save, sender=Ticket)
 def ticket_created_notification(sender, instance, created, **kwargs):
@@ -97,7 +100,7 @@ def create_admin_profile(sender, instance, created, **kwargs):
         )
 
 
-@receiver(post_save, sender=ContactMessage)
+@receiver(post_save, sender=Ticket)
 def contact_message_auto_reply(sender, instance, created, **kwargs):
     """Handle auto-reply for contact messages by converting to tickets"""
     if created and instance.user:

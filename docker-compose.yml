@@ -15,8 +15,8 @@ services:
       - SECRET_KEY=${SECRET_KEY}
     command: >
       sh -c "./wait-for-it.sh $(echo ${DATABASE_URL} | sed -E 's|.*@([^:/]+).*|\1|'):5432 --
-             python manage.py migrate &&
-             python manage.py collectstatic --noinput &&
+             poetry run python manage.py migrate &&
+             poetry run python manage.py collectstatic --noinput &&
              gunicorn core.wsgi:application --bind 0.0.0.0:8000"
 
   worker:

@@ -14,7 +14,7 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 
 from .models import Ticket, TicketMessage, SystemNotification
-from client.models import ContactMessage
+
 
 logger = logging.getLogger(__name__)
 
@@ -108,7 +108,7 @@ class AutoReplyService:
             return False
 
     @classmethod
-    def handle_contact_message_auto_reply(cls, contact_message: ContactMessage) -> Optional[Ticket]:
+    def handle_contact_message_auto_reply(cls, contact_message: Ticket) -> Optional[Ticket]:
         """
         Convert ContactMessage to Ticket and send auto-reply
         """
@@ -132,7 +132,7 @@ class AutoReplyService:
             return None
 
     @classmethod
-    def _create_ticket_from_contact_message(cls, contact_message: ContactMessage) -> Optional[Ticket]:
+    def _create_ticket_from_contact_message(cls, contact_message: Ticket) -> Optional[Ticket]:
         """
         Create a ticket from a contact message
         """

@@ -7,6 +7,10 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
+
+ENV POETRY_VIRTUALENVS_CREATE=false
+
+
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
@@ -18,7 +22,7 @@ RUN apt-get update && apt-get install -y \
 RUN curl -sSL https://install.python-poetry.org | python3 -
 
 # Add Poetry to PATH
-ENV PATH="/root/.local/bin:$PATH"
+ENV PATH="/usr/local/bin:$PATH"
 
 # Copy pyproject.toml and poetry.lock first for caching
 COPY pyproject.toml poetry.lock* /app/
