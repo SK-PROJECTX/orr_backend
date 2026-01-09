@@ -15,7 +15,6 @@ from django.utils import timezone
 
 from .models import Ticket, TicketMessage, SystemNotification
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -108,72 +107,22 @@ class AutoReplyService:
             return False
 
     @classmethod
-    def handle_contact_message_auto_reply(cls, contact_message: Ticket) -> Optional[Ticket]:
+    def handle_ticket_message_auto_reply(cls, ticket_message: TicketMessage) -> Optional[Ticket]:
         """
-        Convert ContactMessage to Ticket and send auto-reply
+        Handle auto-reply for ticket messages
         """
         try:
-            # Create ticket from contact message
-            ticket = cls._create_ticket_from_contact_message(contact_message)
+            ticket = ticket_message.ticket
             
             if ticket:
                 # Send initial auto-reply
                 cls.send_initial_auto_reply(ticket)
                 
-                # Mark contact message as processed
-                contact_message.is_read = True
-                contact_message.save()
-                
-                logger.info(f"Contact message converted to ticket {ticket.ticket_id} with auto-reply")
+                logger.info(f"Ticket message handled with auto-reply for ticket {ticket.ticket_id}")
                 return ticket
 
         except Exception as e:
-            logger.error(f"Failed to handle contact message auto-reply: {e}")
-            return None
-
-    @classmethod
-    def _create_ticket_from_contact_message(cls, contact_message: Ticket) -> Optional[Ticket]:
-        """
-        Create a ticket from a contact message
-        """
-        try:
-            # Get or create client profile for the user
-            from admin_portal.models import Client
-            
-            client = None
-            if contact_message.user:
-                try:
-                    client = Client.objects.get(user=contact_message.user)
-                except Client.DoesNotExist:
-                    # Create basic client profile if doesn't exist
-                    client = Client.objects.create(
-                        user=contact_message.user,
-                        company=contact_message.name,  # Use name as company for now
-                        primary_pillar="strategic"  # Default pillar
-                    )
-
-            if not client:
-                logger.warning(f"Cannot create ticket: No client found for contact message {contact_message.id}")
-                return None
-
-            # Create ticket
-            ticket = Ticket.objects.create(
-                client=client,
-                subject=f"Client Inquiry from {contact_message.name}",
-                description=contact_message.message,
-                source="manual_request",
-                status="new",
-                priority="normal"
-            )
-
-            # Generate ticket ID
-            ticket.ticket_id = f"TKT-{timezone.now().strftime('%Y%m%d')}-{ticket.pk:03d}"
-            ticket.save()
-
-            return ticket
-
-        except Exception as e:
-            logger.error(f"Failed to create ticket from contact message: {e}")
+            logger.error(f"Failed to handle ticket message auto-reply: {e}")
             return None
 
     @classmethod
