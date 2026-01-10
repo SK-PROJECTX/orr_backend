@@ -1,6 +1,6 @@
 from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand
-
+import os
 from admin_portal.models import AdminProfile, AdminRole, SystemSettings
 
 
@@ -131,9 +131,9 @@ class Command(BaseCommand):
 
     def create_superuser(self):
         """Create superuser with admin profile safely"""
-        username = "admin"
-        email = "admin@orr.com"
-        password = "admin123"
+        username = os.getenv("DJANGO_SUPERUSER_USERNAME", "admin")
+        email = os.getenv("DJANGO_SUPERUSER_EMAIL", "info@orr.solution")
+        password = os.getenv("DJANGO_SUPERUSER_PASSWORD", None)
 
         # Check if user with this username exists
         if not User.objects.filter(username=username).exists():
