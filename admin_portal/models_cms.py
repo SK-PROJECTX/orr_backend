@@ -877,7 +877,8 @@ class StrategicAdvisoryPageContent(Audit):
     process_step_2 = models.TextField(default="Once you receive the report, you choose your path forward: Use the report independently or engage ORR for ongoing implementation support.")
     process_step_3_title = models.CharField(max_length=100, default="Optimize (For Clients Who Continue)")
     process_step_3 = models.TextField(default="For clients who choose ongoing partnership, we move into implementation and optimization.")
-    
+    process_step_4 = models.TextField(default="With systems live, we provide continuous monitoring, regular reviews, and proactive adjustments to ensure your compliance strategies evolve with changing regulations and business needs.")
+    process_step_4_title = models.CharField(max_length=100, default="Grow")
     # Network Section
     network_title = models.CharField(max_length=200, default="The ORR Network Advantage")
     network_description = models.TextField(default="Complex compliance challenges require diverse expertise. We activate our global network of specialists to deliver comprehensive solutions.")
