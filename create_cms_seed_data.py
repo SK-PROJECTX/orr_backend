@@ -17,7 +17,7 @@ from admin_portal.models_cms import (
 
 def create_how_we_operate_data():
     """Create How We Operate page data"""
-    page, created = HowWeOperatePageContent.objects.get_or_create(
+    page, created = HowWeOperatePageContent.objects.update_or_create(
         is_active=True,
         defaults={'hero_title': 'How We Operate'}
     )
@@ -158,7 +158,7 @@ def create_how_we_operate_data():
     ]
     
     for step_data in steps_data:
-        ProcessStep.objects.get_or_create(
+        ProcessStep.objects.update_or_create(
             step_number=step_data['step_number'],
             defaults=step_data
         )
@@ -167,7 +167,7 @@ def create_how_we_operate_data():
 
 def create_services_page_data():
     """Create Services page data"""
-    page, created = ServicesPageContent.objects.get_or_create(
+    page, created = ServicesPageContent.objects.update_or_create(
         is_active=True,
         defaults={
             'hero_title': 'ORR Solutions - Listen. Solve. Optimise.',
@@ -231,7 +231,7 @@ def create_services_page_data():
     ]
     
     for stage_data in stages_data:
-        ServiceStage.objects.get_or_create(
+        ServiceStage.objects.update_or_create(
             stage_number=stage_data['stage_number'],
             defaults=stage_data
         )
@@ -259,7 +259,7 @@ def create_services_page_data():
     ]
     
     for pillar_data in pillars_data:
-        ServicePillar.objects.get_or_create(
+        ServicePillar.objects.update_or_create(
             title=pillar_data['title'],
             defaults=pillar_data
         )
@@ -268,7 +268,7 @@ def create_services_page_data():
 
 def create_resources_page_data():
     """Create Resources & Blogs page data"""
-    page, created = ResourcesBlogsPageContent.objects.get_or_create(
+    page, created = ResourcesBlogsPageContent.objects.update_or_create(
         is_active=True,
         defaults={
             'hero_title': 'Resources & Client Portal',
@@ -360,7 +360,7 @@ def create_resources_page_data():
     ]
     
     for card_data in cards_data:
-        ContentCard.objects.get_or_create(
+        ContentCard.objects.update_or_create(
             title=card_data['title'],
             defaults=card_data
         )
@@ -369,7 +369,7 @@ def create_resources_page_data():
 
 def create_legal_policy_data():
     """Create Legal & Policy page data"""
-    page, created = LegalPolicyPageContent.objects.get_or_create(
+    page, created = LegalPolicyPageContent.objects.update_or_create(
         is_active=True,
         defaults={
             'hero_title': 'Legacy & Policy',
@@ -397,7 +397,7 @@ def create_legal_policy_data():
     ]
     
     for item_data in items_data:
-        PolicyItem.objects.get_or_create(
+        PolicyItem.objects.update_or_create(
             number=item_data['number'],
             defaults=item_data
         )
@@ -406,7 +406,11 @@ def create_legal_policy_data():
 
 def create_contact_page_data():
     """Create Contact page data"""
-    page, created = ContactPageContent.objects.get_or_create(
+    # First, deactivate any existing active records
+    ContactPageContent.objects.filter(is_active=True).update(is_active=False)
+    
+    # Then create or get the single active record
+    page, created = ContactPageContent.objects.update_or_create(
         is_active=True,
         defaults={
             'hero_title': 'Contact Us',

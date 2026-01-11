@@ -25,7 +25,7 @@ def create_service_pillar_content():
     print("Creating/updating service pillar page content...")
     
     # Strategic Advisory Page
-    strategic_advisory, created = StrategicAdvisoryPageContent.objects.get_or_create(
+    strategic_advisory, created = StrategicAdvisoryPageContent.objects.update_or_create(
         is_active=True,
         defaults={
             'hero_title': 'Strategic Advisory & Compliance',
@@ -54,7 +54,7 @@ def create_service_pillar_content():
         print("Strategic Advisory page content already exists")
     
     # Operational Systems Page
-    operational_systems, created = OperationalSystemsPageContent.objects.get_or_create(
+    operational_systems, created = OperationalSystemsPageContent.objects.update_or_create(
         is_active=True,
         defaults={
             'hero_title': 'Operational Systems & Infrastructure',
@@ -83,7 +83,7 @@ def create_service_pillar_content():
         print("Operational Systems page content already exists")
     
     # Living Systems Page
-    living_systems, created = LivingSystemsPageContent.objects.get_or_create(
+    living_systems, created = LivingSystemsPageContent.objects.update_or_create(
         is_active=True,
         defaults={
             'hero_title': 'Living Systems & Regeneration',
