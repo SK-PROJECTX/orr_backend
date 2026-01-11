@@ -229,7 +229,7 @@ def create_services_page_data():
             'order': 5
         }
     ]
-    
+    ServiceStage.objects.all().delete()
     for stage_data in stages_data:
         ServiceStage.objects.update_or_create(
             stage_number=stage_data['stage_number'],
