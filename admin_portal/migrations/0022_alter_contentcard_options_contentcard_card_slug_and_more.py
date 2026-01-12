@@ -19,14 +19,4 @@ class Migration(migrations.Migration):
             name='card_slug',
             field=models.SlugField(blank=True, max_length=255, null=True, unique=True),
         ),
-        migrations.AddField(
-            model_name='strategicadvisorypagecontent',
-            name='process_step_4',
-            field=models.TextField(default='With systems live, we provide continuous monitoring, regular reviews, and proactive adjustments to ensure your compliance strategies evolve with changing regulations and business needs.'),
-        ),
-        migrations.AddField(
-            model_name='strategicadvisorypagecontent',
-            name='process_step_4_title',
-            field=models.CharField(default='Grow', max_length=100),
-        ),
     ]
