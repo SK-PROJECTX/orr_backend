@@ -361,9 +361,14 @@ def create_resources_page_data():
     
     for card_data in cards_data:
         ContentCard.objects.update_or_create(
-            title=card_data['title'],
-            defaults=card_data
-        )
+    title=card_data['title'],
+    defaults={
+        'card_slug': card_data.get('card_slug', card_data['title'].replace(' ', '-').lower()),
+        **card_data
+    }
+)
+
+
     
     print("✓ Resources & Blogs page data created")
 

@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from common.models import Audit
-
+from django.utils.text import slugify
 
 class HomePage(Audit):
     """Homepage content management"""
@@ -757,7 +757,7 @@ class ResourcesBlogsPageContent(Audit):
 
 class ContentCard(Audit):
     """Content cards for Resources & Blogs page"""
-    
+    card_slug = models.SlugField(max_length=255, unique=True, blank=True, null=True) 
     badge = models.CharField(max_length=50, default="Blog")
     title = models.CharField(max_length=200, default="Content Title")
     content = models.JSONField(default=list)  # Array of content strings
@@ -768,9 +768,7 @@ class ContentCard(Audit):
     is_active = models.BooleanField(default=True)
     
     class Meta:
-        ordering = ['order']
-        verbose_name = "Content Card"
-        verbose_name_plural = "Content Cards"
+        ordering = ["order"]
     
     def __str__(self):
         return self.title
