@@ -12,4 +12,5 @@ poetry run python manage.py setup_admin_portal || true
 
 
 echo "Starting Gunicorn..."
-exec poetry run gunicorn core.wsgi:application --bind 0.0.0.0:8000 --preload
+exec poetry run gunicorn core.wsgi:application --bind 0.0.0.0:$PORT --preload
+
