@@ -1,42 +1,43 @@
 from django.db import models
 from django.contrib.auth.models import User
 from common.models import Audit
+from .fields import RichTextField, PlainRichTextField
 
 
 class HomePage(Audit):
     """Homepage content management"""
     
     # Hero Section
-    hero_title = models.CharField(max_length=200, default="Transform Your Business with ORR")
-    hero_subtitle = models.TextField(default="Strategic Advisory, Digital Innovation, and Sustainable Growth Solutions")
-    hero_cta_text = models.CharField(max_length=50, default="Get Started")
+    hero_title = RichTextField(default={"content": "Transform Your Business with ORR", "format": "html"})
+    hero_subtitle = RichTextField(default={"content": "Strategic Advisory, Digital Innovation, and Sustainable Growth Solutions", "format": "html"})
+    hero_cta_text = RichTextField(default={"content": "Get Started", "format": "html"})
     hero_cta_link = models.URLField(default="/contact")
     hero_background_image = models.ImageField(upload_to='homepage/', blank=True, null=True)
     
     # About Section
-    about_title = models.CharField(max_length=200, default="About ORR")
-    about_content = models.TextField(default="We help organizations navigate complex challenges...")
+    about_title = RichTextField(default={"content": "About ORR", "format": "html"})
+    about_content = RichTextField(default={"content": "We help organizations navigate complex challenges...", "format": "html"})
     about_image = models.ImageField(upload_to='homepage/', blank=True, null=True)
     
     # Services Section
-    services_title = models.CharField(max_length=200, default="Our Services")
-    services_subtitle = models.TextField(blank=True)
+    services_title = RichTextField(default={"content": "Our Services", "format": "html"})
+    services_subtitle = RichTextField(default={"content": "", "format": "html"}, blank=True)
     services_glow_image = models.CharField(max_length=500, blank=True, default="/images/services_glow.png")
     
     # Service Cards
-    service_1_title = models.CharField(max_length=100, blank=True)
-    service_1_description = models.TextField(blank=True)
-    service_1_button = models.CharField(max_length=50, blank=True)
-    service_2_title = models.CharField(max_length=100, blank=True)
-    service_2_description = models.TextField(blank=True)
-    service_2_button = models.CharField(max_length=50, blank=True)
-    service_3_title = models.CharField(max_length=100, blank=True)
-    service_3_description = models.TextField(blank=True)
-    service_3_button = models.CharField(max_length=50, blank=True)
+    service_1_title = RichTextField(default={"content": "", "format": "html"}, blank=True)
+    service_1_description = RichTextField(default={"content": "", "format": "html"}, blank=True)
+    service_1_button = RichTextField(default={"content": "", "format": "html"}, blank=True)
+    service_2_title = RichTextField(default={"content": "", "format": "html"}, blank=True)
+    service_2_description = RichTextField(default={"content": "", "format": "html"}, blank=True)
+    service_2_button = RichTextField(default={"content": "", "format": "html"}, blank=True)
+    service_3_title = RichTextField(default={"content": "", "format": "html"}, blank=True)
+    service_3_description = RichTextField(default={"content": "", "format": "html"}, blank=True)
+    service_3_button = RichTextField(default={"content": "", "format": "html"}, blank=True)
     
     # Contact Section
-    contact_title = models.CharField(max_length=200, default="Get In Touch")
-    contact_subtitle = models.TextField(blank=True)
+    contact_title = RichTextField(default={"content": "Get In Touch", "format": "html"})
+    contact_subtitle = RichTextField(default={"content": "", "format": "html"}, blank=True)
     contact_email = models.EmailField(default="info@orr.com")
     contact_phone = models.CharField(max_length=20, blank=True)
     
@@ -935,10 +936,12 @@ class OperationalSystemsPageContent(Audit):
     # Process Section
     process_title = models.CharField(max_length=200, default="Our Implementation Process")
     process_description = models.TextField(default="Just like your Business GP, we follow a systematic diagnostic and treatment approach to restore operational health.")
+    process_step_1_title = models.CharField(max_length=100, default="Listen (Assess)")
     process_step_1 = models.TextField(default="Current State Analysis")
+    process_step_2_title = models.CharField(max_length=100, default="Solve (Design & Implement)")
     process_step_2 = models.TextField(default="System Design")
+    process_step_3_title = models.CharField(max_length=100, default="Optimize (Refine & Evolve)")
     process_step_3 = models.TextField(default="Implementation & Testing")
-    process_step_4 = models.TextField(default="Training & Optimization")
     
     # Case Example Section
     case_challenge = models.TextField(blank=True)

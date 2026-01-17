@@ -868,10 +868,12 @@ class OperationalSystemsPageView(APIView):
                     'service_3_description': page_content.service_3_description,
                     'process_title': page_content.process_title,
                     'process_description': page_content.process_description,
+                    'process_step_1_title': page_content.process_step_1_title,
                     'process_step_1': page_content.process_step_1,
+                    'process_step_2_title': page_content.process_step_2_title,
                     'process_step_2': page_content.process_step_2,
+                    'process_step_3_title': page_content.process_step_3_title,
                     'process_step_3': page_content.process_step_3,
-                    'process_step_4': page_content.process_step_4,
                     'case_challenge': page_content.case_challenge,
                     'case_solution': page_content.case_solution,
                     'case_result': page_content.case_result,
@@ -902,7 +904,8 @@ class OperationalSystemsPageView(APIView):
             for field in ['hero_title', 'hero_subtitle', 'hero_description', 'hero_image', 'services_title', 
                          'service_1_title', 'service_1_description', 'service_2_title', 'service_2_description',
                          'service_3_title', 'service_3_description', 'process_title', 'process_description',
-                         'process_step_1', 'process_step_2', 'process_step_3', 'process_step_4',
+                         'process_step_1_title', 'process_step_1', 'process_step_2_title', 'process_step_2', 
+                         'process_step_3_title', 'process_step_3',
                          'case_challenge', 'case_solution', 'case_result', 'case_image_alt',
                          'cta_title', 'cta_description', 'cta_button_text', 'meta_title', 'meta_description']:
                 if field in request.data:
