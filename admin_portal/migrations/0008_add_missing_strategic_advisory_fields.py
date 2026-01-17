@@ -10,14 +10,4 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name='strategicadvisorypagecontent',
-            name='digital_who_is_this_for',
-            field=models.JSONField(default=list),
-        ),
-        migrations.AddField(
-            model_name='strategicadvisorypagecontent',
-            name='digital_features',
-            field=models.JSONField(default=list),
-        ),
     ]
