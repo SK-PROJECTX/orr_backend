@@ -192,6 +192,60 @@ class Migration(migrations.Migration):
             reverse_sql="ALTER TABLE admin_portal_contactpagecontent ALTER COLUMN email_address TYPE varchar(254);"
         ),
         
+        # ContactPage fields
+        migrations.RunSQL(
+            "ALTER TABLE admin_portal_contactpage ALTER COLUMN phone_number TYPE varchar(500);",
+            reverse_sql="ALTER TABLE admin_portal_contactpage ALTER COLUMN phone_number TYPE varchar(50);"
+        ),
+        migrations.RunSQL(
+            "ALTER TABLE admin_portal_contactpage ALTER COLUMN email_address TYPE varchar(500);",
+            reverse_sql="ALTER TABLE admin_portal_contactpage ALTER COLUMN email_address TYPE varchar(254);"
+        ),
+        
+        # LegacyPolicyPage fields
+        migrations.RunSQL(
+            "ALTER TABLE admin_portal_legacypolicypage ALTER COLUMN policy_item_1_number TYPE varchar(500);",
+            reverse_sql="ALTER TABLE admin_portal_legacypolicypage ALTER COLUMN policy_item_1_number TYPE varchar(10);"
+        ),
+        migrations.RunSQL(
+            "ALTER TABLE admin_portal_legacypolicypage ALTER COLUMN policy_item_2_number TYPE varchar(500);",
+            reverse_sql="ALTER TABLE admin_portal_legacypolicypage ALTER COLUMN policy_item_2_number TYPE varchar(10);"
+        ),
+        migrations.RunSQL(
+            "ALTER TABLE admin_portal_legacypolicypage ALTER COLUMN policy_item_3_number TYPE varchar(500);",
+            reverse_sql="ALTER TABLE admin_portal_legacypolicypage ALTER COLUMN policy_item_3_number TYPE varchar(10);"
+        ),
+        
+        # ResourcesBlogsPage fields
+        migrations.RunSQL(
+            "ALTER TABLE admin_portal_resourcesblogspage ALTER COLUMN blog_card_1_image TYPE varchar(500);",
+            reverse_sql="ALTER TABLE admin_portal_resourcesblogspage ALTER COLUMN blog_card_1_image TYPE varchar(500);"
+        ),
+        migrations.RunSQL(
+            "ALTER TABLE admin_portal_resourcesblogspage ALTER COLUMN blog_card_2_image TYPE varchar(500);",
+            reverse_sql="ALTER TABLE admin_portal_resourcesblogspage ALTER COLUMN blog_card_2_image TYPE varchar(500);"
+        ),
+        migrations.RunSQL(
+            "ALTER TABLE admin_portal_resourcesblogspage ALTER COLUMN blog_card_3_image TYPE varchar(500);",
+            reverse_sql="ALTER TABLE admin_portal_resourcesblogspage ALTER COLUMN blog_card_3_image TYPE varchar(500);"
+        ),
+        migrations.RunSQL(
+            "ALTER TABLE admin_portal_resourcesblogspage ALTER COLUMN blog_card_4_image TYPE varchar(500);",
+            reverse_sql="ALTER TABLE admin_portal_resourcesblogspage ALTER COLUMN blog_card_4_image TYPE varchar(500);"
+        ),
+        migrations.RunSQL(
+            "ALTER TABLE admin_portal_resourcesblogspage ALTER COLUMN tip_1_number TYPE varchar(500);",
+            reverse_sql="ALTER TABLE admin_portal_resourcesblogspage ALTER COLUMN tip_1_number TYPE varchar(10);"
+        ),
+        migrations.RunSQL(
+            "ALTER TABLE admin_portal_resourcesblogspage ALTER COLUMN tip_2_number TYPE varchar(500);",
+            reverse_sql="ALTER TABLE admin_portal_resourcesblogspage ALTER COLUMN tip_2_number TYPE varchar(10);"
+        ),
+        migrations.RunSQL(
+            "ALTER TABLE admin_portal_resourcesblogspage ALTER COLUMN tip_3_number TYPE varchar(500);",
+            reverse_sql="ALTER TABLE admin_portal_resourcesblogspage ALTER COLUMN tip_3_number TYPE varchar(10);"
+        ),
+        
         # SiteSettings fields
         migrations.RunSQL(
             "ALTER TABLE admin_portal_sitesettings ALTER COLUMN primary_color TYPE varchar(500);",
