@@ -43,8 +43,6 @@ COPY . /app
 # Make entrypoint executable
 RUN chmod +x /app/entrypoint.sh
 
-# Expose port
-EXPOSE 8000
 
 # Start app
 ENTRYPOINT ["/app/entrypoint.sh"]

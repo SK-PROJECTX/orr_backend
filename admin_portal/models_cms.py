@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 from common.models import Audit
 from .fields import RichTextField, PlainRichTextField
 
+from django.utils.text import slugify
 
 class HomePage(Audit):
     """Homepage content management"""
@@ -761,6 +762,7 @@ class ContentCard(Audit):
     
     badge = RichTextField(default={"content": "Blog", "format": "html"})
     title = RichTextField(default={"content": "Content Title", "format": "html"})
+    card_slug = models.SlugField(max_length=255, unique=True, blank=True, null=True) 
     content = models.JSONField(default=list)  # Array of content strings
     image_url = models.URLField(default="https://res.cloudinary.com/depeqzb6z/image/upload/v1765559589/21743692_6495306_uay57y.jpg")
     button1_text = RichTextField(default={"content": "", "format": "html"}, blank=True)
@@ -769,9 +771,7 @@ class ContentCard(Audit):
     is_active = models.BooleanField(default=True)
     
     class Meta:
-        ordering = ['order']
-        verbose_name = "Content Card"
-        verbose_name_plural = "Content Cards"
+        ordering = ["order"]
     
     def __str__(self):
         return self.title

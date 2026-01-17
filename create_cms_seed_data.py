@@ -229,7 +229,7 @@ def create_services_page_data():
             'order': 5
         }
     ]
-    
+    ServiceStage.objects.all().delete()
     for stage_data in stages_data:
         ServiceStage.objects.update_or_create(
             stage_number=stage_data['stage_number'],
@@ -361,9 +361,14 @@ def create_resources_page_data():
     
     for card_data in cards_data:
         ContentCard.objects.update_or_create(
-            title=card_data['title'],
-            defaults=card_data
-        )
+    title=card_data['title'],
+    defaults={
+        'card_slug': card_data.get('card_slug', card_data['title'].replace(' ', '-').lower()),
+        **card_data
+    }
+)
+
+
     
     print("✓ Resources & Blogs page data created")
 
