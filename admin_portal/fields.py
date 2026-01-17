@@ -36,6 +36,23 @@ class RichTextFormField(forms.CharField):
         return value
 
 
+def _default():
+    """Default factory for rich text fields - this function name is what Django looks for"""
+    return {'content': '', 'format': 'html'}
+
+
+def default_rich_text():
+    """Default factory for rich text fields"""
+    return {'content': '', 'format': 'html'}
+
+
+def default_rich_text_with_content(content):
+    """Factory function for rich text with specific content"""
+    def _default():
+        return {'content': content, 'format': 'html'}
+    return _default
+
+
 class RichTextField(models.JSONField):
     """
     Custom field for storing rich text content with formatting options.
@@ -45,13 +62,20 @@ class RichTextField(models.JSONField):
     description = "Rich text field with font size, bold, italic support"
     
     def __init__(self, *args, **kwargs):
-        # Set default value for rich text
-        kwargs.setdefault('default', dict)
+        # Set default value for rich text using callable
+        if 'default' not in kwargs:
+            kwargs['default'] = _default
+        elif isinstance(kwargs['default'], dict):
+            # Convert dict default to callable
+            content = kwargs['default'].get('content', '')
+            kwargs['default'] = lambda: {'content': content, 'format': 'html'}
+        
         super().__init__(*args, **kwargs)
     
     def formfield(self, **kwargs):
-        kwargs['form_class'] = RichTextFormField
-        return super().formfield(**kwargs)
+        # Use RichTextFormField and remove form_class from kwargs
+        kwargs.pop('form_class', None)
+        return RichTextFormField(**kwargs)
     
     def get_prep_value(self, value):
         if value is None:
@@ -93,6 +117,14 @@ class RichTextField(models.JSONField):
         if isinstance(value, dict):
             return json.dumps(value)
         return str(value) if value is not None else ''
+    
+    def deconstruct(self):
+        name, path, args, kwargs = super().deconstruct()
+        # Ensure default is properly serializable
+        if 'default' in kwargs and callable(kwargs['default']):
+            # Replace callable with _default function reference
+            kwargs['default'] = _default
+        return name, path, args, kwargs
 
 
 class PlainRichTextField(RichTextField):
@@ -100,22 +132,18 @@ class PlainRichTextField(RichTextField):
     
     def __init__(self, *args, **kwargs):
         # Allow plain text input
-        kwargs.setdefault('default', str)
+        kwargs.setdefault('default', lambda: '')
         super(models.JSONField, self).__init__(*args, **kwargs)
     
     def get_prep_value(self, value):
         if value is None:
             return value
         
-        # If it's a plain string, keep it as string for backward compatibility
+        # If it's a plain string, convert to rich text format
         if isinstance(value, str):
-            return value
+            value = {'content': value, 'format': 'html'}
         
-        # If it's rich text format, convert to JSON
-        if isinstance(value, dict):
-            return json.dumps(value)
-        
-        return value
+        return super().get_prep_value(value)
     
     def to_python(self, value):
         if value is None:
@@ -125,8 +153,21 @@ class PlainRichTextField(RichTextField):
         if isinstance(value, dict):
             return value
             
-        # If it's a string, keep as string for backward compatibility
+        # If it's a string, try to parse as JSON first
         if isinstance(value, str):
-            return value
+            try:
+                parsed = json.loads(value)
+                return parsed
+            except (json.JSONDecodeError, ValueError):
+                # If not valid JSON, treat as plain text
+                return {'content': value, 'format': 'html'}
         
-        return value
+        return super().to_python(value)
+    
+    def deconstruct(self):
+        name, path, args, kwargs = super().deconstruct()
+        # Ensure default is properly serializable
+        if 'default' in kwargs and callable(kwargs['default']):
+            # Replace callable with _default function reference
+            kwargs['default'] = _default
+        return name, path, args, kwargs

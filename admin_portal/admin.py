@@ -485,7 +485,7 @@ class OperationalSystemsPageContentAdmin(admin.ModelAdmin):
                       "service_2_title", "service_2_description", "service_3_title", "service_3_description")
         }),
         ("Process Section", {
-            "fields": ("process_title", "process_description", "process_step_1", "process_step_2", "process_step_3", "process_step_4")
+            "fields": ("process_title", "process_description", "process_step_1_title", "process_step_1", "process_step_2_title", "process_step_2", "process_step_3_title", "process_step_3")
         }),
         ("Case Example Section", {
             "fields": ("case_challenge", "case_solution", "case_result", "case_image_alt")
