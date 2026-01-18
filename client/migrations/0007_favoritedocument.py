@@ -8,7 +8,6 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("admin_portal", "0009_alter_businesssystemsection_card_1_image_and_more"),
         ("client", "0006_onboardingquestionnaire"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
