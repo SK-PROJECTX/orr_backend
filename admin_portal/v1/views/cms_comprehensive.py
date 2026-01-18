@@ -1,5 +1,3 @@
-# NEW COMPREHENSIVE CMS VIEWS
-
 from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -12,6 +10,9 @@ from admin_portal.models_cms import (
     HowWeOperatePageContent, ProcessStep, ServicesPageContent, ServiceStage, ServicePillar,
     ResourcesBlogsPageContent, ContentCard, LegalPolicyPageContent, PolicyItem, ContactPageContent,
     StrategicAdvisoryPageContent, OperationalSystemsPageContent, LivingSystemsPageContent
+)
+from admin_portal.cms_utils import (
+    CMSErrorHandler, CMSFieldValidator, validate_and_clean_cms_data, CMSValidationError
 )
 
 
@@ -630,26 +631,41 @@ class ContentCardDetailView(APIView):
         try:
             card = ContentCard.objects.get(id=pk, is_active=True)
             
-            # Update card data
-            for field in ['badge', 'title', 'content', 'image_url', 'button1_text', 'button2_text']:
-                if field in request.data:
-                    setattr(card, field, request.data[field])
-            card.save()
+            # Validate and clean the input data
+            try:
+                validated_data = validate_and_clean_cms_data(request.data, "content_card")
+            except CMSValidationError as e:
+                return Response({
+                    'success': False,
+                    'status': 400,
+                    'message': f'Validation error: {str(e)}',
+                    'data': None
+                }, status=status.HTTP_400_BAD_REQUEST)
             
-            return Response({
-                'success': True,
-                'status': 200,
-                'message': 'Content card updated successfully',
-                'data': {
-                    'id': card.id,
-                    'badge': card.badge,
-                    'title': card.title,
-                    'content': card.content,
-                    'image_url': card.image_url,
-                    'button1_text': card.button1_text,
-                    'button2_text': card.button2_text,
+            # Update the card with validated data
+            for field, value in validated_data.items():
+                if hasattr(card, field):
+                    setattr(card, field, value)
+            
+            # Save with comprehensive error handling
+            def save_operation():
+                card.save()
+                return {
+                    'success': True,
+                    'status': 200,
+                    'message': 'Content card updated successfully',
+                    'data': {
+                        'id': card.id,
+                        'badge': card.badge,
+                        'title': card.title,
+                        'content': card.content,
+                        'image_url': card.image_url,
+                        'button1_text': card.button1_text,
+                        'button2_text': card.button2_text,
+                    }
                 }
-            })
+            
+            return Response(CMSErrorHandler.safe_cms_operation(save_operation))
             
         except ContentCard.DoesNotExist:
             return Response({
@@ -659,12 +675,8 @@ class ContentCardDetailView(APIView):
                 'data': None
             }, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
-            return Response({
-                'success': False,
-                'status': 500,
-                'message': f'Error updating content card: {str(e)}',
-                'data': None
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            error_response = CMSErrorHandler.handle_database_error(e, "update content card")
+            return Response(error_response, status=error_response['status'])
 
 
 @extend_schema(
