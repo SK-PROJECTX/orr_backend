@@ -12,7 +12,7 @@ class HomePage(Audit):
     hero_title = RichTextField(default={"content": "Transform Your Business with ORR", "format": "html"})
     hero_subtitle = RichTextField(default={"content": "Strategic Advisory, Digital Innovation, and Sustainable Growth Solutions", "format": "html"})
     hero_cta_text = RichTextField(default={"content": "Get Started", "format": "html"})
-    hero_cta_link = models.URLField(default="/contact")
+    hero_cta_link = models.URLField(max_length=500, default="/contact")
     hero_background_image = models.ImageField(upload_to='homepage/', blank=True, null=True)
     
     # About Section
@@ -39,8 +39,8 @@ class HomePage(Audit):
     # Contact Section
     contact_title = RichTextField(default={"content": "Get In Touch", "format": "html"})
     contact_subtitle = RichTextField(default={"content": "", "format": "html"}, blank=True)
-    contact_email = models.EmailField(default="info@orr.com")
-    contact_phone = models.CharField(max_length=20, blank=True)
+    contact_email = models.EmailField(max_length=500, default="info@orr.com")
+    contact_phone = models.CharField(max_length=500, blank=True)
     
     # SEO
     meta_title = RichTextField(default={"content": "", "format": "html"}, blank=True)
@@ -69,9 +69,9 @@ class ServiceCard(Audit):
     
     title = RichTextField(default={"content": "", "format": "html"})
     description = RichTextField(default={"content": "", "format": "html"})
-    icon = models.CharField(max_length=50, help_text="CSS icon class or emoji")
-    pillar = models.CharField(max_length=20, choices=PILLAR_CHOICES)
-    link = models.URLField(blank=True)
+    icon = models.CharField(max_length=500, help_text="CSS icon class or emoji")
+    pillar = models.CharField(max_length=500, choices=PILLAR_CHOICES)
+    link = models.URLField(max_length=500, blank=True)
     order = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)
     
@@ -115,7 +115,7 @@ class FAQ(Audit):
     
     question = RichTextField(default={"content": "", "format": "html"})
     answer = RichTextField(default={"content": "", "format": "html"})
-    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='general')
+    category = models.CharField(max_length=500, choices=CATEGORY_CHOICES, default='general')
     order = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)
     
@@ -138,12 +138,12 @@ class BlogPost(Audit):
     ]
     
     title = RichTextField(default={"content": "", "format": "html"})
-    slug = models.SlugField(unique=True)
+    slug = models.SlugField(max_length=500, unique=True)
     excerpt = RichTextField(default={"content": "", "format": "html"})
     content = RichTextField(default={"content": "", "format": "html"})
     featured_image = models.ImageField(upload_to='blog/', blank=True, null=True)
     author = models.ForeignKey(User, on_delete=models.CASCADE)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    status = models.CharField(max_length=500, choices=STATUS_CHOICES, default='draft')
     published_at = models.DateTimeField(null=True, blank=True)
     is_featured = models.BooleanField(default=False)
     
@@ -169,18 +169,18 @@ class ContactInfo(Audit):
     address_line2 = RichTextField(default={"content": "", "format": "html"}, blank=True)
     city = RichTextField(default={"content": "", "format": "html"}, blank=True)
     state = RichTextField(default={"content": "", "format": "html"}, blank=True)
-    postal_code = models.CharField(max_length=20, blank=True)
+    postal_code = models.CharField(max_length=500, blank=True)
     country = RichTextField(default={"content": "", "format": "html"}, blank=True)
     
-    phone = models.CharField(max_length=20, blank=True)
-    email = models.EmailField()
-    website = models.URLField(blank=True)
+    phone = models.CharField(max_length=500, blank=True)
+    email = models.EmailField(max_length=500)
+    website = models.URLField(max_length=500, blank=True)
     
     # Social Media
-    linkedin_url = models.URLField(blank=True)
-    twitter_url = models.URLField(blank=True)
-    facebook_url = models.URLField(blank=True)
-    instagram_url = models.URLField(blank=True)
+    linkedin_url = models.URLField(max_length=500, blank=True)
+    twitter_url = models.URLField(max_length=500, blank=True)
+    facebook_url = models.URLField(max_length=500, blank=True)
+    instagram_url = models.URLField(max_length=500, blank=True)
     
     # Business Hours
     business_hours = RichTextField(default={"content": "e.g., Mon-Fri: 9AM-5PM", "format": "html"}, blank=True, help_text="e.g., Mon-Fri: 9AM-5PM")
@@ -475,15 +475,15 @@ class ResourcesBlogsPage(Audit):
     # Admin Tips Section
     admin_tips_title = RichTextField(default={"content": "Admin Tips", "format": "html"})
     
-    tip_1_number = models.CharField(max_length=10, default="01")
+    tip_1_number = models.CharField(max_length=500, default="01")
     tip_1_title = RichTextField(default={"content": "Lorem ipsum", "format": "html"})
     tip_1_description = RichTextField(default={"content": "Lorem ipsum jgdu mplexity. From regulatory and sustainability frameworks to biotechnology and compliance consulting, our experts guide clients through evolving legal, scientific, and operational standards. Our approach combines deep technical insight with strategic foresight — ensuring every initiative is compliant, sustainable, and built for growth.", "format": "html"})
     
-    tip_2_number = models.CharField(max_length=10, default="02")
+    tip_2_number = models.CharField(max_length=500, default="02")
     tip_2_title = RichTextField(default={"content": "Lorem ipsum", "format": "html"})
     tip_2_description = RichTextField(default={"content": "Lorem ipsum jgdu mplexity. From regulatory and sustainability frameworks to biotechnology and compliance consulting, our experts guide clients through evolving legal, scientific, and operational standards. Our experts help clients navigate complex requirements with confidence.", "format": "html"})
     
-    tip_3_number = models.CharField(max_length=10, default="03")
+    tip_3_number = models.CharField(max_length=500, default="03")
     tip_3_title = RichTextField(default={"content": "Lorem ipsum", "format": "html"})
     tip_3_description = RichTextField(default={"content": "Lorem ipsum jgdu mplexity. From regulatory and sustainability frameworks to biotechnology and compliance consulting, our experts guide clients through evolving legal, scientific, and operational standards.", "format": "html"})
     
@@ -509,13 +509,13 @@ class LegacyPolicyPage(Audit):
     hero_description = RichTextField(default={"content": "Lorem ipsm jgdu mplexity. From regulatory and sustainability frameworks to biotechnology and compliance consulting, our experts guide clients through evolving legal, scientific, and operational standards. Our approach combines deep technical insight with strategic foresight — ensuring every initiative is compliant, sustainable, and built for growth.", "format": "html"})
     
     # Policy Items
-    policy_item_1_number = models.CharField(max_length=10, default="01")
+    policy_item_1_number = models.CharField(max_length=500, default="01")
     policy_item_1_description = RichTextField(default={"content": "Lorem ipsm jgdu mplexity. From regulatory and sustainability frameworks to biotechnology and compliance consulting, our experts guide clients through evolving legal, scientific, and operational standards. Our approach combines deep technical insight with strategic foresight — ensuring every initiative is compliant, sustainable, and built for growth.", "format": "html"})
     
-    policy_item_2_number = models.CharField(max_length=10, default="02")
+    policy_item_2_number = models.CharField(max_length=500, default="02")
     policy_item_2_description = RichTextField(default={"content": "Lorem ipsm jgdu mplexity. From regulatory and sustainability frameworks to biotechnology and compliance consulting, our experts guide clients through evolving legal, scientific, and operational standards. Our approach combines deep technical insight with strategic foresight — ensuring every initiative is compliant, sustainable, and built for growth.", "format": "html"})
     
-    policy_item_3_number = models.CharField(max_length=10, default="03")
+    policy_item_3_number = models.CharField(max_length=500, default="03")
     policy_item_3_description = RichTextField(default={"content": "Lorem ipsm jgdu mplexity. From regulatory and sustainability frameworks to biotechnology and compliance consulting, our experts guide clients through evolving legal, scientific, and operational standards. Our approach combines deep technical insight with strategic foresight — ensuring every initiative is compliant, sustainable, and built for growth.", "format": "html"})
     
     # SEO
@@ -542,8 +542,8 @@ class ContactPage(Audit):
     contact_info_title = RichTextField(default={"content": "Contact Information", "format": "html"})
     contact_info_subtitle = RichTextField(default={"content": "Say something to start a live chat!", "format": "html"})
     
-    phone_number = models.CharField(max_length=50, default="+012 3456 789")
-    email_address = models.EmailField(default="demo@gmail.com")
+    phone_number = models.CharField(max_length=500, default="+012 3456 789")
+    email_address = models.EmailField(max_length=500, default="demo@gmail.com")
     address = RichTextField(default={"content": "132 Dartmouth Street Boston, Massachusetts 02156 United States", "format": "html"})
     
     # Form Labels
@@ -593,21 +593,21 @@ class SiteSettings(Audit):
     favicon = models.ImageField(upload_to='branding/', blank=True, null=True)
     
     # Colors
-    primary_color = models.CharField(max_length=7, default="#007bff")
-    secondary_color = models.CharField(max_length=7, default="#6c757d")
-    accent_color = models.CharField(max_length=7, default="#28a745")
+    primary_color = models.CharField(max_length=500, default="#007bff")
+    secondary_color = models.CharField(max_length=500, default="#6c757d")
+    accent_color = models.CharField(max_length=500, default="#28a745")
     
     # Footer
     footer_text = RichTextField(default={"content": "", "format": "html"}, blank=True)
     copyright_text = RichTextField(default={"content": "", "format": "html"}, blank=True)
     
     # Analytics
-    google_analytics_id = models.CharField(max_length=50, blank=True)
-    facebook_pixel_id = models.CharField(max_length=50, blank=True)
+    google_analytics_id = models.CharField(max_length=500, blank=True)
+    facebook_pixel_id = models.CharField(max_length=500, blank=True)
     
     # Legal
-    privacy_policy_url = models.URLField(blank=True)
-    terms_of_service_url = models.URLField(blank=True)
+    privacy_policy_url = models.URLField(max_length=500, blank=True)
+    terms_of_service_url = models.URLField(max_length=500, blank=True)
     
     is_active = models.BooleanField(default=True)
     
@@ -640,7 +640,7 @@ class HowWeOperatePageContent(Audit):
 class ProcessStep(Audit):
     """Process steps for How We Operate page"""
     
-    step_number = models.CharField(max_length=10, default="01")
+    step_number = models.CharField(max_length=500, default="01")
     title = RichTextField(default={"content": "Step Title", "format": "html"})
     subtitle = RichTextField(default={"content": "", "format": "html"}, blank=True)
     description = RichTextField(default={"content": "", "format": "html"}, blank=True)
@@ -658,7 +658,7 @@ class ProcessStep(Audit):
     description2 = RichTextField(default={"content": "", "format": "html"}, blank=True)
     description3 = RichTextField(default={"content": "", "format": "html"}, blank=True)
     description4 = RichTextField(default={"content": "", "format": "html"}, blank=True)
-    image_url = models.URLField(default="https://images.unsplash.com/photo-1557804506-669a67965ba0?w=800&h=600&fit=crop")
+    image_url = models.URLField(max_length=500, default="https://images.unsplash.com/photo-1557804506-669a67965ba0?w=800&h=600&fit=crop")
     button_text = RichTextField(default={"content": "", "format": "html"}, blank=True)
     button_text2 = RichTextField(default={"content": "", "format": "html"}, blank=True)
     button_text3 = RichTextField(default={"content": "", "format": "html"}, blank=True)
@@ -762,9 +762,9 @@ class ContentCard(Audit):
     
     badge = RichTextField(default={"content": "Blog", "format": "html"})
     title = RichTextField(default={"content": "Content Title", "format": "html"})
-    card_slug = models.SlugField(max_length=255, unique=True, blank=True, null=True) 
+    card_slug = models.SlugField(max_length=500, unique=True, blank=True, null=True) 
     content = models.JSONField(default=list)  # Array of content strings
-    image_url = models.URLField(default="https://res.cloudinary.com/depeqzb6z/image/upload/v1765559589/21743692_6495306_uay57y.jpg")
+    image_url = models.URLField(max_length=500, default="https://res.cloudinary.com/depeqzb6z/image/upload/v1765559589/21743692_6495306_uay57y.jpg")
     button1_text = RichTextField(default={"content": "", "format": "html"}, blank=True)
     button2_text = RichTextField(default={"content": "", "format": "html"}, blank=True)
     order = models.PositiveIntegerField(default=0)
@@ -772,9 +772,26 @@ class ContentCard(Audit):
     
     class Meta:
         ordering = ["order"]
+        verbose_name = "Content Card"
+        verbose_name_plural = "Content Cards"
+    
+    def save(self, *args, **kwargs):
+        # Auto-generate slug if not provided
+        if not self.card_slug and hasattr(self.title, 'get') and self.title.get('content'):
+            from django.utils.text import slugify
+            base_slug = slugify(self.title['content'][:50])  # Limit to 50 chars for slug generation
+            slug = base_slug
+            counter = 1
+            while ContentCard.objects.filter(card_slug=slug).exclude(pk=self.pk).exists():
+                slug = f"{base_slug}-{counter}"
+                counter += 1
+            self.card_slug = slug
+        super().save(*args, **kwargs)
     
     def __str__(self):
-        return self.title
+        if hasattr(self.title, 'get') and self.title.get('content'):
+            return self.title['content']
+        return str(self.title)
 
 
 class LegalPolicyPageContent(Audit):
@@ -797,7 +814,7 @@ class LegalPolicyPageContent(Audit):
 class PolicyItem(Audit):
     """Policy items for Legal & Policy page"""
     
-    number = models.CharField(max_length=10, default="01")
+    number = models.CharField(max_length=500, default="01")
     description = RichTextField(default={"content": "Policy description", "format": "html"})
     order = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)
@@ -817,8 +834,8 @@ class ContactPageContent(Audit):
     hero_title = RichTextField(default={"content": "Contact Us", "format": "html"})
     contact_info_title = RichTextField(default={"content": "Contact Information", "format": "html"})
     contact_info_subtitle = RichTextField(default={"content": "Say something to start a live chat!", "format": "html"})
-    phone_number = models.CharField(max_length=50, default="+012 3456 789")
-    email_address = models.EmailField(default="demo@gmail.com")
+    phone_number = models.CharField(max_length=500, default="+012 3456 789")
+    email_address = models.EmailField(max_length=500, default="demo@gmail.com")
     address = RichTextField(default={"content": "132 Dartmouth Street Boston, Massachusetts 02156 United States", "format": "html"})
     first_name_label = RichTextField(default={"content": "First Name", "format": "html"})
     last_name_label = RichTextField(default={"content": "Last Name", "format": "html"})
@@ -856,7 +873,7 @@ class StrategicAdvisoryPageContent(Audit):
     hero_title = RichTextField(default={"content": "Strategic Advisory & Compliance", "format": "html"})
     hero_subtitle = RichTextField(default={"content": "We deliver clarity to complexity. From regulatory and sustainability frameworks to biotechnology and compliance consulting, our experts guide clients through evolving landscapes with confidence.", "format": "html"})
     hero_description = RichTextField(default={"content": "Our approach combines deep technical insight with strategic foresight, ensuring every initiative is compliant, sustainable, and built for growth.", "format": "html"})
-    hero_image = models.URLField(default="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&h=600&fit=crop")
+    hero_image = models.URLField(max_length=500, default="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&h=600&fit=crop")
     
     # Services Section
     services_title = RichTextField(default={"content": "Our Strategic Services", "format": "html"})
@@ -922,7 +939,7 @@ class OperationalSystemsPageContent(Audit):
     hero_title = RichTextField(default={"content": "Operational Systems & Infrastructure", "format": "html"})
     hero_subtitle = RichTextField(default={"content": "We design, build and streamline the systems that power modern organizations. Whether it's creating SOPs, structuring workflows, or coordinating complex setups.", "format": "html"})
     hero_description = RichTextField(default={"content": "We turn operations into well-functioning ecosystems. Our trusted network of builders and tech specialists delivers reliability from planning to execution.", "format": "html"})
-    hero_image = models.URLField(default="https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&h=600&fit=crop")
+    hero_image = models.URLField(max_length=500, default="https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&h=600&fit=crop")
     
     # Services Section
     services_title = RichTextField(default={"content": "Our Operational Services", "format": "html"})
@@ -972,7 +989,7 @@ class LivingSystemsPageContent(Audit):
     hero_title = RichTextField(default={"content": "Living Systems & Regeneration", "format": "html"})
     hero_subtitle = RichTextField(default={"content": "Support for land, water, species, and ecosystems — from production systems to restoration and incident response.", "format": "html"})
     hero_description = RichTextField(default={"content": "We help organizations integrate regenerative practices that benefit both business outcomes and environmental health.", "format": "html"})
-    hero_image = models.URLField(default="https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800&h=600&fit=crop")
+    hero_image = models.URLField(max_length=500, default="https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800&h=600&fit=crop")
     
     # Services Section
     services_title = RichTextField(default={"content": "Our Regenerative Services", "format": "html"})
