@@ -4,6 +4,7 @@ from django.conf import settings
 from django.db import transaction
 from admin_portal.models import Meeting
 import uuid
+from notification.utils import notify_user
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
@@ -13,6 +14,7 @@ def charge_for_meeting(self, meeting_id):
         meeting = Meeting.objects.get(id=meeting_id)
         subscription = meeting.client.user.subscription
         plan = subscription.plan
+        client_user = meeting.client.user
 
         if plan.billing_type != "metered":
             return "Skipped: Not a metered plan."
@@ -54,21 +56,54 @@ def charge_for_meeting(self, meeting_id):
         
         # Attempt to pay. If card fails, this raises a stripe.error.CardError
         paid_invoice = stripe.Invoice.pay(invoice.id)
+        amount_paid = paid_invoice.amount_paid / 100
 
         # Only update our local DB if the Stripe payment actually succeeded.
         with transaction.atomic():
             subscription.used_hours = (subscription.used_hours or 0) + hours_used
             subscription.save()
+
+            notify_user(
+            client_user,
+            "Payment Successful",
+            f"We successfully charged ${amount_paid} for your recent meeting.",
+            ["inapp", "email"], 
+            {
+                "type": "payment_success",
+                # You must create this HTML template in your templates folder!
+                "template": "payment/payment_success.html", 
+                "context": {
+                    "amount": amount_paid,
+                    "meeting_id": meeting.ticket_id, # or meeting.id
+                    "date": meeting.start_time, 
+                    "invoice_url": paid_invoice.hosted_invoice_url, # Useful link for the user!
+                    "client_name": client_user.first_name
+                }
+            }
+        )
             
-            # Optional: Save the invoice ID to the meeting for record keeping
-            # meeting.stripe_invoice_id = paid_invoice.id
-            # meeting.save()
 
         return f"Success: Charged ${paid_invoice.amount_paid / 100} on Invoice {paid_invoice.id}"
 
     except stripe.error.CardError as e:
         # The card was declined. Don't retry blindly, notify the user/admin.
         # Log this specific error or trigger a 'payment_failed' email task.
+
+        notify_user(
+            meeting.client.user,
+            "Payment Failed: Action Required",
+            f"Your payment for the recent meeting failed. Please update your card.",
+            ["inapp", "email"],
+            {
+                "type": "payment_failed",
+                "template": "payment/payment_failed.html",
+                "context": {
+                    "reason": e.user_message,
+                    "meeting_id": meeting.ticket_id,
+                    "client_name": meeting.client.user.first_name,
+                }
+            }
+        )
         print(f"Payment Declined for Meeting {meeting_id}: {e}")
         return f"Failed: Card Declined - {e.user_message}"
 

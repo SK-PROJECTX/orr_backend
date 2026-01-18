@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+
+{% block title %}Payment Failed - Action Required{% endblock %}
+
+{% block content %}
+    <h1 style="color: #ff4d4d;">Payment Failed</h1>
+
+    <p>Hello {{ client_name }},</p>
+
+    <p>We attempted to process the payment for meeting <strong>#{{ meeting_id }}</strong>, but the transaction was declined.</p>
+
+    <div style="background-color: #2b0d0d; border: 1px solid #ff4d4d; border-radius: 8px; padding: 15px; margin: 25px 0; text-align: left;">
+        <p style="margin: 0; color: #ffcccc; font-size: 14px;">
+            <strong>Reason:</strong> {{ reason }}
+        </p>
+    </div>
+
+    <p style="margin-bottom: 30px;">
+        Please update your payment method immediately to avoid service interruption.
+    </p>
+
+{% endblock %}
