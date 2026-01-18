@@ -264,7 +264,7 @@ CSRF_TRUSTED_ORIGINS = [
     "https://orr-admin-frontend.vercel.app",
     "https://orr-solutions-admin.vercel.app",
     "https://orr-backend-105825824472.us-central1.run.app",
-    "orr-backend.orr.solutions",
+    "https://orr-backend.orr.solutions",
 ]
 
 SESSION_COOKIE_SECURE = True
