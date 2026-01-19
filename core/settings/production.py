@@ -1,6 +1,7 @@
 import os
 from decouple import config
 from .base import *
+from urllib.parse import urlparse
 
 # Production-specific settings
 DEBUG = False
@@ -13,17 +14,22 @@ ALLOWED_HOSTS = [
     ".vercel.app",
 ]
 
-# Database configuration for production
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": config("DATABASE_NAME"),
-        "USER": config("DATABASE_USER"),
-        "PASSWORD": config("DATABASE_PASSWORD"),
-        "HOST": config("DATABASE_HOST", default="localhost"),
-        "PORT": config("DATABASE_PORT", default="5432"),
+DATABASE_URL = config("DATABASE_URL")
+
+if DATABASE_URL:
+    url = urlparse(DATABASE_URL)
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": url.path[1:],
+            "USER": url.username,
+            "PASSWORD": url.password,
+            "HOST": url.hostname,
+            "PORT": url.port or "5432",
+        }
     }
-}
+else:
+    raise ValueError("DATABASE_URL is not set")
 
 # Security settings for production
 SECURE_BROWSER_XSS_FILTER = True
@@ -46,7 +52,6 @@ CORS_ALLOW_CREDENTIALS = True
 STATIC_ROOT = "/app/staticfiles"
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
-# Logging configuration for production
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -59,41 +64,14 @@ LOGGING = {
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
+            "formatter": "verbose",
             "level": "INFO",
-            "formatter": "verbose",
-        },
-        "file": {
-            "class": "logging.handlers.RotatingFileHandler",
-            "filename": "/app/logs/production.log",
-            "maxBytes": 1024 * 1024 * 5,  # 5MB
-            "backupCount": 5,
-            "formatter": "verbose",
-            "level": "WARNING",
         },
     },
     "loggers": {
-        "": {
-            "handlers": ["console", "file"],
-            "level": "INFO",
-            "propagate": True,
-        },
-        "django": {
-            "handlers": ["console"],
-            "level": "INFO",
-            "propagate": False,
-        },
+        "": {"handlers": ["console"], "level": "INFO", "propagate": True},
     },
 }
 
-# Email configuration for production
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = config("EMAIL_HOST", default="smtp.gmail.com")
-EMAIL_PORT = config("EMAIL_PORT", cast=int, default=587)
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")
-EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
-DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="noreply@orrsolutions.com")
 
-# Celery configuration for production
-CELERY_BROKER_URL = config("CELERY_BROKER_URL", "redis://localhost:6379/0")
-CELERY_RESULT_BACKEND = config("CELERY_BROKER_URL", "redis://localhost:6379/0")
+

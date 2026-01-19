@@ -7,7 +7,7 @@ import django
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 # Set up Django
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings.development')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings.staging')
 django.setup()
 
 from admin_portal.models_cms import (
