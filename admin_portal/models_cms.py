@@ -959,7 +959,8 @@ class OperationalSystemsPageContent(Audit):
     process_step_2 = RichTextField(default={"content": "System Design", "format": "html"})
     process_step_3_title = RichTextField(default={"content": "Optimize (Refine & Evolve)", "format": "html"})
     process_step_3 = RichTextField(default={"content": "Implementation & Testing", "format": "html"})
-    
+    process_step_4_title = RichTextField(default={"content": "Monitor (Sustain)", "format": "html"})
+    process_step_4 = RichTextField(default={"content": "Ongoing Support", "format": "html"})
     # Case Example Section
     case_challenge = RichTextField(default={"content": "", "format": "html"}, blank=True)
     case_solution = RichTextField(default={"content": "", "format": "html"}, blank=True)
