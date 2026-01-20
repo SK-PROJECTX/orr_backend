@@ -14,7 +14,7 @@ import os
 from admin_portal.permissions import CanCreateContent, CanPublishContent
 from admin_portal.models_cms import (
     HomePage, ServiceCard, Testimonial, FAQ, BlogPost, 
-    ContactInfo, SiteSettings, ApproachSection, BusinessSystemSection,
+    ContactInfo, SiteSettings, ApproachSection, BusinessSystemSection, BusinessSystemCard,
     ORRRoleSection, MessageStrip, ProcessSection, ORRReportSection,
     ServicesPage, ResourcesBlogsPage, LegacyPolicyPage, ContactPage,
     # New comprehensive models
@@ -24,7 +24,7 @@ from admin_portal.models_cms import (
 from ..serializers.cms import (
     HomePageSerializer, ServiceCardSerializer, TestimonialSerializer,
     FAQSerializer, BlogPostSerializer, ContactInfoSerializer, SiteSettingsSerializer,
-    ApproachSectionSerializer, BusinessSystemSectionSerializer, ORRRoleSectionSerializer,
+    ApproachSectionSerializer, BusinessSystemSectionSerializer, BusinessSystemCardSerializer, ORRRoleSectionSerializer,
     MessageStripSerializer, ProcessSectionSerializer, ORRReportSectionSerializer,
     ServicesPageSerializer, ResourcesBlogsPageSerializer, LegacyPolicyPageSerializer, ContactPageSerializer
 )
@@ -402,6 +402,38 @@ class BusinessSystemSectionView(APIView):
                 'message': f'Server error: {str(e)}',
                 'data': None
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@extend_schema(
+    tags=["CMS - Business System Cards"],
+    summary="List or create business system cards",
+    description="Manage individual business system cards."
+)
+class BusinessSystemCardListView(generics.ListCreateAPIView):
+    """Business system cards management"""
+    queryset = BusinessSystemCard.objects.filter(is_active=True).order_by('order')
+    serializer_class = BusinessSystemCardSerializer
+    
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return []
+        return [IsAuthenticated()]
+
+
+@extend_schema(
+    tags=["CMS - Business System Cards"],
+    summary="Update or delete business system card",
+    description="Manage individual business system cards."
+)
+class BusinessSystemCardDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """Individual business system card management"""
+    queryset = BusinessSystemCard.objects.all()
+    serializer_class = BusinessSystemCardSerializer
+    
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return []
+        return [IsAuthenticated()]
 
 
 @extend_schema(
