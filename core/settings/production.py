@@ -2,29 +2,36 @@ import os
 from decouple import config
 from .base import *
 from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qs, unquote
 
-# Production-specific settings
 DEBUG = False
 
-ALLOWED_HOSTS = [
-    "orr-backend-web-latest.onrender.com",
-    "localhost",
-    "127.0.0.1",
-    ".onrender.com",
-    ".vercel.app",
-]
+
+
+
+
+
 
 DATABASE_URL = config("DATABASE_URL")
 
 if DATABASE_URL:
     url = urlparse(DATABASE_URL)
+    
+  
+    query_params = parse_qs(url.query)
+    
+    db_host = query_params.get('host', [url.hostname])[0]
+    
+    if db_host and db_host.startswith('/'):
+        db_host = unquote(db_host)
+
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
             "NAME": url.path[1:],
             "USER": url.username,
             "PASSWORD": url.password,
-            "HOST": url.hostname,
+            "HOST": db_host,            
             "PORT": url.port or "5432",
         }
     }
