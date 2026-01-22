@@ -146,7 +146,7 @@ class Command(BaseCommand):
             )
 
             # Create admin profile
-            super_admin_role = AdminRole.objects.get_or_create(name="super_admin")
+            super_admin_role, _ = AdminRole.objects.get_or_create(name="super_admin")
             AdminProfile.objects.create(
                 user=user, role=super_admin_role, department="Administration"
             )
