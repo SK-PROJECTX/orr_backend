@@ -4,7 +4,7 @@ from .base import *
 from urllib.parse import urlparse
 from urllib.parse import urlparse, parse_qs, unquote
 
-DEBUG = False
+DEBUG = True
 
 
 
