@@ -136,11 +136,15 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 
-STATIC_ROOT = "/app/staticfiles"
+STATIC_URL = "/static/"
+
+# Local-friendly path
+STATIC_ROOT = BASE_DIR / "staticfiles"  
+
+# Optional: your own static folder
 STATICFILES_DIRS = [
     BASE_DIR / "static",
 ]
-STATIC_URL = "static/"
 
 # Media files (uploads)
 MEDIA_URL = "/media/"
@@ -231,11 +235,11 @@ CORS_ALLOWED_ORIGINS = [
     "https://orr-admin-frontend.vercel.app",
     "https://orr-solutions-admin.vercel.app",
     "https://orr.solutions",
-    "https://orr-solutions-admin.vercel.app/",
-    "https://admin.orr.solutions/",
-    "https://admin.orr.solutions"
+    "https://orr-solutions-admin.vercel.app",
+    "https://admin.orr.solutions",
+    "https://admin.orr.solutions",
     "https://orr-solutions.vercel.app",
-    "https://orr-solutions.vercel.app/",
+    "https://orr-solutions.vercel.app",
 ]
 
 CORS_ALLOW_HEADERS = [
@@ -271,11 +275,11 @@ CSRF_TRUSTED_ORIGINS = [
     "https://orr-backend-105825824472.us-central1.run.app",
     "https://orr-backend.orr.solutions",
     "https://orr.solutions",
-    "https://orr-solutions-admin.vercel.app/",
-    "https://admin.orr.solutions/",
+    "https://orr-solutions-admin.vercel.app",
+    "https://admin.orr.solutions",
     "https://admin.orr.solutions",
     "https://orr-solutions.vercel.app",
-    "https://orr-solutions.vercel.app/",
+    "https://orr-solutions.vercel.app",
 ]
 
 SESSION_COOKIE_SECURE = True
