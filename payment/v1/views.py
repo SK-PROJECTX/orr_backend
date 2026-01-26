@@ -51,6 +51,12 @@ class CreateCheckoutSession(APIView):
         except PricingPlan.DoesNotExist:
             logger.error(f"PricingPlan not found for price_id: {price_id}")
             return Response({"error": "Invalid price_id"}, status=400)
+        
+        if Subscription.objects.filter(user=request.user, plan=plan, is_active=True).exists():
+            return Response(
+                {"error": "You already have an active subscription for this plan."},
+                status=400
+            )
         if plan.billing_type == "monthly":
             try:
                 logger.info(f"Creating Stripe session for user: {request.user.id} with plan: {plan.id}")
