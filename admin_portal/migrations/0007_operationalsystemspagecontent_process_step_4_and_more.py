@@ -11,14 +11,4 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name='operationalsystemspagecontent',
-            name='process_step_4',
-            field=admin_portal.fields.RichTextField(default=admin_portal.fields._default),
-        ),
-        migrations.AddField(
-            model_name='operationalsystemspagecontent',
-            name='process_step_4_title',
-            field=admin_portal.fields.RichTextField(default=admin_portal.fields._default),
-        ),
     ]
