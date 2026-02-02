@@ -52,6 +52,8 @@ CORS_ALLOWED_ORIGINS = [
     "https://orr-solutions.vercel.app",
     "http://localhost:3000",
     "http://localhost:5173",
+    "https://www.orr.solutions",
+    "https://orr.solutions",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
