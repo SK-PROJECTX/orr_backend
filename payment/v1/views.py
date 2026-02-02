@@ -347,9 +347,9 @@ class CreateStripeCustomerView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        customer_id = get_or_create_stripe_customer(request.user)
+        stripe_profile = get_or_create_stripe_customer(request.user)
         return Response(
-            {"stripe_customer_id": customer_id},
+            {"stripe_customer_id": stripe_profile.stripe_customer_id},
             status=status.HTTP_200_OK
         )
     
@@ -358,9 +358,10 @@ class GetStripeCustomerView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        customer_id = get_or_create_stripe_customer(request.user)
+        stripe_profile = get_or_create_stripe_customer(request.user)
+
         return Response(
-            {"stripe_customer_id": customer_id},
+            {"stripe_customer_id": stripe_profile.stripe_customer_id},
             status=status.HTTP_200_OK
         )
 
