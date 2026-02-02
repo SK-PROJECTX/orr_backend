@@ -240,6 +240,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://admin.orr.solutions",
     "https://orr-solutions.vercel.app",
     "https://orr-solutions.vercel.app",
+    "https://orr.solutions",
 ]
 
 CORS_ALLOW_HEADERS = [
@@ -296,7 +297,6 @@ CSRF_TRUSTED_ORIGINS += [
     "https://admin.orr.solutions",
     "https://orr-admin-frontend.vercel.app",
     "https://orr-solutions-admin.vercel.app",
-    "https://orr.solutions",
 ]
 
 # CSRF Settings
