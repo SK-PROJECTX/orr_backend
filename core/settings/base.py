@@ -280,6 +280,7 @@ CSRF_TRUSTED_ORIGINS = [
     "https://admin.orr.solutions",
     "https://orr-solutions.vercel.app",
     "https://orr-solutions.vercel.app",
+    "https://orr.solutions",
 ]
 
 SESSION_COOKIE_SECURE = True
@@ -295,6 +296,7 @@ CSRF_TRUSTED_ORIGINS += [
     "https://admin.orr.solutions",
     "https://orr-admin-frontend.vercel.app",
     "https://orr-solutions-admin.vercel.app",
+    "https://orr.solutions",
 ]
 
 # CSRF Settings
