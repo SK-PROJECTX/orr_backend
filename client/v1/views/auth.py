@@ -101,16 +101,7 @@ class LoginView(APIView):
         user = serializer.validated_data["user"]
         role_info = serializer.validated_data["role_info"]
 
-        if not user.is_active:
-            send_email_verification_notification(user)
-            return Response(
-                {
-                    "message": "Account not verified. A new verification email has been sent.",
-                    "data": {},
-                },
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
+       
         refresh = RefreshToken.for_user(user)
 
         return Response(

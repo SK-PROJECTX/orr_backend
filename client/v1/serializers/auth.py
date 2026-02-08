@@ -3,6 +3,12 @@ from rest_framework import serializers
 
 from admin_portal.models import AdminRole
 
+
+from services.notifications.email_verification import (
+    send_email_verification_notification,
+)
+
+
 User = get_user_model()
 
 
@@ -43,30 +49,32 @@ class SignUpSerializer(serializers.ModelSerializer):
 
 
 class LoginSerializer(serializers.Serializer):
-    identifier = serializers.CharField(required=True)
+    email = serializers.CharField(required=True)
     password = serializers.CharField(write_only=True, required=True)
 
     def validate(self, attrs):
-        identifier = attrs.get("identifier")
+        email = attrs.get("email")
         password = attrs.get("password")
 
-        if not identifier or not password:
+        if not email or not password:
             raise serializers.ValidationError(
-                "Identifier (email or username) and password are required."
+                "Email and password are required."
             )
+        
 
         User = get_user_model()
-        user = (
-            User.objects.filter(username__iexact=identifier).first()
-            or User.objects.filter(email__iexact=identifier).first()
-        )
-
+        user = User.objects.filter(email__iexact=email).first()
+        
         if not user:
             raise serializers.ValidationError("Invalid login credentials.")
 
         if not user.check_password(password):
             raise serializers.ValidationError("Invalid login credentials.")
-
+        if not user.is_active:
+            send_email_verification_notification(user)
+            raise serializers.ValidationError(
+                "Account not verified. A verification email has been sent."
+            )
         # Get user role info
         role_info = self._get_user_role_info(user)
         attrs["user"] = user
