@@ -19,6 +19,7 @@ class PastConsultationSerializer(serializers.ModelSerializer):
         model = Meeting
         fields = [
             'id',
+            'client_name',
             'title',            
             'type_display',    
             'status',          

@@ -2,7 +2,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.validators import MinLengthValidator
 from django.db import models
-from admin_portal.models import ClientDocument
+from admin_portal.models import ClientDocument, Client
 from common.models import Audit
 from django.utils import timezone
 
@@ -227,7 +227,7 @@ class Project(Audit):
         ('cancelled', 'Cancelled'),
     ]
 
-    client = models.ForeignKey('Client', on_delete=models.CASCADE, related_name='projects')
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name='projects')
     name = models.CharField(max_length=200) 
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
     start_date = models.DateField(default=timezone.now)
