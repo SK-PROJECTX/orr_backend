@@ -235,6 +235,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://orr-admin-frontend.vercel.app",
     "https://orr-solutions-admin.vercel.app",
     "https://orr.solutions",
+    "https://orr-solutions.vercel.app",
     "https://orr-solutions-admin.vercel.app",
     "https://admin.orr.solutions",
     "https://admin.orr.solutions",
@@ -270,6 +271,7 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost",
     "http://127.0.0.1",
     "http://localhost:3000",
+    
     "http://localhost:5173",
     "http://localhost:8000",
     "https://admin.orr.solutions",
@@ -278,6 +280,7 @@ CSRF_TRUSTED_ORIGINS = [
     "https://orr-backend-105825824472.us-central1.run.app",
     "https://orr-backend.orr.solutions",
     "https://orr.solutions",
+    "https://orr-solutions.vercel.app",
     "https://orr-solutions-admin.vercel.app",
     "https://admin.orr.solutions",
     "https://admin.orr.solutions",

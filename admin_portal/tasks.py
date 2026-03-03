@@ -160,6 +160,47 @@ def send_admin_whatsapp_notification(ticket_id):
         raise exc
 
 
+
+@shared_task(bind=True, max_retries=3)
+def check_message_escalation_task(self, ticket_id, last_message_id):
+    """
+    Check if a ticket needs escalation because no admin has responded.
+    """
+    try:
+        from admin_portal.models import Ticket, TicketMessage
+        from admin_portal.email_service import MessageEmailService
+        
+        ticket = Ticket.objects.get(id=ticket_id)
+        
+        # If already resolved or escalated elsewhere, skip
+        if ticket.status in ['resolved', 'archived'] or ticket.is_escalated:
+            return f"Ticket {ticket.ticket_id} is resolved or already escalated"
+
+        # Check for any admin messages since the client message
+        has_admin_response = TicketMessage.objects.filter(
+            ticket=ticket,
+            id__gt=last_message_id,
+            sender__is_staff=True
+        ).exists()
+
+        if not has_admin_response:
+            ticket.is_escalated = True
+            ticket.save(update_fields=['is_escalated'])
+            
+            MessageEmailService.send_escalation_email(ticket)
+            logger.info(f"Ticket {ticket.ticket_id} escalated due to inactivity")
+            return f"Ticket {ticket.ticket_id} escalated"
+        
+        return f"Ticket {ticket.ticket_id} has been responded to"
+
+    except Ticket.DoesNotExist:
+        logger.error(f"Ticket {ticket_id} not found for escalation check")
+        return "Ticket not found"
+    except Exception as exc:
+        logger.error(f"Error checking escalation for ticket {ticket_id}: {exc}")
+        raise self.retry(exc=exc, countdown=300)
+
+
 # Periodic tasks configuration (would be added to celery beat schedule)
 """
 CELERY_BEAT_SCHEDULE = {
