@@ -103,24 +103,46 @@ def create_admin_profile(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender=TicketMessage)
 def ticket_message_auto_reply(sender, instance, created, **kwargs):
-    """Handle auto-reply for ticket messages"""
-    if created and not instance.is_internal and instance.sender.username != 'system_auto_reply':
-        # Handle auto-reply for new client messages
-        ticket = AutoReplyService.handle_ticket_message_auto_reply(instance)
+    """Handle auto-reply and notifications for ticket messages"""
+    if created and not instance.is_internal:
+        from .email_service import MessageEmailService
+        from .tasks import check_message_escalation_task
         
-        if ticket:
-            # Schedule WhatsApp notification to admin
+        # If message is from a client
+        if instance.sender.client_profile.exists() if hasattr(instance.sender, 'client_profile') else False:
+            # 1. Notify admin of new client message
+            MessageEmailService.send_admin_new_message_email(instance.ticket, instance)
+            
+            # 2. Schedule escalation check (e.g., 4 hours = 240 minutes)
+            check_message_escalation_task.apply_async(
+                args=[instance.ticket.id, instance.id],
+                countdown=4 * 60 * 60  # 4 hours
+            )
+            
+            # 3. Existing auto-reply logic
+            if instance.sender.username != 'system_auto_reply':
+                AutoReplyService.handle_ticket_message_auto_reply(instance)
+        
+        # If message is from an admin
+        elif instance.sender.is_staff:
+            # 1. Notify client of admin response
+            MessageEmailService.send_client_admin_response_email(instance.ticket, instance)
+            
+            # 2. Reset escalation status if it was escalated
+            if instance.ticket.is_escalated:
+                instance.ticket.is_escalated = False
+                instance.ticket.save(update_fields=['is_escalated'])
+
+        # WhatsApp notification to admin (existing logic preserved)
+        if instance.sender.username != 'system_auto_reply':
             try:
                 from .tasks import send_admin_whatsapp_notification
                 send_admin_whatsapp_notification.apply_async(
-                    args=[ticket.id],
-                    countdown=10  # Send after 10 seconds
+                    args=[instance.ticket.id],
+                    countdown=10
                 )
             except ImportError:
-                # Celery not available, log instead
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.info(f"WhatsApp notification would be sent for ticket {ticket.ticket_id}")
+                logger.info(f"WhatsApp notification would be sent for ticket {instance.ticket.ticket_id}")
 
 
 @receiver(post_delete, sender=Content)

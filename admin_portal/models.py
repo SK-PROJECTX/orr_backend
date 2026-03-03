@@ -151,6 +151,7 @@ class Ticket(Audit):
     # Content
     description = models.TextField()
     internal_notes = models.TextField(blank=True)
+    is_escalated = models.BooleanField(default=False)
 
     # Payment relationships (required - all tickets must be payment-related)
     related_invoice = models.ForeignKey(
