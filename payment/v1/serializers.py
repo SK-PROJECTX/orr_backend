@@ -63,6 +63,12 @@ class PricingPlanSerializer(serializers.ModelSerializer):
         model = PricingPlan
         fields = "__all__"
         read_only_fields = ("stripe_price_id",)
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if instance.billing_type == "metered":
+            data['billing_type'] = "per hour"
+            
+        return data
 
 
 class SetupIntentResponseSerializer(serializers.Serializer):
