@@ -149,13 +149,7 @@ class OnboardingQuestionnaire(Audit):
         ('in_person', 'In-person (subject to availability)'),
     ])
 
-    communication_tone = models.CharField(max_length=20, choices=[
-        ('concise', 'Concise and direct'),
-        ('detailed', 'Detailed and explanatory'),
-        ('technical', 'Technical'),
-        ('non_technical', 'Non-technical'),
-        ('no_preference', 'No preference'),
-    ])
+    communication_tone = models.JSONField(default=list)
 
     notification_preference = models.CharField(max_length=20, choices=[
         ('email', 'Email'),
