@@ -19,7 +19,7 @@ from .models import Profile
 
 @receiver(post_save, sender=Ticket)
 def notify_admins_on_ticket_created(sender, instance, created, **kwargs):
-    if not created:
+    if not created or str(instance.ticket_id).startswith('tmp-'):
         return
 
     ticket = instance

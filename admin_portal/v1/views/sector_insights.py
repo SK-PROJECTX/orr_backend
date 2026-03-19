@@ -81,7 +81,7 @@ class SectorAnalyticsView(APIView):
             # Get clients for this user type
             client_ids = OnboardingQuestionnaire.objects.filter(
                 user_type=user_type
-            ).values_list('user__client__id', flat=True)
+            ).values_list('user__client_profile__id', flat=True)
             
             engagement_data[user_type] = {
                 "avg_meetings": Meeting.objects.filter(
@@ -108,7 +108,7 @@ class SectorAnalyticsView(APIView):
         for user_type in user_types:
             client_ids = OnboardingQuestionnaire.objects.filter(
                 user_type=user_type
-            ).values_list('user__client__id', flat=True)
+            ).values_list('user__client_profile__id', flat=True)
             
             success_data[user_type] = {
                 "meeting_completion_rate": self._calculate_meeting_completion_rate(client_ids),
@@ -255,7 +255,7 @@ class IndustryBenchmarksView(APIView):
         for sector in sectors:
             # Get clients for this sector
             sector_clients = Client.objects.filter(
-                user__onboardingquestionnaire__user_type=sector
+                user__onboarding__user_type=sector
             ).distinct()
             
             total_sector_clients = sector_clients.count()

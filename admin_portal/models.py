@@ -172,12 +172,21 @@ class Ticket(Audit):
     
     def save(self, *args, **kwargs):
         is_new = self.pk is None
+        needs_ticket_id = is_new and not self.ticket_id
+
+        if needs_ticket_id:
+            import uuid
+            self.ticket_id = f"tmp-{uuid.uuid4().hex[:10]}"
 
         super().save(*args, **kwargs)
         
-        if is_new and not self.ticket_id:
+        if needs_ticket_id:
             self.ticket_id = f"TKT-{timezone.now().strftime('%Y%m%d')}-{self.pk}"
             super().save(update_fields=["ticket_id"])
+            
+            # Re-dispatch post_save so creation hooks fire with the final ticket_id
+            from django.db.models.signals import post_save
+            post_save.send(sender=self.__class__, instance=self, created=True, update_fields=["ticket_id"])
 
     def __str__(self):
         return f"{self.ticket_id} - {self.subject}"

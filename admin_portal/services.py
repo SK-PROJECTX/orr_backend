@@ -35,13 +35,15 @@ class NotificationService:
     ):
         """Send ticket-related notifications"""
         try:
+            notif_type = "ticket_created"
+            if notification_type == "assigned":
+                notif_type = "ticket_assigned"
+            elif notification_type == "replied":
+                notif_type = "ticket_replied"
+                
             # Create in-app notification
             SystemNotification.objects.create(
-                notification_type=(
-                    "ticket_assigned"
-                    if notification_type == "assigned"
-                    else "ticket_created"
-                ),
+                notification_type=notif_type,
                 title=f"Ticket {ticket.ticket_id} {notification_type}",
                 message=f"Ticket: {ticket.subject}",
                 recipient=recipient,

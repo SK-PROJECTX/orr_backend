@@ -23,7 +23,7 @@ import logging
 @receiver(post_save, sender=Ticket)
 def ticket_created_notification(sender, instance, created, **kwargs):
     """Create notification and auto-reply when new ticket is created"""
-    if created:
+    if created and not str(instance.ticket_id).startswith('tmp-'):
         # Send automatic reply to client
         AutoReplyService.send_initial_auto_reply(instance)
         
@@ -109,7 +109,7 @@ def ticket_message_auto_reply(sender, instance, created, **kwargs):
         from .tasks import check_message_escalation_task
         
         # If message is from a client
-        if instance.sender.client_profile.exists() if hasattr(instance.sender, 'client_profile') else False:
+        if hasattr(instance.sender, 'client_profile'):
             # 1. Notify admin of new client message
             MessageEmailService.send_admin_new_message_email(instance.ticket, instance)
             
