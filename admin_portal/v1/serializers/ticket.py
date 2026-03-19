@@ -29,6 +29,7 @@ class TicketListSerializer(serializers.ModelSerializer):
             "payment_amount",
             "refund_amount",
             "stripe_payment_intent_id",
+            "is_escalated",
             "created_at",
             "updated_at",
         ]
@@ -85,6 +86,7 @@ class TicketDetailSerializer(serializers.ModelSerializer):
             "payment_amount",
             "refund_amount",
             "stripe_payment_intent_id",
+            "is_escalated",
             "related_payment_info",
             "created_at",
             "updated_at",
@@ -138,6 +140,7 @@ class TicketUpdateSerializer(serializers.ModelSerializer):
             "internal_notes",
             "related_invoice",
             "related_subscription",
+            "is_escalated",
             "payment_amount",
             "refund_amount",
             "stripe_payment_intent_id",
@@ -203,6 +206,7 @@ class TicketCreateSerializer(serializers.ModelSerializer):
             "related_subscription",
             "payment_amount",
             "stripe_payment_intent_id",
+            "is_escalated",
         ]
         
     def validate(self, data):

@@ -72,6 +72,10 @@ class TicketListView(generics.ListCreateAPIView):
         if source:
             queryset = queryset.filter(source=source)
             
+        is_escalated = self.request.query_params.get("is_escalated", None)
+        if is_escalated:
+            queryset = queryset.filter(is_escalated=(is_escalated.lower() == 'true'))
+            
         # All tickets are payment-related, so no need for has_payment filter
             
         payment_status = self.request.query_params.get("payment_status", None)
@@ -150,7 +154,21 @@ class TicketMessagesView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         ticket_id = self.kwargs.get("ticket_id")
-        serializer.save(ticket_id=ticket_id, sender=self.request.user)
+        message = serializer.save(ticket_id=ticket_id, sender=self.request.user)
+        
+        # Trigger email to client if an admin relies
+        from admin_portal.models import Ticket
+        try:
+            ticket = Ticket.objects.get(pk=ticket_id)
+            if self.request.user != ticket.client.user:
+                # Client receives the notification
+                NotificationService.send_ticket_notification(
+                    ticket, "replied", ticket.client.user
+                )
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to send ticket reply notification: {e}")
 
 
 @extend_schema(
