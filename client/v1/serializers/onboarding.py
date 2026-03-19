@@ -38,3 +38,8 @@ class OnboardingQuestionnaireSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         instance.is_completed = True
         return super().update(instance, validated_data)
+
+class OnboardingStatusSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OnboardingQuestionnaire
+        fields = ["is_completed"] 

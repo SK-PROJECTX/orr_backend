@@ -642,3 +642,40 @@ class WalletTransaction(Audit):
 
     def __str__(self):
         return f"{self.client.user.get_full_name()} - {self.transaction_type} - ${self.amount}"
+
+
+
+class Report(Audit):
+    """
+    Represents deliverables generated after a meeting, matching the UI cards.
+    """
+    STATUS_CHOICES = [
+        ("draft", "Draft"), 
+        ("pending", "Pending"),   
+        ("completed", "Completed"), 
+    ]
+
+    meeting = models.ForeignKey(
+        Meeting, on_delete=models.CASCADE, related_name="reports"
+    )
+    title = models.CharField(max_length=255) 
+    description = models.TextField(blank=True) 
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="draft")
+    
+   
+    file = models.FileField(upload_to="reports/%Y/%m/") 
+    created_at = models.DateTimeField(auto_now_add=True) 
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.title} ({self.get_status_display()})"
+
+    @property
+    def file_size_display(self):
+        """
+        Returns file size in MB to match UI (e.g., '2.4 MB').
+        """
+        if self.file and hasattr(self.file, 'size'):
+            size_in_mb = self.file.size / (1024 * 1024)
+            return f"{size_in_mb:.1f} MB"
+        return "0 MB"

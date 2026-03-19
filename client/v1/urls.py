@@ -12,6 +12,7 @@ from .views.account import (
     PasswordResetRequestView,
     VerifyEmailView,
 )
+from .views.dashboard import DashboardView, PerformanceGraphView
 from .views.favourite import FavoriteDeleteView, FavoriteListView, ToggleFavoriteView
 from .views.admin_auth import AdminSignupView
 from .views.admin_roles import AdminRolesView
@@ -25,6 +26,10 @@ from .views.ticket import (
     ClientTicketDetailView,
     ClientSendMessageView,
 )
+
+from .views.past_consultation import PastConsultationListView
+
+from .views.report import MeetingReportDashboardView
 
 router = DefaultRouter()
 router.register(r"onboarding", OnboardingQuestionnaireViewSet, basename="onboarding")
@@ -72,4 +77,13 @@ urlpatterns = [
         ClientTicketHistoryAPIView.as_view(),
         name="ticket-history",
     ),
+
+    path("past-consultations/", PastConsultationListView.as_view(), name="past-consultations"),
+     path(
+        "dashboard/",
+        DashboardView.as_view(),
+        name="dashboard",
+    ),
+    path("performance/", PerformanceGraphView.as_view(), name="performance-graph"),
+    path("report/", MeetingReportDashboardView.as_view(), name="report")
 ]

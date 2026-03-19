@@ -51,6 +51,12 @@ class CreateCheckoutSession(APIView):
         except PricingPlan.DoesNotExist:
             logger.error(f"PricingPlan not found for price_id: {price_id}")
             return Response({"error": "Invalid price_id"}, status=400)
+        
+        if Subscription.objects.filter(user=request.user, plan=plan, is_active=True).exists():
+            return Response(
+                {"error": "You already have an active subscription for this plan."},
+                status=400
+            )
         if plan.billing_type == "monthly":
             try:
                 logger.info(f"Creating Stripe session for user: {request.user.id} with plan: {plan.id}")
@@ -341,9 +347,9 @@ class CreateStripeCustomerView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        customer_id = get_or_create_stripe_customer(request.user)
+        stripe_profile = get_or_create_stripe_customer(request.user)
         return Response(
-            {"stripe_customer_id": customer_id},
+            {"stripe_customer_id": stripe_profile.stripe_customer_id},
             status=status.HTTP_200_OK
         )
     
@@ -352,9 +358,10 @@ class GetStripeCustomerView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        customer_id = get_or_create_stripe_customer(request.user)
+        stripe_profile = get_or_create_stripe_customer(request.user)
+
         return Response(
-            {"stripe_customer_id": customer_id},
+            {"stripe_customer_id": stripe_profile.stripe_customer_id},
             status=status.HTTP_200_OK
         )
 

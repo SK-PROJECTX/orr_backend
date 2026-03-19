@@ -5,8 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from ...models import OnboardingQuestionnaire
-from ..serializers.onboarding import OnboardingQuestionnaireSerializer
-
+from ..serializers.onboarding import OnboardingQuestionnaireSerializer, OnboardingStatusSerializer
 
 class OnboardingQuestionnaireViewSet(viewsets.GenericViewSet):
     serializer_class = OnboardingQuestionnaireSerializer
@@ -19,19 +18,31 @@ class OnboardingQuestionnaireViewSet(viewsets.GenericViewSet):
     def me(self, request):
         """
         Called on login / app reload.
-        Forces user to complete onboarding if not completed.
+        Always returns the onboarding object with its is_completed status.
+        """
+        obj, created = OnboardingQuestionnaire.objects.get_or_create(
+            user=request.user,
+            defaults={"is_completed": False},
+        )
+
+        serializer = self.get_serializer(obj)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+
+    @action(detail=False, methods=["get"], url_path="status")
+    def onboarding_status(self, request):
+        """
+        Returns onboarding status (is_completed) only.
+        Uses a different serializer.
         """
         obj, _ = OnboardingQuestionnaire.objects.get_or_create(
             user=request.user,
             defaults={"is_completed": False},
         )
 
-        if obj.is_completed:
-            return Response(status=status.HTTP_204_NO_CONTENT)
-
-        serializer = self.get_serializer(obj)
+        serializer = OnboardingStatusSerializer(obj)
         return Response(serializer.data, status=status.HTTP_200_OK)
-    
+        
     @action(detail=False, methods=["post"], url_path="submit")
     def submit(self, request):
         """
@@ -44,3 +55,4 @@ class OnboardingQuestionnaireViewSet(viewsets.GenericViewSet):
         serializer.save(is_completed=True)
 
         return Response(serializer.data)
+    

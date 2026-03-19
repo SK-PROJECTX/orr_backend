@@ -2,8 +2,9 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.validators import MinLengthValidator
 from django.db import models
-from admin_portal.models import ClientDocument
+from admin_portal.models import ClientDocument, Client
 from common.models import Audit
+from django.utils import timezone
 
 
 class Profile(Audit):
@@ -193,7 +194,7 @@ class OnboardingQuestionnaire(Audit):
         return f"Onboarding - {self.user.get_full_name() or self.user.email}"
 
 
-class FavoriteDocument(models.Model):
+class FavoriteDocument(Audit):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -212,3 +213,67 @@ class FavoriteDocument(models.Model):
     def __str__(self):
         return f"{self.user} -> {self.document.title}"
 
+
+
+
+class Project(Audit):
+    """
+    Groups meetings and tracks 'Active Projects' shown on the dashboard.
+    """
+    STATUS_CHOICES = [
+        ('active', 'Active'),
+        ('completed', 'Completed'),
+        ('paused', 'Paused'),
+        ('cancelled', 'Cancelled'),
+    ]
+
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name='projects')
+    name = models.CharField(max_length=200) 
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
+    start_date = models.DateField(default=timezone.now)
+    end_date = models.DateField(null=True, blank=True)
+    budget = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+
+    def __str__(self):
+        return f"{self.name} - {self.client}"
+
+class Wallet(Audit):
+    """
+    Stores the 'My Wallet' balance shown on the bottom right.
+    One wallet per Host (User).
+    """
+    owner = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='wallet')
+    balance = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    currency = models.CharField(max_length=3, default='USD')
+   
+    def __str__(self):
+        return f"{self.owner}'s Wallet ({self.balance} {self.currency})"
+
+class Transaction(Audit):
+    """
+    Tracks 'Revenue' and distinct payments.
+    Linked to a Project or Meeting to know where money came from.
+    """
+    TRANSACTION_TYPES = [
+        ('payment', 'Payment Received'),
+        ('withdrawal', 'Withdrawal'),    
+        ('refund', 'Refund'),           
+    ]
+
+    wallet = models.ForeignKey(Wallet, on_delete=models.CASCADE, related_name='transactions')
+    project = models.ForeignKey(Project, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPES)
+    date = models.DateTimeField(default=timezone.now)
+    description = models.CharField(max_length=255, blank=True)
+
+    def save(self, *args, **kwargs):
+        # Auto-update wallet balance on save (simple logic)
+        if not self.pk: # Only on create
+            if self.transaction_type == 'payment':
+                self.wallet.balance += self.amount
+            elif self.transaction_type in ['withdrawal', 'refund']:
+                self.wallet.balance -= self.amount
+            self.wallet.save()
+        super().save(*args, **kwargs)
