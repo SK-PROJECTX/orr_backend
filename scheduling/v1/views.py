@@ -137,7 +137,7 @@ class AvailableSlotsView(APIView):
 
 @extend_schema(tags=["scheduling"])
 class CreateMeetingView(APIView):
-    permission_classes = [IsAuthenticated,  HasActivePaidSubscription,]
+    permission_classes = [IsAuthenticated]
     serializer_class = MeetingRequestSerializer
 
     def post(self, request):
