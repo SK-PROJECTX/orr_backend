@@ -1,5 +1,6 @@
 from django.db import models
-from django.db.models import Avg, Count, Q, Sum
+from django.db.models import Avg, Count, Q, Sum, Max
+from django.db.models.functions import Coalesce
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import generics, status
@@ -39,7 +40,9 @@ class TicketListView(generics.ListCreateAPIView):
         return TicketListSerializer
 
     def get_queryset(self):
-        queryset = Ticket.objects.select_related("client__user", "assigned_to").all()
+        queryset = Ticket.objects.select_related("client__user", "assigned_to").annotate(
+            last_message_at=Coalesce(Max("messages__created_at"), "created_at")
+        )
 
         # Search functionality
         search = self.request.query_params.get("search", None)
@@ -92,7 +95,7 @@ class TicketListView(generics.ListCreateAPIView):
         if date_to:
             queryset = queryset.filter(created_at__lte=date_to)
 
-        return queryset.order_by("-created_at")
+        return queryset.order_by("-last_message_at")
 
     def perform_create(self, serializer):
         # Generate ticket ID
