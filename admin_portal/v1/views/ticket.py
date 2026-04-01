@@ -41,7 +41,8 @@ class TicketListView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         queryset = Ticket.objects.select_related("client__user", "assigned_to").annotate(
-            last_message_at=Coalesce(Max("messages__created_at"), "created_at")
+            last_message_at=Coalesce(Max("messages__created_at"), "created_at"),
+            messages_count=Count("messages")
         )
 
         # Search functionality
