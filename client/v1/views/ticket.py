@@ -27,8 +27,14 @@ class ClientTicketListView(generics.ListAPIView):
         # Get tickets for the current user's client profile
         try:
             from admin_portal.models import Client
+            from django.db.models import Max, Count, Q
+            from django.db.models.functions import Coalesce
+            
             client = Client.objects.get(user=self.request.user)
-            return Ticket.objects.filter(client=client).order_by('-created_at')
+            return Ticket.objects.filter(client=client).annotate(
+                last_message_at=Coalesce(Max('messages__created_at'), 'created_at'),
+                messages_count=Count('messages', filter=Q(messages__is_internal=False))
+            ).order_by('-last_message_at')
         except Client.DoesNotExist:
             return Ticket.objects.none()
 

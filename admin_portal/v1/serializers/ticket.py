@@ -11,6 +11,7 @@ class TicketListSerializer(serializers.ModelSerializer):
     assigned_to_name = serializers.SerializerMethodField()
     messages_count = serializers.SerializerMethodField()
     payment_type = serializers.SerializerMethodField()
+    last_message_at = serializers.DateTimeField(read_only=True)
 
     class Meta:
         model = Ticket
@@ -25,6 +26,7 @@ class TicketListSerializer(serializers.ModelSerializer):
             "client_company",
             "assigned_to_name",
             "messages_count",
+            "last_message_at",
             "payment_type",
             "payment_amount",
             "refund_amount",
@@ -67,6 +69,8 @@ class TicketDetailSerializer(serializers.ModelSerializer):
     client_company = serializers.CharField(source="client.company")
     assigned_to_name = serializers.SerializerMethodField()
     related_payment_info = serializers.SerializerMethodField()
+    messages_count = serializers.IntegerField(read_only=True)
+    last_message_at = serializers.DateTimeField(read_only=True)
 
     class Meta:
         model = Ticket
@@ -82,6 +86,8 @@ class TicketDetailSerializer(serializers.ModelSerializer):
             "client_email",
             "client_company",
             "assigned_to_name",
+            "messages_count",
+            "last_message_at",
             "internal_notes",
             "payment_amount",
             "refund_amount",
