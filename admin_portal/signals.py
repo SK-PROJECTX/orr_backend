@@ -119,9 +119,6 @@ def ticket_message_auto_reply(sender, instance, created, **kwargs):
                 countdown=4 * 60 * 60  # 4 hours
             )
             
-            # 3. Existing auto-reply logic
-            if instance.sender.username != 'system_auto_reply':
-                AutoReplyService.handle_ticket_message_auto_reply(instance)
         
         # If message is from an admin
         elif instance.sender.is_staff:
