@@ -50,7 +50,7 @@ class ClientTicketCreateAPIView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        serializer = ClientInquiryTicketSerializer(data=request.data)
+        serializer = ClientInquiryTicketSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
 
         ticket = serializer.save(
