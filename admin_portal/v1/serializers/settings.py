@@ -128,6 +128,37 @@ class UserManagementSerializer(serializers.Serializer):
         return value
 
 
+class AdminUserListSerializer(serializers.ModelSerializer):
+    """Admin user list serializer for assignments"""
+
+    full_name = serializers.SerializerMethodField()
+    role_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "username",
+            "email",
+            "first_name",
+            "last_name",
+            "full_name",
+            "role_name",
+            "is_active",
+        ]
+
+    def get_full_name(self, obj):
+        full_name = obj.get_full_name().strip()
+        if full_name:
+            return full_name
+        return obj.username or "Unknown User"
+
+    def get_role_name(self, obj):
+        if hasattr(obj, 'admin_profile') and obj.admin_profile.role:
+            return obj.admin_profile.role.get_name_display()
+        return "No Role"
+
+
 class AuditLogSerializer(serializers.ModelSerializer):
     """Audit log serializer"""
 

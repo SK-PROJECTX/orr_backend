@@ -1,4 +1,6 @@
-from django.db.models import Avg, Count, Q
+from django.db import models
+from django.db.models import Avg, Count, Q, Sum, Max
+from django.db.models.functions import Coalesce
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import generics, status
@@ -7,15 +9,19 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from admin_portal.models import Ticket, TicketMessage
+from admin_portal.permissions import CanManageTickets
 from admin_portal.services import NotificationService
+
 from ..serializers.ticket import (
     TicketCreateSerializer,
     TicketDetailSerializer,
     TicketListSerializer,
     TicketMessageSerializer,
+    TicketMessageCreateSerializer,
     TicketStatsSerializer,
     TicketUpdateSerializer,
 )
+from ..serializers.settings import AdminUserListSerializer
 
 
 @extend_schema(
@@ -34,7 +40,10 @@ class TicketListView(generics.ListCreateAPIView):
         return TicketListSerializer
 
     def get_queryset(self):
-        queryset = Ticket.objects.select_related("client__user", "assigned_to").all()
+        queryset = Ticket.objects.select_related("client__user", "assigned_to").annotate(
+            last_message_at=Coalesce(Max("messages__created_at"), "created_at"),
+            messages_count=Count("messages")
+        )
 
         # Search functionality
         search = self.request.query_params.get("search", None)
@@ -66,6 +75,18 @@ class TicketListView(generics.ListCreateAPIView):
         source = self.request.query_params.get("source", None)
         if source:
             queryset = queryset.filter(source=source)
+            
+        is_escalated = self.request.query_params.get("is_escalated", None)
+        if is_escalated:
+            queryset = queryset.filter(is_escalated=(is_escalated.lower() == 'true'))
+            
+        # All tickets are payment-related, so no need for has_payment filter
+            
+        payment_status = self.request.query_params.get("payment_status", None)
+        if payment_status:
+            payment_statuses = ["processing", "payment_failed", "payment_disputed", "refund_requested", "refund_processed"]
+            if payment_status in payment_statuses:
+                queryset = queryset.filter(status=payment_status)
 
         # Date range filter
         date_from = self.request.query_params.get("date_from", None)
@@ -75,7 +96,7 @@ class TicketListView(generics.ListCreateAPIView):
         if date_to:
             queryset = queryset.filter(created_at__lte=date_to)
 
-        return queryset.order_by("-created_at")
+        return queryset.order_by("-last_message_at")
 
     def perform_create(self, serializer):
         # Generate ticket ID
@@ -99,6 +120,21 @@ class TicketDetailView(generics.RetrieveUpdateAPIView):
         if self.request.method == "GET":
             return TicketDetailSerializer
         return TicketUpdateSerializer
+    
+    def perform_update(self, serializer):
+        # Get the old assigned user before update
+        old_assigned_to = self.get_object().assigned_to
+        
+        # Save the updated ticket
+        ticket = serializer.save()
+        
+        # Check if assignment changed
+        new_assigned_to = ticket.assigned_to
+        if old_assigned_to != new_assigned_to and new_assigned_to:
+            # Send notification to newly assigned user
+            NotificationService.send_ticket_notification(
+                ticket, "assigned", new_assigned_to
+            )
 
 
 @extend_schema(
@@ -109,8 +145,12 @@ class TicketDetailView(generics.RetrieveUpdateAPIView):
 class TicketMessagesView(generics.ListCreateAPIView):
     """List and create ticket messages"""
 
-    serializer_class = TicketMessageSerializer
     permission_classes = [IsAuthenticated]
+    
+    def get_serializer_class(self):
+        if self.request.method == "POST":
+            return TicketMessageCreateSerializer
+        return TicketMessageSerializer
 
     def get_queryset(self):
         ticket_id = self.kwargs.get("ticket_id")
@@ -118,7 +158,21 @@ class TicketMessagesView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         ticket_id = self.kwargs.get("ticket_id")
-        serializer.save(ticket_id=ticket_id, sender=self.request.user)
+        message = serializer.save(ticket_id=ticket_id, sender=self.request.user)
+        
+        # Trigger email to client if an admin relies
+        from admin_portal.models import Ticket
+        try:
+            ticket = Ticket.objects.get(pk=ticket_id)
+            if self.request.user != ticket.client.user:
+                # Client receives the notification
+                NotificationService.send_ticket_notification(
+                    ticket, "replied", ticket.client.user
+                )
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to send ticket reply notification: {e}")
 
 
 @extend_schema(
@@ -145,10 +199,10 @@ class TicketActionsView(APIView):
                         assigned_user = User.objects.get(pk=assigned_to_id)
                         ticket.assigned_to = assigned_user
                         ticket.save()
-                        
+
                         # Send notification
                         NotificationService.send_ticket_notification(
-                            ticket, 'assigned', assigned_user
+                            ticket, "assigned", assigned_user
                         )
 
                         return Response({"message": "Ticket assigned successfully"})
@@ -196,45 +250,48 @@ class TicketActionsView(APIView):
                         status=status.HTTP_400_BAD_REQUEST,
                     )
 
-            elif action == "link_meeting":
-                meeting_id = request.data.get("meeting_id")
-                if meeting_id:
-                    from admin_portal.models import Meeting
 
+                    
+            elif action == "update_payment":
+                invoice_id = request.data.get("invoice_id")
+                subscription_id = request.data.get("subscription_id")
+                
+                if invoice_id:
+                    from payment.models import Invoice
                     try:
-                        meeting = Meeting.objects.get(pk=meeting_id)
-                        ticket.related_meeting = meeting
+                        invoice = Invoice.objects.get(pk=invoice_id)
+                        ticket.related_invoice = invoice
+                        ticket.payment_amount = invoice.amount
                         ticket.save()
-                        return Response({"message": "Meeting linked to ticket"})
-                    except Meeting.DoesNotExist:
-                        return Response(
-                            {"error": "Meeting not found"},
-                            status=status.HTTP_400_BAD_REQUEST,
-                        )
-                else:
-                    ticket.related_meeting = None
-                    ticket.save()
-                    return Response({"message": "Meeting unlinked from ticket"})
-
-            elif action == "link_content":
-                content_id = request.data.get("content_id")
-                if content_id:
-                    from admin_portal.models import Content
-
+                        return Response({"message": "Invoice linked to ticket"})
+                    except Invoice.DoesNotExist:
+                        return Response({"error": "Invoice not found"}, status=status.HTTP_400_BAD_REQUEST)
+                        
+                elif subscription_id:
+                    from payment.models import Subscription
                     try:
-                        content = Content.objects.get(pk=content_id)
-                        ticket.related_content = content
+                        subscription = Subscription.objects.get(pk=subscription_id)
+                        ticket.related_subscription = subscription
                         ticket.save()
-                        return Response({"message": "Content linked to ticket"})
-                    except Content.DoesNotExist:
-                        return Response(
-                            {"error": "Content not found"},
-                            status=status.HTTP_400_BAD_REQUEST,
-                        )
+                        return Response({"message": "Subscription linked to ticket"})
+                    except Subscription.DoesNotExist:
+                        return Response({"error": "Subscription not found"}, status=status.HTTP_400_BAD_REQUEST)
                 else:
-                    ticket.related_content = None
+                    ticket.related_invoice = None
+                    ticket.related_subscription = None
+                    ticket.payment_amount = None
                     ticket.save()
-                    return Response({"message": "Content unlinked from ticket"})
+                    return Response({"message": "Payment unlinked from ticket"})
+                    
+            elif action == "process_refund":
+                refund_amount = request.data.get("refund_amount")
+                if refund_amount and ticket.related_invoice:
+                    ticket.refund_amount = refund_amount
+                    ticket.status = "refund_processed"
+                    ticket.save()
+                    return Response({"message": "Refund processed"})
+                else:
+                    return Response({"error": "Invalid refund request"}, status=status.HTTP_400_BAD_REQUEST)
 
             else:
                 return Response(
@@ -261,9 +318,20 @@ class TicketStatsView(APIView):
         # Basic ticket counts
         total_tickets = Ticket.objects.count()
         new_tickets = Ticket.objects.filter(status="new").count()
-        in_progress_tickets = Ticket.objects.filter(status="in_progress").count()
-        waiting_client_tickets = Ticket.objects.filter(status="waiting_client").count()
+        processing_payments = Ticket.objects.filter(status="processing").count()
+        payment_failed = Ticket.objects.filter(status="payment_failed").count()
+        payment_disputed = Ticket.objects.filter(status="payment_disputed").count()
+        refund_requested = Ticket.objects.filter(status="refund_requested").count()
         resolved_tickets = Ticket.objects.filter(status="resolved").count()
+        
+        # Payment-specific metrics
+        total_payment_amount = Ticket.objects.filter(payment_amount__isnull=False).aggregate(
+            total=models.Sum('payment_amount')
+        )['total'] or 0
+        
+        total_refund_amount = Ticket.objects.filter(refund_amount__isnull=False).aggregate(
+            total=models.Sum('refund_amount')
+        )['total'] or 0
 
         # Average response and resolution times (placeholder - would need actual calculation)
         avg_response_time = 2.5  # hours
@@ -286,9 +354,13 @@ class TicketStatsView(APIView):
         stats_data = {
             "total_tickets": total_tickets,
             "new_tickets": new_tickets,
-            "in_progress_tickets": in_progress_tickets,
-            "waiting_client_tickets": waiting_client_tickets,
+            "processing_payments": processing_payments,
+            "payment_failed": payment_failed,
+            "payment_disputed": payment_disputed,
+            "refund_requested": refund_requested,
             "resolved_tickets": resolved_tickets,
+            "total_payment_amount": total_payment_amount,
+            "total_refund_amount": total_refund_amount,
             "avg_response_time": avg_response_time,
             "avg_resolution_time": avg_resolution_time,
             "tickets_by_priority": tickets_by_priority,
@@ -313,6 +385,26 @@ class MyTicketsView(generics.ListAPIView):
     def get_queryset(self):
         return (
             Ticket.objects.filter(assigned_to=self.request.user)
-            .select_related("client__user")
+            .select_related("client__user", "assigned_to")
             .order_by("-created_at")
         )
+
+
+@extend_schema(
+    tags=["Ticket Management"],
+    summary="Get available users for ticket assignment",
+    description="Retrieve list of admin users who can be assigned to tickets.",
+)
+class TicketAssignableUsersView(generics.ListAPIView):
+    """Get users available for ticket assignment"""
+
+    serializer_class = AdminUserListSerializer
+    permission_classes = [CanManageTickets]
+
+    def get_queryset(self):
+        from django.contrib.auth.models import User
+        # Return users who have admin profiles (can be assigned tickets)
+        return User.objects.filter(
+            admin_profile__isnull=False,
+            is_active=True
+        ).select_related('admin_profile__role').order_by('first_name', 'last_name', 'username')

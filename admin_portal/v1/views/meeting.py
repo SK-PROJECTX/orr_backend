@@ -1,15 +1,31 @@
 from django.db.models import Count, Q
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
-from rest_framework import generics, status
+from rest_framework import generics, serializers, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from admin_portal.models import Meeting
-from admin_portal.services import CalendarService, NotificationService
+from admin_portal.permissions import CanManageMeetings
+# Import services with error handling
+try:
+    from admin_portal.services import CalendarService, NotificationService
+except ImportError:
+    # Create dummy services if not available
+    class CalendarService:
+        @staticmethod
+        def create_calendar_event(meeting):
+            return None
+    
+    class NotificationService:
+        @staticmethod
+        def send_meeting_notification(meeting, action, user):
+            pass
+
 from ..serializers.meeting import (
     MeetingActionSerializer,
+    MeetingCreateSerializer,
     MeetingDetailSerializer,
     MeetingListSerializer,
     MeetingStatsSerializer,
@@ -19,17 +35,24 @@ from ..serializers.meeting import (
 
 @extend_schema(
     tags=["Meeting Management"],
-    summary="List all meeting requests",
-    description="Retrieve a filtered list of meeting requests with options to filter by status, type, host, date range, and upcoming meetings.",
+    summary="List or create meeting requests",
+    description="Retrieve a filtered list of meeting requests with options to filter by status, type, host, date range, and upcoming meetings. Also supports creating new meeting requests.",
 )
-class MeetingListView(generics.ListAPIView):
-    """List all meeting requests"""
+class MeetingListView(generics.ListCreateAPIView):
+    """List and create meeting requests"""
 
-    serializer_class = MeetingListSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [CanManageMeetings]
+    
+    def get_serializer_class(self):
+        if self.request.method == "POST":
+            return MeetingCreateSerializer
+        return MeetingListSerializer
 
     def get_queryset(self):
         queryset = Meeting.objects.select_related("client__user", "host").all()
+        
+        # Debug: Log total meetings count
+        print(f"Total meetings in database: {queryset.count()}")
 
         # Search functionality
         search = self.request.query_params.get("search", None)
@@ -44,18 +67,23 @@ class MeetingListView(generics.ListAPIView):
         # Filters
         status_filter = self.request.query_params.get("status", None)
         if status_filter:
+            print(f"Filtering by status: {status_filter}")
             queryset = queryset.filter(status=status_filter)
+            print(f"Meetings after status filter: {queryset.count()}")
 
         meeting_type = self.request.query_params.get("type", None)
         if meeting_type:
             queryset = queryset.filter(meeting_type=meeting_type)
 
         host = self.request.query_params.get("host", None)
+        host_id = self.request.query_params.get("host_id", None)
         if host:
             if host == "unassigned":
                 queryset = queryset.filter(host__isnull=True)
             else:
                 queryset = queryset.filter(host_id=host)
+        elif host_id:
+            queryset = queryset.filter(host_id=host_id)
 
         # Date range filters
         date_from = self.request.query_params.get("date_from", None)
@@ -72,7 +100,38 @@ class MeetingListView(generics.ListAPIView):
                 confirmed_datetime__gte=timezone.now(), status="confirmed"
             )
 
-        return queryset.order_by("-created_at")
+        final_queryset = queryset.order_by("-created_at")
+        print(f"Final queryset count: {final_queryset.count()}")
+        return final_queryset
+        
+    def perform_create(self, serializer):
+        """Create a new meeting request"""
+        from admin_portal.models import Client
+        
+        # Find client by ID
+        client_id = serializer.validated_data.get('client_id')
+        try:
+            client = Client.objects.get(id=client_id)
+            
+            # Save meeting with all provided data
+            meeting = serializer.save(
+                client=client, 
+                status='requested',
+                host=self.request.user if hasattr(self.request, 'user') else None
+            )
+            
+        except Client.DoesNotExist:
+            raise serializers.ValidationError({"client_id": "Client with this ID not found"})
+            
+        # Send notification to client
+        try:
+            from admin_portal.services import NotificationService
+            NotificationService.send_meeting_notification(meeting, "requested", client.user)
+        except Exception as e:
+            # Don't fail the meeting creation if notification fails
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Failed to send meeting notification: {e}")
 
 
 @extend_schema(
@@ -84,7 +143,7 @@ class MeetingDetailView(generics.RetrieveUpdateAPIView):
     """Get and update meeting details"""
 
     queryset = Meeting.objects.select_related("client__user", "host").all()
-    permission_classes = [IsAuthenticated]
+    permission_classes = [CanManageMeetings]
 
     def get_serializer_class(self):
         if self.request.method == "GET":
@@ -100,7 +159,7 @@ class MeetingDetailView(generics.RetrieveUpdateAPIView):
 class MeetingActionsView(APIView):
     """Meeting management actions"""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [CanManageMeetings]
 
     def post(self, request, pk):
         try:
@@ -118,19 +177,26 @@ class MeetingActionsView(APIView):
                         meeting.confirmed_datetime = confirmed_datetime
                     else:
                         meeting.confirmed_datetime = meeting.requested_datetime
-                    
-                    meeting.status = 'confirmed'
-                    
+
+                    meeting.status = "confirmed"
+
                     # Create calendar event
                     event_id = CalendarService.create_calendar_event(meeting)
                     if event_id:
                         meeting.calendar_event_id = event_id
-                    
+
                     meeting.save()
-                    
+
                     # Send notification
                     NotificationService.send_meeting_notification(
-                        meeting, 'confirmed', meeting.client.user
+                        meeting, "confirmed", meeting.client.user
+                    )
+
+                    return Response({"message": "Meeting confirmed successfully"})
+
+                elif action == "reschedule":
+                    confirmed_datetime = serializer.validated_data.get(
+                        "confirmed_datetime"
                     )
                     if not confirmed_datetime:
                         return Response(
@@ -162,7 +228,6 @@ class MeetingActionsView(APIView):
                         meeting.internal_notes = notes
                     meeting.save()
 
-                    # Create notification for client
                     from admin_portal.models import SystemNotification
 
                     SystemNotification.objects.create(
@@ -345,8 +410,60 @@ class MyMeetingsView(generics.ListAPIView):
         return (
             Meeting.objects.filter(host=self.request.user)
             .select_related("client__user")
+            .order_by("-created_at")
+        )
+
+
+@extend_schema(
+    tags=["Meeting Management"],
+    summary="Get confirmed meetings",
+    description="Retrieve all confirmed meetings, optionally filtered by assigned host.",
+)
+class ConfirmedMeetingsView(generics.ListAPIView):
+    """Get confirmed meetings"""
+
+    serializer_class = MeetingListSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = (
+            Meeting.objects.filter(status="confirmed")
+            .select_related("client__user", "host")
             .order_by("confirmed_datetime")
         )
+        
+        # Filter by assigned host if requested
+        host_id = self.request.query_params.get('host_id')
+        if host_id:
+            queryset = queryset.filter(host_id=host_id)
+        
+        return queryset
+
+
+@extend_schema(
+    tags=["Meeting Management"],
+    summary="Get requested meetings",
+    description="Retrieve all requested meetings, optionally filtered by assigned host.",
+)
+class RequestedMeetingsView(generics.ListAPIView):
+    """Get requested meetings"""
+
+    serializer_class = MeetingListSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = (
+            Meeting.objects.filter(status="requested")
+            .select_related("client__user", "host")
+            .order_by("-created_at")
+        )
+        
+        # Filter by assigned host if requested
+        host_id = self.request.query_params.get('host_id')
+        if host_id:
+            queryset = queryset.filter(host_id=host_id)
+        
+        return queryset
 
 
 @extend_schema(

@@ -5,11 +5,13 @@ from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+import threading
 
 from admin_portal.models import Client, ClientDocument
 from admin_portal.permissions import CanEditClients, CanViewAllClients
 
 from ..serializers.client import (
+    ClientCreateSerializer,
     ClientDetailSerializer,
     ClientDocumentSerializer,
     ClientEngagementHistorySerializer,
@@ -20,30 +22,46 @@ from ..serializers.client import (
 
 @extend_schema(
     tags=["Client Management"],
-    summary="List all clients",
-    description="Retrieve a paginated list of all clients with advanced filtering options including search by name/email/company, filter by stage, pillar, assigned admin, portal status, and activity level.",
+    summary="List or create clients",
+    description="Retrieve a paginated list of all clients with advanced filtering options including search by name/email/company, filter by stage, pillar, assigned admin, portal status, and activity level. Also supports creating new clients.",
 )
-class ClientListView(generics.ListAPIView):
-    """List all clients with filtering and search"""
+class ClientListView(generics.ListCreateAPIView):
+    """List and create clients with filtering and search"""
 
-    serializer_class = ClientListSerializer
-    permission_classes = [CanViewAllClients]
+    def get_permissions(self):
+        if self.request.method == "POST":
+            return [IsAuthenticated()]
+        return [CanViewAllClients()]
+
+    def get_serializer_class(self):
+        if self.request.method == "POST":
+            return ClientCreateSerializer
+        return ClientListSerializer
+    
+    def create(self, request, *args, **kwargs):
+        """Override create to use custom post method"""
+        return self.post(request, *args, **kwargs)
 
     def get_queryset(self):
-        queryset = Client.objects.select_related('user', 'assigned_admin').all()
-        
+        queryset = Client.objects.select_related("user", "assigned_admin").all()
+
         # Role-based filtering
-        user_role = self.request.user.admin_profile.role
-        if user_role.name == 'admin' and not user_role.can_view_all_clients:
-            # Admin can only see clients assigned to them
-            queryset = queryset.filter(assigned_admin=self.request.user)
-        
+        try:
+            user_role = self.request.user.admin_profile.role
+            if user_role.name == "admin" and not user_role.can_view_all_clients:
+                # Admin can only see clients assigned to them
+                queryset = queryset.filter(assigned_admin=self.request.user)
+        except AttributeError:
+            # User doesn't have admin profile, show all clients
+            pass
+
         # Search functionality
         search = self.request.query_params.get("search", None)
         if search:
             queryset = queryset.filter(
                 Q(user__first_name__icontains=search)
                 | Q(user__last_name__icontains=search)
+                | Q(user__username__icontains=search)
                 | Q(user__email__icontains=search)
                 | Q(company__icontains=search)
             )
@@ -88,6 +106,203 @@ class ClientListView(generics.ListAPIView):
             )
 
         return queryset.order_by("-created_at")
+
+    def post(self, request, *args, **kwargs):
+        """Create a new client with user account"""
+        from django.contrib.auth.models import User
+        from django.db import transaction, IntegrityError
+        from common.response import api_response
+        import logging
+        import time
+        
+        logger = logging.getLogger(__name__)
+        logger.info(f"Client creation request data: {request.data}")
+        
+        # Ensure required fields are present
+        required_fields = ['email', 'company']
+        missing_fields = [field for field in required_fields if not request.data.get(field)]
+        if missing_fields:
+            logger.error(f"Missing required fields: {missing_fields}")
+            return Response(
+                api_response(
+                    message=f"Missing required fields: {', '.join(missing_fields)}",
+                    status_code=400,
+                    success=False
+                ),
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            with transaction.atomic():
+                import threading
+                
+                email = request.data.get('email', '').strip().lower()
+                full_name = request.data.get('full_name', '').strip()
+                company = request.data.get('company', '').strip()
+                
+                # 🔒 FIRST CHECK: See if client already exists by email
+                existing_client = Client.objects.select_related('user').filter(user__email=email).first()
+                if existing_client:
+                    return Response(
+                        api_response(
+                            message="A client with this email already exists",
+                            status_code=400,
+                            success=False
+                        ),
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                
+                # Check if user exists without client profile
+                existing_user = User.objects.filter(email=email).first()
+                
+                if existing_user:
+                    # User exists, use it
+                    user = existing_user
+                    logger.info(f"Using existing user {user.id} for client creation")
+                else:
+                    # 🚫 PREVENT SIGNAL AUTO-CREATION: Set thread-local marker
+                    threading.current_thread().skip_auto_client_creation = True
+                    
+                    try:
+                        # Create new user
+                        base_username = email.split('@')[0]
+                        username = base_username
+                        counter = 1
+                        
+                        # Generate unique username
+                        while User.objects.filter(username=username).exists():
+                            username = f"{base_username}_{counter}"
+                            counter += 1
+                            if counter > 1000:  # Safety check
+                                timestamp = str(int(time.time()))
+                                username = f"{base_username}_{timestamp}"
+                                break
+                        
+                        # Parse full name
+                        first_name = ''
+                        last_name = ''
+                        if full_name:
+                            name_parts = full_name.strip().split()
+                            first_name = name_parts[0] if name_parts else ''
+                            last_name = ' '.join(name_parts[1:]) if len(name_parts) > 1 else ''
+                        
+                        # Create user
+                        user = User.objects.create_user(
+                            username=username,
+                            email=email,
+                            first_name=first_name,
+                            last_name=last_name,
+                            password='TempPass123!'  # Temporary password
+                        )
+                        logger.info(f"Created new user {user.id}: {username}")
+                        
+                    finally:
+                        # 🧹 CLEANUP: Remove thread-local marker
+                        if hasattr(threading.current_thread(), 'skip_auto_client_creation'):
+                            delattr(threading.current_thread(), 'skip_auto_client_creation')
+                
+                # Process secondary_pillars
+                secondary_pillars_str = request.data.get('secondary_pillars', '')
+                secondary_pillars = []
+                if secondary_pillars_str:
+                    # Split by comma and clean up
+                    secondary_pillars = [pillar.strip() for pillar in secondary_pillars_str.split(',') if pillar.strip()]
+                
+                # 🧪 ATOMIC CLIENT CREATION: Use get_or_create for safety
+                client, created = Client.objects.get_or_create(
+                    user=user,
+                    defaults={
+                        "company": company,
+                        "role": request.data.get('role', ''),
+                        "stage": request.data.get('stage', 'discover'),
+                        "primary_pillar": request.data.get('primary_pillar', 'strategic'),
+                        "secondary_pillars": secondary_pillars,
+                        "internal_notes": request.data.get('internal_notes', ''),
+                        "assigned_admin": request.user,
+                    }
+                )
+                
+                if not created:
+                    # Update existing client with new data if it was auto-created
+                    logger.info(f"Client already existed for user {user.id}, updating with provided data")
+                    client.company = company
+                    client.role = request.data.get('role', '')
+                    client.stage = request.data.get('stage', 'discover')
+                    client.primary_pillar = request.data.get('primary_pillar', 'strategic')
+                    client.secondary_pillars = secondary_pillars
+                    client.internal_notes = request.data.get('internal_notes', '')
+                    client.assigned_admin = request.user
+                    client.save()
+                    logger.info(f"Updated existing client {client.id} with admin-provided data")
+                
+                # Success - client was created
+                logger.info(f"Client created successfully: {client.id}")
+                
+                # Return success response
+                response_serializer = ClientListSerializer(client)
+                return Response(
+                    api_response(
+                        message="Client created successfully",
+                        data=response_serializer.data,
+                        status_code=201,
+                        success=True
+                    ),
+                    status=status.HTTP_201_CREATED
+                )
+                
+        except IntegrityError as e:
+            logger.error(f"IntegrityError during client creation: {str(e)}")
+            error_msg = str(e).lower()
+            
+            # This should rarely happen now with our triple protection
+            if "unique constraint" in error_msg or "duplicate key" in error_msg:
+                if "user_id" in error_msg or "client_profile" in error_msg:
+                    return Response(
+                        api_response(
+                            message="This user already has a client profile",
+                            status_code=400,
+                            success=False
+                        ),
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                elif "email" in error_msg:
+                    return Response(
+                        api_response(
+                            message="Email address already exists",
+                            status_code=400,
+                            success=False
+                        ),
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                elif "username" in error_msg:
+                    return Response(
+                        api_response(
+                            message="Username conflict occurred. Please try again.",
+                            status_code=400,
+                            success=False
+                        ),
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            
+            return Response(
+                api_response(
+                    message="Database constraint error. Please check if the client already exists.",
+                    status_code=400,
+                    success=False
+                ),
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        except Exception as e:
+            logger.error(f"Unexpected error during client creation: {str(e)}")
+            return Response(
+                api_response(
+                    message=f"Failed to create client: {str(e)}",
+                    status_code=500,
+                    success=False
+                ),
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 @extend_schema(
@@ -226,65 +441,72 @@ class ClientActionsView(APIView):
                     return Response(
                         {"error": "Invalid stage"}, status=status.HTTP_400_BAD_REQUEST
                     )
-            
-            elif action == 'update_pillar':
-                new_pillar = request.data.get('primary_pillar')
-                secondary_pillars = request.data.get('secondary_pillars', [])
-                
+
+            elif action == "update_pillar":
+                new_pillar = request.data.get("primary_pillar")
+                secondary_pillars = request.data.get("secondary_pillars", [])
+
                 if new_pillar in dict(Client.PILLAR_CHOICES):
                     client.primary_pillar = new_pillar
                     client.secondary_pillars = secondary_pillars
                     client.save()
-                    return Response({
-                        'message': f'Client pillar updated to {new_pillar}',
-                        'primary_pillar': client.primary_pillar,
-                        'secondary_pillars': client.secondary_pillars
-                    })
+                    return Response(
+                        {
+                            "message": f"Client pillar updated to {new_pillar}",
+                            "primary_pillar": client.primary_pillar,
+                            "secondary_pillars": client.secondary_pillars,
+                        }
+                    )
                 else:
                     return Response(
-                        {'error': 'Invalid pillar'}, 
-                        status=status.HTTP_400_BAD_REQUEST
+                        {"error": "Invalid pillar"}, status=status.HTTP_400_BAD_REQUEST
                     )
-            
-            elif action == 'update_contact_details':
-                user_data = request.data.get('user_data', {})
-                if 'first_name' in user_data:
-                    client.user.first_name = user_data['first_name']
-                if 'last_name' in user_data:
-                    client.user.last_name = user_data['last_name']
-                if 'email' in user_data:
-                    client.user.email = user_data['email']
+
+            elif action == "update_contact_details":
+                user_data = request.data.get("user_data", {})
+                if "first_name" in user_data:
+                    client.user.first_name = user_data["first_name"]
+                if "last_name" in user_data:
+                    client.user.last_name = user_data["last_name"]
+                if "email" in user_data:
+                    client.user.email = user_data["email"]
                 client.user.save()
-                
-                client_data = request.data.get('client_data', {})
-                if 'company' in client_data:
-                    client.company = client_data['company']
-                if 'role' in client_data:
-                    client.role = client_data['role']
+
+                client_data = request.data.get("client_data", {})
+                if "company" in client_data:
+                    client.company = client_data["company"]
+                if "role" in client_data:
+                    client.role = client_data["role"]
                 client.save()
-                
-                return Response({'message': 'Contact details updated successfully'})
-            
-            elif action == 'add_internal_note':
-                note = request.data.get('note', '')
+
+                return Response({"message": "Contact details updated successfully"})
+
+            elif action == "add_internal_note":
+                note = request.data.get("note", "")
                 if note:
                     from django.utils import timezone
-                    timestamp = timezone.now().strftime('%Y-%m-%d %H:%M')
+
+                    timestamp = timezone.now().strftime("%Y-%m-%d %H:%M")
                     new_note = f"[{timestamp}] {request.user.get_full_name()}: {note}"
-                    
+
                     if client.internal_notes:
                         client.internal_notes += f"\n\n{new_note}"
                     else:
                         client.internal_notes = new_note
-                    
+
                     client.save()
-                    return Response({'message': 'Internal note added successfully'})
+                    return Response({"message": "Internal note added successfully"})
                 else:
-                    return Response({'error': 'Note content is required'}, status=status.HTTP_400_BAD_REQUEST)
-            
+                    return Response(
+                        {"error": "Note content is required"},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
             else:
-                return Response({'error': 'Invalid action'}, status=status.HTTP_400_BAD_REQUEST)
-                
+                return Response(
+                    {"error": "Invalid action"}, status=status.HTTP_400_BAD_REQUEST
+                )
+
         except Client.DoesNotExist:
             return Response(
                 {"error": "Client not found"}, status=status.HTTP_404_NOT_FOUND

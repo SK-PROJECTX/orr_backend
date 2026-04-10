@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block title %}Payment Receipt - ORR Solutions{% endblock %}
+
+{% block content %}
+    <h1>Payment Successful</h1>
+    
+    <p>Hello {{ client_name }},</p>
+    
+    <p>We successfully charged <strong>${{ amount }}</strong> for your recent meeting.</p>
+
+    <div style="background-color: #1a1a1a; border-left: 4px solid #00c26f; padding: 15px; margin: 25px 0; text-align: left; border-radius: 4px;">
+        <p style="margin: 5px 0; font-size: 14px; color: #cccccc;">
+            <strong>Ticket ID:</strong> {{ meeting_id }}
+        </p>
+        <p style="margin: 5px 0; font-size: 14px; color: #cccccc;">
+            <strong>Date:</strong> {{ date|date:"M d, Y H:i" }}
+        </p>
+        <p style="margin: 5px 0; font-size: 14px; color: #ffffff;">
+            <strong>Total Paid:</strong> ${{ amount }}
+        </p>
+    </div>
+
+    <p style="margin-bottom: 30px;">
+        You can download the official invoice for your records below.
+    </p>
+
+    <a href="{{ invoice_url }}" class="button">View Invoice</a>
+{% endblock %}

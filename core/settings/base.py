@@ -11,7 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
-
+import ssl
 from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -22,13 +22,19 @@ from datetime import timedelta
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-ucl&2#lpd5@ohv$d6)b#+igt42!@1g5ztz(0x-23z7d108h&+u"
+SECRET_KEY = config("SECRET_KEY")
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
 
-ALLOWED_HOSTS = []
 
+ALLOWED_HOSTS = [
+    "orr-backend-web-latest.onrender.com",
+    "localhost",
+    "127.0.0.1",
+    "orr-backend-web-latest.onrender.com",
+    "testserver",
+    "orr-backend-105825824472.us-central1.run.app",
+    "orr-backend.orr.solutions",
+]
 
 # Application definition
 
@@ -39,6 +45,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "corsheaders",
     "rest_framework",
     "drf_spectacular",
     "common",
@@ -47,20 +54,22 @@ INSTALLED_APPS = [
     "main",
     "admin_portal",
     "scheduling",
-    "organization",
     "payment",
 ]
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
-    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",  # Disabled for API
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 ROOT_URLCONF = "core.urls"
 
 TEMPLATES = [
@@ -83,6 +92,13 @@ WSGI_APPLICATION = "core.wsgi.application"
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
+}
 
 
 # Password validation
@@ -119,7 +135,20 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = "static/"
+
+STATIC_URL = "/static/"
+
+# Local-friendly path
+STATIC_ROOT = BASE_DIR / "staticfiles"  
+
+# Optional: your own static folder
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+]
+
+# Media files (uploads)
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -131,7 +160,6 @@ REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework_simplejwt.authentication.JWTAuthentication",
-        "rest_framework.authentication.SessionAuthentication",
     ],
     "DEFAULT_THROTTLE_RATES": {
         "user": "100/day",
@@ -140,20 +168,19 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=14),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
 }
 
 
-
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = config("EMAIL_HOST", default="smtp.gmail.com")
+EMAIL_HOST = config("EMAIL_HOST", default="smtp-relay.brevo.com")
 EMAIL_PORT = config("EMAIL_PORT", cast=int, default=587)
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")
-EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
+EMAIL_HOST_USER = config("BREVO_SMTP_USER", default="")
+EMAIL_HOST_PASSWORD = config("BREVO_SMTP_KEY", default="")
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL")
 
 
@@ -176,21 +203,118 @@ SPECTACULAR_SETTINGS = {
 }
 
 CELERY_BROKER_URL = config("CELERY_BROKER_URL", "redis://localhost:6379/0")
-CELERY_RESULT_BACKEND = config("CELERY_BROKER_URL", "redis://localhost:6379/0")
+CELERY_RESULT_BACKEND = CELERY_BROKER_URL
 
 
-FRONTEND_VERIFY_EMAIL_URL = config("FRONTEND_VERIFY_EMAIL_URL")
-FRONTEND_RESET_PASSWORD_URL = config("FRONTEND_RESET_PASSWORD_URL")
+
+FRONTEND_VERIFY_EMAIL_URL = config("FRONTEND_VERIFY_EMAIL_URL", default="http://localhost:3000/verify")
+FRONTEND_RESET_PASSWORD_URL = config("FRONTEND_RESET_PASSWORD_URL", default="http://localhost:3000/reset")
 
 
-STRIPE_SECRET_KEY=config("STRIPE_SECRET_KEY")
-STRIPE_PUBLISHABLE_KEY=config("STRIPE_PUBLISHABLE_KEY")
+STRIPE_SECRET_KEY = config("STRIPE_SECRET_KEY", default="sk_test_dummy")
+STRIPE_PUBLISHABLE_KEY = config("STRIPE_PUBLISHABLE_KEY", default="pk_test_dummy")
+STRIPE_WEBHOOK_SECRET = config("STRIPE_WEBHOOK_SECRET", default="whsec_dummy")
 
-
-STRIPE_SUCCESS_URL=config("STRIPE_SUCCESS_URL")
-STRIPE_CANCEL_URL=config("STRIPE_CANCEL_URL")
+STRIPE_SUCCESS_URL = config("STRIPE_SUCCESS_URL", default="http://localhost:3000/success")
+STRIPE_CANCEL_URL = config("STRIPE_CANCEL_URL", default="http://localhost:3000/cancel")
 
 
 CELERY_TIMEZONE = "Africa/Lagos"
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 30 * 60
+
+# More permissive CORS for development
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost",
+    "http://127.0.0.1",
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://localhost:8000",
+    "https://admin.orr.solutions",
+    "https://orr-admin-frontend.vercel.app",
+    "https://orr-solutions-admin.vercel.app",
+    "https://orr.solutions",
+    "https://orr-solutions.vercel.app",
+    "https://orr-solutions-admin.vercel.app",
+    "https://admin.orr.solutions",
+    "https://admin.orr.solutions",
+    "https://orr-solutions.vercel.app",
+    "https://orr-solutions.vercel.app",
+    "https://orr.solutions",
+    "https://www.orr.solutions",
+
+]
+
+CORS_ALLOW_HEADERS = [
+    "authorization",
+    "content-type",
+    "x-csrftoken",
+    "x-requested-with",
+    "accept",
+    "accept-encoding",
+    "accept-language",
+    "origin",
+    "user-agent",
+]
+
+CORS_ALLOW_METHODS = [
+    "DELETE",
+    "GET",
+    "OPTIONS",
+    "PATCH",
+    "POST",
+    "PUT",
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost",
+    "http://127.0.0.1",
+    "http://localhost:3000",
+    
+    "http://localhost:5173",
+    "http://localhost:8000",
+    "https://admin.orr.solutions",
+    "https://orr-admin-frontend.vercel.app",
+    "https://orr-solutions-admin.vercel.app",
+    "https://orr-backend-105825824472.us-central1.run.app",
+    "https://orr-backend.orr.solutions",
+    "https://orr.solutions",
+    "https://orr-solutions.vercel.app",
+    "https://orr-solutions-admin.vercel.app",
+    "https://admin.orr.solutions",
+    "https://admin.orr.solutions",
+    "https://orr-solutions.vercel.app",
+    "https://orr-solutions.vercel.app",
+    "https://orr.solutions",
+    "https://www.orr.solutions",
+]
+
+SESSION_COOKIE_SECURE = True
+
+
+
+CORS_ALLOW_CREDENTIALS = True
+
+# Disable CSRF for API endpoints (we use JWT authentication)
+CSRF_TRUSTED_ORIGINS += [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://admin.orr.solutions",
+    "https://orr-admin-frontend.vercel.app",
+    "https://orr-solutions-admin.vercel.app",
+]
+
+# CSRF Settings
+CSRF_COOKIE_SECURE = False
+CSRF_COOKIE_HTTPONLY = False
+
+
+
+
+
+CALENDLY_API_KEY = config("CALENDLY_API_KEY")
+BREVO_API_KEY = config("BREVO_API_KEY")
+
+
+STRIPE_WEBHOOK_SECRET=config("STRIPE_WEBHOOK_SECRET")

@@ -94,7 +94,7 @@ class ActivitySerializer(serializers.ModelSerializer):
             "id",
             "activity_type",
             "title",
-            "description",
+            "message",
             "metadata",
             "is_read",
             "created_at",

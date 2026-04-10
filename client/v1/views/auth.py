@@ -2,15 +2,13 @@ import logging
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_exempt
 from drf_spectacular.utils import extend_schema
 from rest_framework import status, views
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
-
+from drf_spectacular.utils import extend_schema_field, extend_schema_serializer, OpenApiExample
 from services.notifications.email_verification import (
     send_email_verification_notification,
 )
@@ -21,20 +19,13 @@ User = get_user_model()
 
 
 @extend_schema(tags=["auth"])
-@method_decorator(csrf_exempt, name="dispatch")
 class SignupView(views.APIView):
     permission_classes = [AllowAny]
     serializer_class = SignUpSerializer
 
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
-
-        if not serializer.is_valid():
-            return Response(
-                {"error": "Invalid data.", "details": serializer.errors},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
+        serializer.is_valid(raise_exception=True)
         username = serializer.validated_data["username"]
         email = serializer.validated_data["email"]
         password = serializer.validated_data["password"]
@@ -94,8 +85,9 @@ class SignupView(views.APIView):
         )
 
 
+
+
 @extend_schema(tags=["auth"])
-@method_decorator(csrf_exempt, name="dispatch")
 class LoginView(APIView):
     permission_classes = [AllowAny]
     serializer_class = LoginSerializer
@@ -109,16 +101,7 @@ class LoginView(APIView):
         user = serializer.validated_data["user"]
         role_info = serializer.validated_data["role_info"]
 
-        if not user.is_active:
-            send_email_verification_notification(user)
-            return Response(
-                {
-                    "message": "Account not verified. A new verification email has been sent.",
-                    "data": {},
-                },
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
+       
         refresh = RefreshToken.for_user(user)
 
         return Response(

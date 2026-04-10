@@ -25,6 +25,9 @@ from drf_spectacular.views import (
     SpectacularSwaggerView,
 )
 
+from common.auth_views import LoginView
+from django.http import HttpResponse
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
@@ -37,6 +40,12 @@ urlpatterns = [
     path(
         "api/docs/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"
     ),
+    path(
+        'google4c2e35c31a92bd53.html', 
+        lambda request: HttpResponse("google-site-verification: google4c2e35c31a92bd53.html")
+    ),
+    # Direct login endpoint for frontend
+    path("login/", LoginView.as_view(), name="direct-login"),
     path("", include("main.v1.urls")),
     path("", include("client.v1.urls")),
     path("", include("scheduling.v1.urls")),

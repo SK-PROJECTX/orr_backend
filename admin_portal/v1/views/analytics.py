@@ -135,8 +135,9 @@ class AnalyticsOverviewView(APIView):
     def _calculate_avg_resolution_time(self):
         """Calculate average ticket resolution time in hours"""
         from admin_portal.services import AnalyticsService
+
         return AnalyticsService.calculate_ticket_resolution_time()
-    
+
     def _calculate_escalation_rate(self):
         """Calculate AI conversation escalation rate"""
         total_conversations = AIConversation.objects.count()
@@ -151,6 +152,7 @@ class AnalyticsOverviewView(APIView):
     def _calculate_avg_confirmation_time(self):
         """Calculate average meeting confirmation time in hours"""
         from admin_portal.services import AnalyticsService
+
         return AnalyticsService.calculate_meeting_confirmation_time()
 
 

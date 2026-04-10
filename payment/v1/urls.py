@@ -1,14 +1,21 @@
 from django.urls import path
 from rest_framework.routers import DefaultRouter
+
 from .views import (
     BillingHistoryView,
     BillingPortalView,
     ChangePlanView,
     CreateCheckoutSession,
     PauseSubscriptionView,
-    StripeWebhookView,
+    PricingPlanViewSet,
     stripe_webhook,
-    PricingPlanViewSet
+    CreateSetupIntent,
+    AddPaymentMethodView,
+    DeletePaymentMethodView,
+    CreateStripeCustomerView,
+    ListPaymentMethodsView,
+    GetStripeCustomerView,
+    SubscriptionStatusAPIView
 )
 
 router = DefaultRouter()
@@ -23,9 +30,36 @@ urlpatterns = [
         name="pause-subscription",
     ),
     path("subscriptions/portal/", BillingPortalView.as_view(), name="billing-portal"),
-    path("webhook/", StripeWebhookView.as_view()),
     path("billing-history/", BillingHistoryView.as_view()),
-    path("stripe/webhook/", stripe_webhook, name="stripe-webhook"),
+    path("stripe-webhook/", stripe_webhook, name="stripe-webhook"),
+    path("setup-intent/", CreateSetupIntent.as_view(), name="create_setup_intent"),
+     path(
+        "user/create-stripe-customer/",
+        CreateStripeCustomerView.as_view(),
+        name="create-stripe-customer",
+    ),
+     path(
+        "user/get-stripe-customer/",
+        GetStripeCustomerView.as_view(),
+        name="get-stripe-customer",
+    ),
+
+    path(
+        "user/add-payment-method/",
+        AddPaymentMethodView.as_view(),
+        name="add-payment-method",
+    ),
+    path(
+        "user/payment-methods/",
+        ListPaymentMethodsView.as_view(),
+        name="list-payment-methods",
+    ),
+    path(
+        "user/payment-methods/<str:id>/",
+        DeletePaymentMethodView.as_view(),
+        name="delete-payment-method",
+    ),
+     path("subscription/status/", SubscriptionStatusAPIView.as_view()),
 ]
 
 urlpatterns += router.urls

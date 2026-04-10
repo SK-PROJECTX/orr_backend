@@ -4,6 +4,9 @@ from django.utils import timezone
 
 from common.models import Audit
 
+# Import CMS models
+from .models_cms import *
+
 
 class AdminRole(models.Model):
     """Admin roles with flexible permissions"""
@@ -63,9 +66,10 @@ class Client(Audit):
     ]
 
     PILLAR_CHOICES = [
-        ("strategic", "Strategic Advisory & Compliance"),
-        ("digital", "Digital Systems, Automation & AI"),
-        ("living", "Living Systems & Regeneration"),
+        ("strategic", "Strategic"),
+        ("operational", "Operational"),
+        ("financial", "Financial"),
+        ("cultural", "Cultural"),
     ]
 
     user = models.OneToOneField(
@@ -94,12 +98,15 @@ class Client(Audit):
 
 
 class Ticket(Audit):
-    """Support ticket system"""
+    """Payment and support ticket system"""
 
     STATUS_CHOICES = [
         ("new", "New"),
-        ("in_progress", "In Progress"),
-        ("waiting_client", "Waiting on Client"),
+        ("processing", "Processing Payment"),
+        ("payment_failed", "Payment Failed"),
+        ("payment_disputed", "Payment Disputed"),
+        ("refund_requested", "Refund Requested"),
+        ("refund_processed", "Refund Processed"),
         ("resolved", "Resolved"),
         ("archived", "Archived"),
     ]
@@ -112,9 +119,11 @@ class Ticket(Audit):
     ]
 
     SOURCE_CHOICES = [
-        ("ai_escalation", "AI Escalation"),
+        ("payment_webhook", "Payment Webhook"),
+        ("billing_portal", "Billing Portal"),
+        ("subscription_change", "Subscription Change"),
         ("manual_request", "Manual Request"),
-        ("portal_form", "Portal Form"),
+        ("client_inquiry", "Client Inquiry"),
     ]
 
     ticket_id = models.CharField(max_length=20, unique=True)
@@ -128,6 +137,9 @@ class Ticket(Audit):
     )
 
     subject = models.CharField(max_length=200)
+    contact_name = models.CharField(max_length=150, blank=True)
+    contact_email = models.EmailField(blank=True)
+    contact_website = models.URLField(blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="new")
     priority = models.CharField(
         max_length=10, choices=PRIORITY_CHOICES, default="normal"
@@ -139,21 +151,42 @@ class Ticket(Audit):
     # Content
     description = models.TextField()
     internal_notes = models.TextField(blank=True)
+    is_escalated = models.BooleanField(default=False)
 
-    # Relationships
-    related_meeting = models.ForeignKey(
-        "Meeting", on_delete=models.SET_NULL, null=True, blank=True
+    # Payment relationships (required - all tickets must be payment-related)
+    related_invoice = models.ForeignKey(
+        "payment.Invoice", on_delete=models.CASCADE, null=True, blank=True
     )
-    related_content = models.ForeignKey(
-        "Content", on_delete=models.SET_NULL, null=True, blank=True
+    related_subscription = models.ForeignKey(
+        "payment.Subscription", on_delete=models.CASCADE, null=True, blank=True
     )
-
+    
+    # Payment specific fields
+    payment_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    stripe_payment_intent_id = models.CharField(max_length=255, blank=True)
+    refund_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    
+    def clean(self):
+        # Optional validation - tickets can be general support tickets
+        pass
+    
     def save(self, *args, **kwargs):
-        if not self.ticket_id:
-            self.ticket_id = (
-                f"TKT-{timezone.now().strftime('%Y%m%d')}-{self.pk or '001'}"
-            )
+        is_new = self.pk is None
+        needs_ticket_id = is_new and not self.ticket_id
+
+        if needs_ticket_id:
+            import uuid
+            self.ticket_id = f"tmp-{uuid.uuid4().hex[:10]}"
+
         super().save(*args, **kwargs)
+        
+        if needs_ticket_id:
+            self.ticket_id = f"TKT-{timezone.now().strftime('%Y%m%d')}-{self.pk}"
+            super().save(update_fields=["ticket_id"])
+            
+            # Re-dispatch post_save so creation hooks fire with the final ticket_id
+            from django.db.models.signals import post_save
+            post_save.send(sender=self.__class__, instance=self, created=True, update_fields=["ticket_id"])
 
     def __str__(self):
         return f"{self.ticket_id} - {self.subject}"
@@ -185,6 +218,7 @@ class Content(Audit):
         ("checklist", "Checklist"),
         ("template", "Template"),
         ("guide", "Guide"),
+        ("announcement", "Announcement"),
     ]
 
     STATUS_CHOICES = [
@@ -202,9 +236,10 @@ class Content(Audit):
     ]
 
     PILLAR_CHOICES = [
-        ("strategic", "Strategic Advisory & Compliance"),
-        ("digital", "Digital Systems, Automation & AI"),
-        ("living", "Living Systems & Regeneration"),
+        ("strategic", "Strategic"),
+        ("operational", "Operational"),
+        ("financial", "Financial"),
+        ("cultural", "Cultural"),
     ]
 
     title = models.CharField(max_length=200)
@@ -243,10 +278,10 @@ class Meeting(Audit):
     """Meeting management system"""
 
     TYPE_CHOICES = [
-        ("discovery", "Discovery Meeting"),
-        ("follow_up", "Follow-up"),
+        ("discovery", "Discovery"),
+        ("first_meeting", "First Meeting"),
+        ("follow_up", "Follow Up"),
         ("report_review", "Report Review"),
-        ("consultation", "Consultation"),
     ]
 
     STATUS_CHOICES = [
@@ -266,16 +301,20 @@ class Meeting(Audit):
         max_length=20, choices=STATUS_CHOICES, default="requested"
     )
 
-    # Scheduling
+
     requested_datetime = models.DateTimeField()
     confirmed_datetime = models.DateTimeField(null=True, blank=True)
+    end_datetime = models.DateTimeField(null=True, blank=True)
     duration_minutes = models.PositiveIntegerField(default=60)
+   
 
-    # Details
     agenda = models.TextField(blank=True)
     meeting_notes = models.TextField(blank=True)
     internal_notes = models.TextField(blank=True)
-
+    
+    basic_context = models.TextField(blank=True)
+    goals = models.TextField(blank=True)
+    pain_points = models.TextField(blank=True)
     # Assignment
     host = models.ForeignKey(
         User,
@@ -288,6 +327,56 @@ class Meeting(Audit):
     # Integration
     calendar_event_id = models.CharField(max_length=200, blank=True)
     meeting_link = models.URLField(blank=True)
+
+    @property
+    def duration_hours(self):
+         # If Calendly sent confirmed start & end time:
+        if self.confirmed_datetime and hasattr(self, "end_datetime") and self.end_datetime:
+            delta = self.end_datetime - self.confirmed_datetime
+            minutes = delta.total_seconds() / 60
+            return minutes / 60
+
+        return self.duration_minutes / 60
+
+
+    @property
+    def event_date(self):
+        dt = self.confirmed_datetime or self.requested_datetime
+        return dt.date()
+
+    @property
+    def event_time(self):
+        dt = self.confirmed_datetime or self.requested_datetime
+        return dt.strftime("%H:%M")
+
+    @property
+    def label(self):
+        today = timezone.now().date()
+        diff = (self.event_date - today).days
+
+        if diff < 0:
+            return "Completed"
+        if diff == 0:
+            return "Today"
+        if diff == 1:
+            return "Tomorrow"
+        return f"{diff} days left"
+
+    @property
+    def color(self):
+        mapping = {
+            "requested": "#60A5FA",  # blue
+            "confirmed": "#4ADE80",  # green
+            "rescheduled": "#FACC15",  # yellow
+            "declined": "#F87171",  # red
+            "completed": "#9CA3AF",  # gray
+            "cancelled": "#EF4444",  # red
+        }
+        return mapping.get(self.status, "#6B7280")
+
+    @property
+    def title(self):
+        return self.get_meeting_type_display()
 
     def __str__(self):
         return f"{self.client.user.get_full_name()} - {self.get_meeting_type_display()}"
@@ -449,3 +538,153 @@ class ClientDocument(Audit):
 
     def __str__(self):
         return f"{self.client.user.get_full_name()} - {self.title}"
+
+
+class ProRataApproval(Audit):
+    """Pro-rata billing approval requests"""
+
+    ADJUSTMENT_TYPE_CHOICES = [
+        ('upgrade', 'Plan Upgrade'),
+        ('downgrade', 'Plan Downgrade'),
+        ('addon', 'Add-on Service'),
+        ('removal', 'Service Removal'),
+    ]
+
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    ]
+
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name='prorata_approvals')
+    subscription_id = models.CharField(max_length=255)
+    old_plan_name = models.CharField(max_length=100)
+    new_plan_name = models.CharField(max_length=100)
+    change_date = models.DateField()
+    prorated_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    adjustment_type = models.CharField(max_length=20, choices=ADJUSTMENT_TYPE_CHOICES)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    requested_by = models.CharField(max_length=50)
+    notes = models.TextField(blank=True)
+    approved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='approved_prorata')
+    approved_at = models.DateTimeField(null=True, blank=True)
+    rejection_reason = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.client.user.get_full_name()} - {self.adjustment_type} - ${self.prorated_amount}"
+
+
+class PaymentDispute(Audit):
+    """Payment dispute management"""
+
+    DISPUTE_TYPE_CHOICES = [
+        ('chargeback', 'Chargeback'),
+        ('inquiry', 'Inquiry'),
+        ('refund_request', 'Refund Request'),
+    ]
+
+    STATUS_CHOICES = [
+        ('open', 'Open'),
+        ('under_review', 'Under Review'),
+        ('resolved', 'Resolved'),
+        ('closed', 'Closed'),
+    ]
+
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name='payment_disputes')
+    invoice = models.ForeignKey('payment.Invoice', on_delete=models.CASCADE, related_name='disputes')
+    dispute_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    dispute_reason = models.TextField()
+    dispute_type = models.CharField(max_length=20, choices=DISPUTE_TYPE_CHOICES)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='open')
+    stripe_dispute_id = models.CharField(max_length=255, blank=True)
+    evidence_due_date = models.DateTimeField(null=True, blank=True)
+    resolved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='resolved_disputes')
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    resolution_notes = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.client.user.get_full_name()} - {self.dispute_type} - ${self.dispute_amount}"
+
+
+class DisputeNote(Audit):
+    """Notes for payment disputes"""
+
+    dispute = models.ForeignKey(PaymentDispute, on_delete=models.CASCADE, related_name='notes')
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    note = models.TextField()
+    is_internal = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"{self.dispute} - Note by {self.created_by.username}"
+
+
+class WalletTransaction(Audit):
+    """Client wallet transaction history"""
+
+    TRANSACTION_TYPE_CHOICES = [
+        ('credit', 'Credit'),
+        ('debit', 'Debit'),
+        ('refund', 'Refund'),
+        ('adjustment', 'Adjustment'),
+    ]
+
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name='wallet_transactions')
+    transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPE_CHOICES)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    balance_before = models.DecimalField(max_digits=10, decimal_places=2)
+    balance_after = models.DecimalField(max_digits=10, decimal_places=2)
+    description = models.TextField()
+    reference_id = models.CharField(max_length=100, blank=True)
+    processed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.client.user.get_full_name()} - {self.transaction_type} - ${self.amount}"
+
+
+
+class Report(Audit):
+    """
+    Represents deliverables generated after a meeting, matching the UI cards.
+    """
+    STATUS_CHOICES = [
+        ("draft", "Draft"), 
+        ("pending", "Pending"),   
+        ("completed", "Completed"), 
+    ]
+
+    meeting = models.ForeignKey(
+        Meeting, on_delete=models.CASCADE, related_name="reports"
+    )
+    title = models.CharField(max_length=255) 
+    description = models.TextField(blank=True) 
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="draft")
+    
+   
+    file = models.FileField(upload_to="reports/%Y/%m/") 
+    created_at = models.DateTimeField(auto_now_add=True) 
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.title} ({self.get_status_display()})"
+
+    @property
+    def file_size_display(self):
+        """
+        Returns file size in MB to match UI (e.g., '2.4 MB').
+        """
+        if self.file and hasattr(self.file, 'size'):
+            size_in_mb = self.file.size / (1024 * 1024)
+            return f"{size_in_mb:.1f} MB"
+        return "0 MB"
