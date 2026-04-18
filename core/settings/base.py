@@ -30,15 +30,8 @@ DEBUG = config("DEBUG", default=True, cast=bool)
 
 
 
-ALLOWED_HOSTS = [
-    "orr-backend-web-latest.onrender.com",
-    "localhost",
-    "127.0.0.1",
-    "orr-backend-web-latest.onrender.com",
-    "testserver",
-    "orr-backend-105825824472.us-central1.run.app",
-    "orr-backend.orr.solutions",
-]
+ALLOWED_HOSTS = ["*"]
+
 
 # Application definition
 
