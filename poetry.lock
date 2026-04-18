@@ -453,6 +453,22 @@ Django = ">=5.2"
 drf = ["djangorestframework"]
 
 [[package]]
+name = "django-modeltranslation"
+version = "0.20.3"
+description = "Translates Django models using a registration approach."
+optional = false
+python-versions = "<4,>=3.10"
+groups = ["main"]
+files = [
+    {file = "django_modeltranslation-0.20.3-py3-none-any.whl", hash = "sha256:0e1aaf77ce3dcf80c7ec67a6d67821635d07f4849c90363bc0afedb237b014f0"},
+    {file = "django_modeltranslation-0.20.3.tar.gz", hash = "sha256:53f5e33927b99e184f3100c965c45f306f370b7086c6b34e35468800be0916ea"},
+]
+
+[package.dependencies]
+django = ">=5.1"
+typing-extensions = ">=4.0.1"
+
+[[package]]
 name = "django-rest-swagger"
 version = "2.2.0"
 description = "Swagger UI for Django REST Framework 3.5+"
@@ -1706,4 +1722,4 @@ brotli = ["brotli"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "a64b6d3f71a820cc9e91e57374a1d56edb6ffa9424c9c011ded34c569b31cff7"
+content-hash = "326d278122a110271c5408e897c614fc8cb559459a4ffa6bff3ab9a06f4e6b5f"

@@ -1,6 +1,14 @@
 from rest_framework import serializers
 
 from admin_portal.models import Ticket, TicketMessage
+from django.contrib.auth.models import User
+
+
+class UserMinimalSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["username", "first_name", "last_name"]
+
 
 
 class TicketListSerializer(serializers.ModelSerializer):
@@ -158,18 +166,20 @@ class TicketMessageSerializer(serializers.ModelSerializer):
 
     sender_name = serializers.SerializerMethodField()
     sender_type = serializers.SerializerMethodField()
+    sender = UserMinimalSerializer(read_only=True)
 
     class Meta:
         model = TicketMessage
         fields = [
             "id",
             "message",
+            "sender",
             "sender_name",
             "sender_type",
             "is_internal",
             "created_at",
         ]
-        read_only_fields = ["id", "sender_name", "sender_type", "created_at"]
+        read_only_fields = ["id", "sender", "sender_name", "sender_type", "created_at"]
 
     def get_sender_name(self, obj):
         # Get full name, fallback to username if full name is empty
