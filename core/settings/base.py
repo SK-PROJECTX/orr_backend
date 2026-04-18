@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 import ssl
 from decouple import config
+import dj_database_url
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -22,7 +24,9 @@ from datetime import timedelta
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config("SECRET_KEY")
+SECRET_KEY = config("SECRET_KEY", default="django-insecure-fallback-for-cloud-run-boot")
+
+DEBUG = config("DEBUG", default=True, cast=bool)
 
 
 
@@ -96,11 +100,19 @@ WSGI_APPLICATION = "core.wsgi.application"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': config(
+        'DATABASE_URL',
+        default=f'sqlite:///{BASE_DIR}/db.sqlite3',
+        cast=dj_database_url.parse
+    )
 }
+
+# If using PostgreSQL in production, ensure we use the binary engine if not specified
+if DATABASES['default'].get('ENGINE') == 'django.db.backends.postgresql':
+    DATABASES['default']['OPTIONS'] = {
+        'connect_timeout': 5,
+    }
+
 
 
 # Password validation
@@ -188,7 +200,7 @@ EMAIL_PORT = config("EMAIL_PORT", cast=int, default=587)
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = config("BREVO_SMTP_USER", default="")
 EMAIL_HOST_PASSWORD = config("BREVO_SMTP_KEY", default="")
-DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL")
+DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="noreply@orr.solutions")
 
 
 SPECTACULAR_SETTINGS = {
@@ -320,8 +332,9 @@ CSRF_COOKIE_HTTPONLY = False
 
 
 
-CALENDLY_API_KEY = config("CALENDLY_API_KEY")
-BREVO_API_KEY = config("BREVO_API_KEY")
+CALENDLY_API_KEY = config("CALENDLY_API_KEY", default="")
+BREVO_API_KEY = config("BREVO_API_KEY", default="")
 
 
-STRIPE_WEBHOOK_SECRET=config("STRIPE_WEBHOOK_SECRET")
+STRIPE_WEBHOOK_SECRET=config("STRIPE_WEBHOOK_SECRET", default="")
+

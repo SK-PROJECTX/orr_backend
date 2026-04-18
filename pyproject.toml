@@ -28,6 +28,7 @@ sib-api-v3-sdk = "^7.6.0"
 kombu = "^5.6.1"
 django-filter = "^25.2"
 django-modeltranslation = "^0.20.3"
+dj-database-url = "^3.1.2"
 
 
 [build-system]
