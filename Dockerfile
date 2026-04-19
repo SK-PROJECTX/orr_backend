@@ -40,8 +40,10 @@ RUN poetry install --no-root
 COPY . /app
 
 
-# Make entrypoint executable
-RUN chmod +x /app/entrypoint.sh
+# Make entrypoint executable and fix potential Windows line ending issues
+RUN apt-get update && apt-get install -y dos2unix && \
+    dos2unix /app/entrypoint.sh && \
+    chmod +x /app/entrypoint.sh
 
 
 # Start app
