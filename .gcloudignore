@@ -22,3 +22,5 @@ debug_output.txt
 orr_backend/
 orr_backend.zip
 orr_backend.tar.gz
+.env
+.env.local

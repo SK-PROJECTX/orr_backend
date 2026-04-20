@@ -1,23 +1,15 @@
 import os
-from decouple import config
 from .base import *
-from urllib.parse import urlparse
 from urllib.parse import urlparse, parse_qs, unquote
+from decouple import config
 
 DEBUG = True
 
-
-
-
-
-
-
 DATABASE_URL = config("DATABASE_URL")
+DB_PASSWORD = config("DB_PASSWORD", default=None)
 
 if DATABASE_URL:
     url = urlparse(DATABASE_URL)
-    
-  
     query_params = parse_qs(url.query)
     
     db_host = query_params.get('host', [url.hostname])[0]
@@ -30,7 +22,7 @@ if DATABASE_URL:
             "ENGINE": "django.db.backends.postgresql",
             "NAME": url.path[1:],
             "USER": url.username,
-            "PASSWORD": url.password,
+            "PASSWORD": DB_PASSWORD or (unquote(url.password) if url.password else None),
             "HOST": db_host,            
             "PORT": url.port or "5432",
         }
