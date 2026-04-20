@@ -51,12 +51,28 @@ CORS_ALLOWED_ORIGINS = [
     "https://orr-solutions-admin.vercel.app",
     "https://orr-solutions.vercel.app",
     "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://localhost:3000",
     "http://localhost:5173",
     "https://www.orr.solutions",
     "https://orr.solutions",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
+
+# CSRF settings
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://orr-backend-105825824472.asia-southeast2.run.app",
+    "https://orr-backend.orr.solutions",
+    "https://orr.solutions",
+    "https://www.orr.solutions",
+    "https://orr-solutions.vercel.app",
+    "https://orr-admin-frontend.vercel.app",
+    "https://orr-solutions-admin.vercel.app",
+    "https://admin.orr.solutions",
+]
 
 # Static files for production
 STATIC_ROOT = "/app/staticfiles"

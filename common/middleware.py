@@ -18,6 +18,9 @@ class QueryParameterLocaleMiddleware:
         if language and language in supported_languages:
             translation.activate(language)
             request.LANGUAGE_CODE = translation.get_language()
+            print(f"DEBUG: Language activated from query parameter: {language}")
+        else:
+            print(f"DEBUG: Language not changed (lang={language}, supported={supported_languages})")
         
         response = self.get_response(request)
         
