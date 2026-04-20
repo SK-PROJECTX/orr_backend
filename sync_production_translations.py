@@ -1,20 +1,40 @@
 #!/usr/bin/env python
-"""
-Utility script to update Italian translations for CMS content in the PRODUCTION database.
-Usage: 
-1. Set DATABASE_URL environment variable to your production DB.
-2. Run: python sync_production_translations.py
-"""
 import os
 import sys
 import django
+from django.conf import settings
 
-# Add the project directory to the Python path
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+# 1. Get the password from environment
+db_pass = os.environ.get('DB_PASS')
+if not db_pass:
+    print("Error: DB_PASS environment variable not set.")
+    sys.exit(1)
 
-# Set up Django
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings.production')
-django.setup()
+# 2. Configure Django settings MANUALLY to bypass production.py issues
+if not settings.configured:
+    settings.configure(
+        DATABASES={
+            'default': {
+                'ENGINE': 'django.db.backends.postgresql',
+                'NAME': 'my_production_db',
+                'USER': 'postgres',
+                'PASSWORD': db_pass,
+                'HOST': '34.134.52.218',
+                'PORT': '5432',
+                'OPTIONS': {
+                    'sslmode': 'require',
+                }
+            }
+        },
+        INSTALLED_APPS=[
+            'django.contrib.contenttypes',
+            'django.contrib.auth',
+            'admin_portal', # This is where your CMS models live
+        ],
+        TIME_ZONE='UTC',
+        USE_TZ=True,
+    )
+    django.setup()
 
 from admin_portal.models_cms import (
     HowWeOperatePageContent, ProcessStep, ServicesPageContent, 
@@ -31,7 +51,7 @@ def update_translations():
     print("Updating Italian translations for PRODUCTION CMS content...")
 
     # 1. Homepage
-    homepage = HomePage.objects.filter(is_active=True).first()
+    homepage = HomePage.objects.all().first()
     if homepage:
         homepage.hero_title_it = "Trasforma il tuo Business con ORR"
         homepage.hero_subtitle_it = "Consulenza Strategica, Innovazione Digitale e Soluzioni di Crescita Sostenibile"
@@ -42,29 +62,8 @@ def update_translations():
         homepage.save()
         print("[OK] Homepage Italian translations updated")
 
-    # 2. How We Operate Page
-    how_we_operate = HowWeOperatePageContent.objects.filter(is_active=True).first()
-    if how_we_operate:
-        how_we_operate.hero_title_it = "Come Operiamo"
-        how_we_operate.save()
-        print("[OK] How We Operate Italian translations updated")
-
-    # 3. Process Steps
-    steps_it = {
-        '01': {'title': "L'Inizio",'bullet1': 'Una conversazione tranquilla.','bullet2': 'Un problema.','bullet3': 'Un punto di pressione.','bullet4': 'Una storia che finalmente viene raccontata.',},
-        '02': {'title': 'La Prima Mappa','subtitle': "Dopo l'incontro, il rumore si schiarisce.",'description': "Apriamo una pagina bianca e iniziamo a disegnare la prima mappa della vostra organizzazione."},
-        '05': {'title': 'Il Rapporto ORR','subtitle': 'Raggiungete il punto decisionale.','description': 'Ciò che ricevete non è decorazione — ma un modello strutturato:'}
-    }
-    for step_num, trans in steps_it.items():
-        step = ProcessStep.objects.filter(step_number=step_num).first()
-        if step:
-            for field, value in trans.items():
-                setattr(step, f"{field}_it", value)
-            step.save()
-            print(f"[OK] Process Step {step_num} updated")
-
-    # 4. Approach Section
-    approach = ApproachSection.objects.filter(is_active=True).first()
+    # 2. Approach Section
+    approach = ApproachSection.objects.all().first()
     if approach:
         approach.title_it = "L'Approccio ORR"
         approach.paragraph_1_it = "Proprio come un medico di base esperto, partiamo dalla vostra storia, non dal nostro framework."
@@ -73,8 +72,8 @@ def update_translations():
         approach.save()
         print("[OK] Approach Section updated")
 
-    # 5. Business System Section
-    biz_sys = BusinessSystemSection.objects.filter(is_active=True).first()
+    # 3. Business System Section
+    biz_sys = BusinessSystemSection.objects.all().first()
     if biz_sys:
         biz_sys.title_it = "L'Azienda come Sistema Vivente"
         biz_sys.card_1_title_it = "Sistema Nervoso"
