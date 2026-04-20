@@ -18,7 +18,9 @@ from admin_portal.models_cms import (
     ResourcesBlogsPageContent, ContentCard, BusinessSystemSection,
     ORRRoleSection, ORRReportSection, MessageStrip,
     StrategicAdvisoryPageContent, OperationalSystemsPageContent, 
-    LivingSystemsPageContent
+    LivingSystemsPageContent, ApproachSection,
+    Testimonial, BlogPost, ContactInfo, BusinessSystemCard,
+    ProcessStage, LegacyPolicyPage, ContactPage
 )
 
 def update_translations():
@@ -243,6 +245,56 @@ def update_translations():
         report.feature_4_it = "mostra dove la consulenza, i sistemi digitali/IA o il lavoro sui sistemi viventi avranno il massimo impatto"
         report.save()
         print("[OK] ORR Report Section Italian translations updated")
+
+    # 12. Approach Section
+    approach = ApproachSection.objects.filter(is_active=True).first()
+    if approach:
+        approach.title_it = "L'Approccio ORR"
+        approach.paragraph_1_it = "Proprio come un medico di base esperto, partiamo dalla vostra storia, non dal nostro framework. Ci prendiamo il tempo per capire come funziona realmente la vostra azienda prima di prescrivere qualsiasi cosa."
+        approach.paragraph_2_it = "Non siamo un consulente solitario — siamo un livello di coordinamento centrale con una rete distribuita alle spalle. Quando necessario, attingiamo a specialisti in vari continenti, ma avrete sempre un unico punto di contatto: ORR, focalizzato su ciò che è meglio per voi."
+        approach.paragraph_3_it = "Sistemiamo ciò che vi rallenta, rafforziamo i sistemi in base al modo in cui le vostre persone lavorano effettivamente e, quando è necessario un contributo più profondo, lo introduciamo al momento giusto — sempre al servizio dei vostri obiettivi."
+        approach.save()
+        print("[OK] Approach Section Italian translations updated")
+
+    # 13. Service Cards
+    for card in ServiceCard.objects.all():
+        if "Strategic Advisory" in str(card.title):
+            card.title_it = "Consulenza Strategica & Conformità"
+            card.description_it = "Chiarezza su regole, rischi e direzione."
+            card.save()
+        elif "Digital Systems" in str(card.title):
+            card.title_it = "Sistemi Digitali & IA"
+            card.description_it = "Automazione e flussi di lavoro intelligenti."
+            card.save()
+        elif "Living Systems" in str(card.title):
+            card.title_it = "Sistemi Viventi & Rigenerazione"
+            card.description_it = "Supporto per ecosistemi e sostenibilità."
+            card.save()
+        print(f"[OK] Service Card '{card.title}' updated")
+
+    # 14. Contact Page
+    contact_page = ContactPage.objects.filter(is_active=True).first()
+    if contact_page:
+        contact_page.hero_title_it = "Contattaci"
+        contact_page.contact_info_title_it = "Informazioni di Contatto"
+        contact_page.contact_info_subtitle_it = "Scrivici per iniziare una conversazione!"
+        contact_page.first_name_label_it = "Nome"
+        contact_page.last_name_label_it = "Cognome"
+        contact_page.email_label_it = "Email"
+        contact_page.phone_label_it = "Numero di Telefono"
+        contact_page.subject_label_it = "Seleziona Oggetto?"
+        contact_page.message_label_it = "Messaggio"
+        contact_page.submit_button_text_it = "Invia Messaggio"
+        contact_page.save()
+        print("[OK] Contact Page Italian translations updated")
+
+    # 15. Legacy & Policy Page
+    legacy = LegacyPolicyPage.objects.filter(is_active=True).first()
+    if legacy:
+        legacy.hero_title_it = "Legacy & Policy"
+        legacy.hero_description_it = "Le nostre policy e il nostro impegno per un futuro sostenibile."
+        legacy.save()
+        print("[OK] Legacy & Policy Page Italian translations updated")
 
     print("\nTranslation update complete!")
 

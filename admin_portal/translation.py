@@ -13,6 +13,23 @@ from .models_cms import (
     HomePage,
     ServicesPage,
     FAQ,
+    ApproachSection,
+    BusinessSystemSection,
+    ORRRoleSection,
+    MessageStrip,
+    ProcessSection,
+    ORRReportSection,
+    ServiceCard,
+    Testimonial,
+    BlogPost,
+    ContactInfo,
+    BusinessSystemCard,
+    ProcessStage,
+    LegacyPolicyPage,
+    ContactPage,
+    StrategicAdvisoryPageContent,
+    OperationalSystemsPageContent,
+    LivingSystemsPageContent,
 )
 
 @register(HomePage)
@@ -104,4 +121,129 @@ class ContactPageContentTranslationOptions(TranslationOptions):
 @register(FAQ)
 class FAQTranslationOptions(TranslationOptions):
     fields = ('question', 'answer')
+
+@register(ApproachSection)
+class ApproachSectionTranslationOptions(TranslationOptions):
+    fields = ('title', 'paragraph_1', 'paragraph_2', 'paragraph_3')
+
+@register(BusinessSystemSection)
+class BusinessSystemSectionTranslationOptions(TranslationOptions):
+    fields = (
+        'title', 'subtitle', 
+        'card_1_title', 'card_1_description',
+        'card_2_title', 'card_2_description',
+        'card_3_title', 'card_3_description',
+    )
+
+@register(ORRRoleSection)
+class ORRRoleSectionTranslationOptions(TranslationOptions):
+    fields = ('title', 'description')
+
+@register(MessageStrip)
+class MessageStripTranslationOptions(TranslationOptions):
+    fields = ('title', 'message')
+
+@register(ProcessSection)
+class ProcessSectionTranslationOptions(TranslationOptions):
+    fields = (
+        'title', 'subtitle',
+        'stage_1_title', 'stage_1_description',
+        'stage_2_title', 'stage_2_description',
+        'stage_3_title', 'stage_3_description',
+        'stage_4_title', 'stage_4_description',
+        'stage_5_title', 'stage_5_description',
+    )
+
+@register(ORRReportSection)
+class ORRReportSectionTranslationOptions(TranslationOptions):
+    fields = ('title', 'subtitle', 'feature_1', 'feature_2', 'feature_3', 'feature_4')
+
+@register(ServiceCard)
+class ServiceCardTranslationOptions(TranslationOptions):
+    fields = ('title', 'description')
+
+@register(Testimonial)
+class TestimonialTranslationOptions(TranslationOptions):
+    fields = ('client_name', 'client_company', 'client_role', 'testimonial_text')
+
+@register(BlogPost)
+class BlogPostTranslationOptions(TranslationOptions):
+    fields = ('title', 'excerpt', 'content', 'meta_title', 'meta_description')
+
+@register(ContactInfo)
+class ContactInfoTranslationOptions(TranslationOptions):
+    fields = (
+        'company_name', 'address_line1', 'address_line2', 
+        'city', 'state', 'country', 'business_hours',
+    )
+
+@register(BusinessSystemCard)
+class BusinessSystemCardTranslationOptions(TranslationOptions):
+    fields = ('title', 'description')
+
+@register(ProcessStage)
+class ProcessStageTranslationOptions(TranslationOptions):
+    fields = ('title', 'description')
+
+@register(LegacyPolicyPage)
+class LegacyPolicyPageTranslationOptions(TranslationOptions):
+    fields = (
+        'hero_title', 'hero_description',
+        'policy_item_1_description', 'policy_item_2_description', 'policy_item_3_description',
+        'meta_title', 'meta_description',
+    )
+
+@register(ContactPage)
+class ContactPageTranslationOptions(TranslationOptions):
+    fields = (
+        'hero_title', 'contact_info_title', 'contact_info_subtitle', 'address',
+        'first_name_label', 'last_name_label', 'email_label', 'phone_label', 'subject_label', 'message_label',
+        'first_name_placeholder', 'last_name_placeholder', 'email_placeholder', 'phone_placeholder', 'message_placeholder',
+        'subject_option_1', 'subject_option_2', 'subject_option_3', 'subject_option_4',
+        'submit_button_text', 'meta_title', 'meta_description',
+    )
+
+@register(StrategicAdvisoryPageContent)
+class StrategicAdvisoryPageContentTranslationOptions(TranslationOptions):
+    fields = (
+        'hero_title', 'hero_subtitle', 'hero_description',
+        'services_title', 'service_1_title', 'service_1_description',
+        'service_2_title', 'service_2_description', 'service_3_title', 'service_3_description',
+        'process_title', 'process_subtitle', 'process_description',
+        'process_step_1_title', 'process_step_1_subtitle', 'process_step_1',
+        'process_step_2_title', 'process_step_2',
+        'process_step_3_title', 'process_step_3',
+        'process_step_4', 'process_step_4_title',
+        'network_title', 'network_description',
+        'digital_title', 'digital_subtitle', 'digital_description', 'digital_image_alt',
+        'cta_title', 'cta_description', 'cta_button_text',
+        'meta_title', 'meta_description',
+    )
+
+@register(OperationalSystemsPageContent)
+class OperationalSystemsPageContentTranslationOptions(TranslationOptions):
+    fields = (
+        'hero_title', 'hero_subtitle', 'hero_description',
+        'services_title', 'service_1_title', 'service_1_description',
+        'service_2_title', 'service_2_description', 'service_3_title', 'service_3_description',
+        'process_title', 'process_description',
+        'process_step_1_title', 'process_step_1',
+        'process_step_2_title', 'process_step_2',
+        'process_step_3_title', 'process_step_3',
+        'process_step_4_title', 'process_step_4',
+        'cta_title', 'cta_description', 'cta_button_text',
+        'meta_title', 'meta_description',
+    )
+
+@register(LivingSystemsPageContent)
+class LivingSystemsPageContentTranslationOptions(TranslationOptions):
+    fields = (
+        'hero_title', 'hero_subtitle', 'hero_description',
+        'services_title', 'service_1_title', 'service_1_description',
+        'service_2_title', 'service_2_description', 'service_3_title', 'service_3_description',
+        'process_title', 'process_description',
+        'process_step_1', 'process_step_2', 'process_step_3', 'process_step_4',
+        'cta_title', 'cta_description', 'cta_button_text',
+        'meta_title', 'meta_description',
+    )
 
