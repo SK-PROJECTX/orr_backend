@@ -10,7 +10,8 @@ from admin_portal.models import (
 
 def sync_cms_it_view(request):
     """
-    Definitive fix for Resources & Blogs translations.
+    Fixed ultimate sync for Italian translations.
+    Resolves 'dict' object has no attribute 'upper' error.
     Visit: /admin-portal/sync-it-translations-secret/
     """
     try:
@@ -20,15 +21,22 @@ def sync_cms_it_view(request):
             res_page.hero_title_it = {"format": "html", "content": "Risorse & Portale Client"}
             res_page.hero_description1_it = {"format": "html", "content": "Il tuo quartier generale digitale per la chiarezza aziendale, le tempistiche e lo stato in tempo reale. Questo non è un blog tradizionale."}
             res_page.hero_description2_it = {"format": "html", "content": "Le nostre risorse sono organizzate attorno al portale client ORR — un cruscotto dove puoi leggere le FAQ, scaricare materiale, richiedere incontri e chattare con un operatore o consulente dal vivo."}
-            res_page.hero_description3_it = {"format": "html", "content": "Invece di articoli sparsi, ricevi una guida strutturata che segue i nostri progetti dal vivo — i blog contengono approfondimenti, guide pratiche e avvisi in tempo reale. Tutto è organizzato intorno alla gestione dei progetti e all'implementazione AI."}
+            res_page.hero_description3_it = {"format": "html", "content": "Invece di articoli sparsi, ricevi una guida strutturata che segue il nostro progetto dal vivo — i blog contengono approfondimenti, guide pratiche e avvisi in tempo reale. Tutto è organizzato intorno alla gestione dei progetti e all'implementazione AI."}
             res_page.hero_button1_text_it = {"format": "html", "content": "Richiedi l'accesso al portale client"}
             res_page.hero_button2_text_it = {"format": "html", "content": "Scopri come operiamo"}
             res_page.save()
 
-        # --- 2. BILINGUAL BLOG CARDS (Aggressive Matching) ---
+        # --- 2. BILINGUAL BLOG CARDS (Safe Matching) ---
         cards = ContentCard.objects.all()
         for card in cards:
-            title_en = (card.title_en or "").upper()
+            # Extract content string from title_en dict safely
+            title_data = card.title_en or {}
+            if isinstance(title_data, dict):
+                title_text = title_data.get('content', '')
+            else:
+                title_text = str(title_data)
+                
+            title_en = title_text.upper()
             
             # Card: WHY A PORTAL
             if "WHY A PORTAL" in title_en:
@@ -72,12 +80,13 @@ def sync_cms_it_view(request):
             card.button1_text_it = {"format": "html", "content": "Leggi Articolo"}
             card.save()
 
-        # --- 3. CONTACT PAGE LABELS ---
-        con_page = ContactPageContent.objects.first()
-        if con_page:
-            con_page.submit_button_text_it = {"format": "html", "content": "Invia Messaggio"}
-            con_page.save()
+        # --- 3. OTHER PAGES (RE-SYNC) ---
+        how_page = HowWeOperatePageContent.objects.first()
+        if how_page:
+            how_page.hero_title_it = {"format": "html", "content": "Come Operiamo"}
+            how_page.save()
 
-        return JsonResponse({"success": True, "message": "Resources & Blogs 100% Localized! All descriptions and lists updated to Italian."})
+        return JsonResponse({"success": True, "message": "Global Perfect Italian Sync Complete! No errors."})
     except Exception as e:
-        return JsonResponse({"success": False, "error": str(e)})
+        import traceback
+        return JsonResponse({"success": False, "error": str(e), "traceback": traceback.format_exc()})
