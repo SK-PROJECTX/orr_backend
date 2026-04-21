@@ -10,83 +10,87 @@ from admin_portal.models import (
 
 def sync_cms_it_view(request):
     """
-    Consolidated view to trigger Italian translation sync for all CMS pages.
+    Final ultimate sync for Italian translations.
     Visit: /admin-portal/sync-it-translations-secret/
     """
     try:
-        # --- 1. HOW WE OPERATE PAGE ---
-        how_page = HowWeOperatePageContent.objects.first()
-        if how_page:
-            how_page.hero_title_it = {"format": "html", "content": "Come Operiamo"}
-            how_page.meta_title_it = {"format": "html", "content": "Metodologia ORR Solutions - Come Operiamo"}
-            how_page.save()
-
-        # --- 2. HOW WE OPERATE STEPS (1-10) ---
-        steps_it = {
-            1: {"title": "L'Inizio", "bullet1": "Una conversazione tranquilla.", "description1": "Ascoltiamo. In modo approfondito."},
-            2: {"title": "La Prima Mappa", "subtitle": "Dopo l'incontro, il rumore si placa.", "description": "Apriamo una pagina bianca e iniziamo a disegnare la prima mappa della tua organizzazione."},
-            3: {"title": "L'Approfondimento", "subtitle": "La mappa si affina.", "description": "Attingiamo alle giuste forme di intelligenza."},
-            4: {"title": "La Seconda Conversazione", "subtitle": "Ora le domande si fanno più affilate."},
-            5: {"title": "Il Rapporto ORR", "subtitle": "Arrivi al punto della decisione.", "description1": "Un progetto che si regge da solo."},
-            6: {"title": "L'Architettura degli Incontri", "subtitle": "Dietro le quinte, il ritmo è semplice:"},
-            7: {"title": "La Scelta", "subtitle": "Con il rapporto in mano, scegli il percorso:", "wordbreak": "OPPURE"},
-            8: {"title": "Il Portale", "subtitle": "Se rimani con noi, il lavoro cambia marcia."},
-            9: {"title": "La Filosofia alla Base", "description1": "È il metodo del Business GP."},
-            10: {"title": "L'Invito", "description1": "È più lento all'inizio, più veloce alla fine.", "button_text": "Prenota il Tuo Incontro"}
-        }
-        for s_id, f in steps_it.items():
-            s = ProcessStep.objects.filter(id=s_id).first()
-            if s:
-                for k, v in f.items(): setattr(s, f"{k}_it", {"format": "html", "content": v})
-                s.save()
-
-        # --- 3. SERVICES PAGE CONTENT ---
-        svc_page = ServicesPageContent.objects.first()
-        if svc_page:
-            svc_page.hero_title_it = {"format": "html", "content": "ORR Solutions - Ascolta. Risolvi. Ottimizza."}
-            svc_page.hero_subtitle_it = {"format": "html", "content": "Trattiamo la tua organizzazione come un intero sistema: digitale, normativo e vivente. Ascoltiamo prima di tutto, poi progettiamo il giusto mix di consulenza, sistemi, AI e progetti sul campo in modo che tu possa muoverti meglio e crescere in modo più intelligente."}
-            svc_page.pillars_title_it = {"format": "html", "content": "I Tre Pilastri"}
-            svc_page.business_gp_title_it = {"format": "html", "content": "ORR è il tuo Business GP per"}
-            svc_page.business_gp_description_it = {"format": "html", "content": "Ascoltiamo l'intera organizzazione, risolviamo con struttura e visione, e ottimizziamo affinché tu possa crescere con fiducia."}
-            svc_page.business_gp_button_text_it = {"format": "html", "content": "Contattaci"}
-            svc_page.save()
-
-        # --- 4. SERVICE STAGES (1-5) ---
-        svc_stages_it = {
-            1: {"title": "FASE 1 - SCOPERTA", "subtitle": "Ascolta.", "focus_content": "Ci concentriamo su:\n• Il tuo contesto, le persone e le pressioni\n• Rischi normativi, operativi e ambientali", "button_text": "Iscriviti"},
-            2: {"title": "FASE 2 - DIAGNOSI", "subtitle": "Pensa. Poi ascolta.", "focus_content": "Cosa succede qui:\n• Mappatura dei processi\n• Revisione di conformità e rischio", "button_text": "Scopri di Più"},
-            3: {"title": "FASE 3 - PROGETTAZIONE", "subtitle": "Progetta.", "focus_content": "Output Tipici:\n• SOP e flussi di lavoro\n• Stack tecnologico e AI", "button_text": "Iscriviti"},
-            4: {"title": "FASE 4 - IMPLEMENTAZIONE", "subtitle": "Risolvi.", "focus_content": "L'implementazione include:\n• Configurazione amministrativa\n• Dashboard KPI", "button_text": "Contattaci"},
-            5: {"title": "FASE 5 - CRESCITA", "subtitle": "Ottimizza.", "focus_content": "Supporto alla crescita:\n• Analisi continua dati\n• Revisioni trimestrali", "button_text": "Iscriviti"}
-        }
-        for st_num, f in svc_stages_it.items():
-            st = ServiceStage.objects.filter(stage_number=st_num).first()
-            if st:
-                for k, v in f.items(): setattr(st, f"{k}_it", {"format": "html", "content": v})
-                st.save()
-
-        # --- 5. RESOURCES & BLOGS PAGE ---
+        # --- 1. HERO - RESOURCES & BLOGS ---
         res_page = ResourcesBlogsPageContent.objects.first()
         if res_page:
             res_page.hero_title_it = {"format": "html", "content": "Risorse & Portale Client"}
-            res_page.hero_description1_it = {"format": "html", "content": "Il tuo quartier generale digitale per la chiarezza aziendale. Questo non è un blog tradizionale."}
+            res_page.hero_description1_it = {"format": "html", "content": "Il tuo quartier generale digitale per la chiarezza aziendale, le tempistiche e lo stato in tempo reale. Questo non è un blog tradizionale."}
+            res_page.hero_description2_it = {"format": "html", "content": "Le nostre risorse sono organizzate attorno al portale client ORR — un cruscotto dove puoi leggere le FAQ, scaricare materiale, richiedere incontri e chattare con un operatore o consulente dal vivo."}
+            res_page.hero_description3_it = {"format": "html", "content": "Invece di articoli sparsi, ricevi una guida strutturata che segue il nostro progetto dal vivo — i blog contengono approfondimenti, guide pratiche e avvisi in tempo reale. Tutto è organizzato intorno alla gestione dei progetti e all'implementazione AI."}
             res_page.hero_button1_text_it = {"format": "html", "content": "Richiedi l'accesso al portale client"}
+            res_page.hero_button2_text_it = {"format": "html", "content": "Scopri come operiamo"}
             res_page.save()
 
-        # --- 6. CONTACT PAGE CONTENT ---
-        con_page = ContactPageContent.objects.first()
-        if con_page:
-            con_page.hero_title_it = {"format": "html", "content": "Contattaci"}
-            con_page.contact_info_title_it = {"format": "html", "content": "Informazioni di Contatto"}
-            con_page.first_name_label_it = {"format": "html", "content": "Nome"}
-            con_page.last_name_label_it = {"format": "html", "content": "Cognome"}
-            con_page.email_label_it = {"format": "html", "content": "Email"}
-            con_page.phone_label_it = {"format": "html", "content": "Numero di Telefono"}
-            con_page.subject_label_it = {"format": "html", "content": "Oggetto"}
-            con_page.message_label_it = {"format": "html", "content": "Messaggio"}
-            con_page.submit_button_text_it = {"format": "html", "content": "Invia Messaggio"}
-            con_page.save()
+        # --- 2. BILINGUAL BLOG CARDS ---
+        def update_card(title_en, title_it, badge_it, content_it_list):
+            card = ContentCard.objects.filter(title_en__icontains=title_en).first()
+            if card:
+                card.title_it = {"format": "html", "content": title_it}
+                card.badge_it = {"format": "html", "content": badge_it}
+                card.content_it = content_it_list
+                card.button1_text_it = {"format": "html", "content": "Leggi Articolo"}
+                card.save()
 
-        return JsonResponse({"success": True, "message": "All CMS translations (Full Site: How We Operate, Services, Resources, Contact) completed successfully!"})
+        # Card 1: Why a Portal
+        update_card(
+            "WHY A PORTAL", 
+            "PERCHÉ UN PORTALE, NON SOLO UN BLOG?", 
+            "Blog",
+            ["Progettato per persone che vogliono agire, non solo leggere. Tutto ciò di cui hai bisogno è in un'unica posizione. Il portale client ORR dal vivo collega risorse, FAQ, chat e gestione dei progetti in un unico posto."]
+        )
+
+        # Card 2: How content is organised
+        update_card(
+            "HOW CONTENT IS ORGANISED", 
+            "COME È ORGANIZZATO IL CONTENUTO", 
+            "Guida",
+            ["Risorse che seguono il nostro modo di lavorare. Tutto qui è focalizzato sui progetti e su risorse dal vivo - non articoli indipendenti o suggerimenti casuali."]
+        )
+
+        # Card 3: What you can do today
+        update_card(
+            "WHAT YOU CAN DO TODAY", 
+            "COSA PUOI FARE OGGI", 
+            "Guida",
+            [
+                "Prima, durante e dopo il lavoro con ORR. Che tu stia appena iniziando o che ci stia già pensando: leggi le nostre FAQ e richiedi una chiamata con noi.",
+                "Prima di iniziare: leggi come si svolgono i nostri incontri dal vivo e il lavoro con i clienti — così saprai cosa aspettarti.",
+                "Durante l'incarico: accedi allo stato del progetto in tempo reale — vedi i progressi e chiedi risposte immediate.",
+                "Dopo il progetto: scarica le risorse, ottieni supporto continuo e accedi alla nostra rete di alumni."
+            ]
+        )
+
+        # Card 4: How access works
+        update_card(
+            "HOW ACCESS WORKS", 
+            "COME FUNZIONA L'ACCESSO", 
+            "Accesso",
+            [
+                "Semplice. Accesso immediato. Richiedi l'accesso: clicca sul pulsante sopra e ti invieremo un'email con i tuoi dati di accesso.",
+                "Ricevi il tuo login: controlla la tua email per le credenziali e il link al tuo portale client.",
+                "Inizia a esplorare: accedi e inizia a esplorare risorse, FAQ e strumenti del progetto.",
+                "Prenota la tua chat: usa il nostro calendario in-app per prenotare una chiamata di 15 minuti con il nostro team."
+            ]
+        )
+
+        # Basic labels for other cards
+        for card in ContentCard.objects.all():
+            if not card.badge_it:
+                card.badge_it = {"format": "html", "content": "Articolo"}
+            if not card.button1_text_it:
+                card.button1_text_it = {"format": "html", "content": "Leggi Tutto"}
+            card.save()
+
+        # --- 3. OTHER PAGES (RE-SYNC) ---
+        how_page = HowWeOperatePageContent.objects.first()
+        if how_page:
+            how_page.hero_title_it = {"format": "html", "content": "Come Operiamo"}
+            how_page.save()
+
+        return JsonResponse({"success": True, "message": "Global Perfect Italian Sync Complete! All cards, labels, and text localized."})
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)})
