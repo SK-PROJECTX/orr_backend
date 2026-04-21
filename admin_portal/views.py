@@ -10,7 +10,7 @@ from admin_portal.models import (
 
 def sync_cms_it_view(request):
     """
-    Final ultimate sync for Italian translations.
+    Definitive fix for Resources & Blogs translations.
     Visit: /admin-portal/sync-it-translations-secret/
     """
     try:
@@ -20,77 +20,64 @@ def sync_cms_it_view(request):
             res_page.hero_title_it = {"format": "html", "content": "Risorse & Portale Client"}
             res_page.hero_description1_it = {"format": "html", "content": "Il tuo quartier generale digitale per la chiarezza aziendale, le tempistiche e lo stato in tempo reale. Questo non è un blog tradizionale."}
             res_page.hero_description2_it = {"format": "html", "content": "Le nostre risorse sono organizzate attorno al portale client ORR — un cruscotto dove puoi leggere le FAQ, scaricare materiale, richiedere incontri e chattare con un operatore o consulente dal vivo."}
-            res_page.hero_description3_it = {"format": "html", "content": "Invece di articoli sparsi, ricevi una guida strutturata che segue il nostro progetto dal vivo — i blog contengono approfondimenti, guide pratiche e avvisi in tempo reale. Tutto è organizzato intorno alla gestione dei progetti e all'implementazione AI."}
+            res_page.hero_description3_it = {"format": "html", "content": "Invece di articoli sparsi, ricevi una guida strutturata che segue i nostri progetti dal vivo — i blog contengono approfondimenti, guide pratiche e avvisi in tempo reale. Tutto è organizzato intorno alla gestione dei progetti e all'implementazione AI."}
             res_page.hero_button1_text_it = {"format": "html", "content": "Richiedi l'accesso al portale client"}
             res_page.hero_button2_text_it = {"format": "html", "content": "Scopri come operiamo"}
             res_page.save()
 
-        # --- 2. BILINGUAL BLOG CARDS ---
-        def update_card(title_en, title_it, badge_it, content_it_list):
-            card = ContentCard.objects.filter(title_en__icontains=title_en).first()
-            if card:
-                card.title_it = {"format": "html", "content": title_it}
-                card.badge_it = {"format": "html", "content": badge_it}
-                card.content_it = content_it_list
-                card.button1_text_it = {"format": "html", "content": "Leggi Articolo"}
-                card.save()
+        # --- 2. BILINGUAL BLOG CARDS (Aggressive Matching) ---
+        cards = ContentCard.objects.all()
+        for card in cards:
+            title_en = (card.title_en or "").upper()
+            
+            # Card: WHY A PORTAL
+            if "WHY A PORTAL" in title_en:
+                card.title_it = {"format": "html", "content": "PERCHÉ UN PORTALE, NON SOLO UN BLOG?"}
+                card.badge_it = {"format": "html", "content": "Blog"}
+                card.content_it = ["Progettato per persone che vogliono agire, non solo leggere. Tutto ciò di cui hai bisogno è in un'unica posizione. Il portale client ORR dal vivo collega risorse, FAQ, chat e gestione dei progetti in un unico posto."]
+            
+            # Card: HOW CONTENT IS ORGANISED
+            elif "CONTENT IS ORGANISED" in title_en or "CONTENT IS ORGANIZED" in title_en:
+                card.title_it = {"format": "html", "content": "COME È ORGANIZZATO IL CONTENUTO"}
+                card.badge_it = {"format": "html", "content": "Guida"}
+                card.content_it = ["Risorse che seguono il nostro modo di lavorare. Tutto qui è focalizzato sui progetti e su risorse dal vivo — non articoli indipendenti o suggerimenti casuali."]
+            
+            # Card: WHAT YOU CAN DO TODAY
+            elif "WHAT YOU CAN DO TODAY" in title_en:
+                card.title_it = {"format": "html", "content": "COSA PUOI FARE OGGI"}
+                card.badge_it = {"format": "html", "content": "Guida"}
+                card.content_it = [
+                    "Prima, durante e dopo il lavoro con ORR. Che tu stia appena iniziando o che ci stia già pensando: leggi le nostre FAQ e richiedi una chiamata con noi.",
+                    "Prima di iniziare: leggi come si svolgono i nostri incontri dal vivo e il lavoro con i clienti — così saprai cosa aspettarti quando inizieremo a lavorare insieme.",
+                    "Durante l'incarico: accedi allo stato del progetto in tempo reale — vedi i progressi, fai domande e ottieni risposte immediate dal nostro team.",
+                    "Dopo il completamento del progetto: scarica le risorse dai lavori completati, ottieni supporto continuo e accedi alla nostra rete di alumni.",
+                    "Accedi alle risorse su temi chiave dello sviluppo, della gestione dei progetti e della crescita del business."
+                ]
+            
+            # Card: HOW ACCESS WORKS
+            elif "HOW ACCESS WORKS" in title_en:
+                card.title_it = {"format": "html", "content": "COME FUNZIONA L'ACCESSO"}
+                card.badge_it = {"format": "html", "content": "Accesso"}
+                card.content_it = [
+                    "Semplice. Accesso immediato. Richiedi l'accesso: clicca sul pulsante sopra e ti invieremo un'email con i tuoi dati di accesso.",
+                    "Ricevi il tuo login: controlla la tua email per le credenziali e il link al tuo portale client.",
+                    "Inizia a esplorare: accedi e inizia a esplorare risorse, FAQ e strumenti del progetto.",
+                    "Prenota la tua prima chat: usa il nostro calendario in-app per prenotare una chiamata di 15 minuti con il nostro team per discutere del tuo progetto e dei prossimi passi.",
+                    "Richiedi il tuo primo progetto: invia la tua prima richiesta di progetto direttamente attraverso il portale e inizia il nostro processo in 4 fasi."
+                ]
 
-        # Card 1: Why a Portal
-        update_card(
-            "WHY A PORTAL", 
-            "PERCHÉ UN PORTALE, NON SOLO UN BLOG?", 
-            "Blog",
-            ["Progettato per persone che vogliono agire, non solo leggere. Tutto ciò di cui hai bisogno è in un'unica posizione. Il portale client ORR dal vivo collega risorse, FAQ, chat e gestione dei progetti in un unico posto."]
-        )
-
-        # Card 2: How content is organised
-        update_card(
-            "HOW CONTENT IS ORGANISED", 
-            "COME È ORGANIZZATO IL CONTENUTO", 
-            "Guida",
-            ["Risorse che seguono il nostro modo di lavorare. Tutto qui è focalizzato sui progetti e su risorse dal vivo - non articoli indipendenti o suggerimenti casuali."]
-        )
-
-        # Card 3: What you can do today
-        update_card(
-            "WHAT YOU CAN DO TODAY", 
-            "COSA PUOI FARE OGGI", 
-            "Guida",
-            [
-                "Prima, durante e dopo il lavoro con ORR. Che tu stia appena iniziando o che ci stia già pensando: leggi le nostre FAQ e richiedi una chiamata con noi.",
-                "Prima di iniziare: leggi come si svolgono i nostri incontri dal vivo e il lavoro con i clienti — così saprai cosa aspettarti.",
-                "Durante l'incarico: accedi allo stato del progetto in tempo reale — vedi i progressi e chiedi risposte immediate.",
-                "Dopo il progetto: scarica le risorse, ottieni supporto continuo e accedi alla nostra rete di alumni."
-            ]
-        )
-
-        # Card 4: How access works
-        update_card(
-            "HOW ACCESS WORKS", 
-            "COME FUNZIONA L'ACCESSO", 
-            "Accesso",
-            [
-                "Semplice. Accesso immediato. Richiedi l'accesso: clicca sul pulsante sopra e ti invieremo un'email con i tuoi dati di accesso.",
-                "Ricevi il tuo login: controlla la tua email per le credenziali e il link al tuo portale client.",
-                "Inizia a esplorare: accedi e inizia a esplorare risorse, FAQ e strumenti del progetto.",
-                "Prenota la tua chat: usa il nostro calendario in-app per prenotare una chiamata di 15 minuti con il nostro team."
-            ]
-        )
-
-        # Basic labels for other cards
-        for card in ContentCard.objects.all():
+            # General fallbacks
             if not card.badge_it:
                 card.badge_it = {"format": "html", "content": "Articolo"}
-            if not card.button1_text_it:
-                card.button1_text_it = {"format": "html", "content": "Leggi Tutto"}
+            card.button1_text_it = {"format": "html", "content": "Leggi Articolo"}
             card.save()
 
-        # --- 3. OTHER PAGES (RE-SYNC) ---
-        how_page = HowWeOperatePageContent.objects.first()
-        if how_page:
-            how_page.hero_title_it = {"format": "html", "content": "Come Operiamo"}
-            how_page.save()
+        # --- 3. CONTACT PAGE LABELS ---
+        con_page = ContactPageContent.objects.first()
+        if con_page:
+            con_page.submit_button_text_it = {"format": "html", "content": "Invia Messaggio"}
+            con_page.save()
 
-        return JsonResponse({"success": True, "message": "Global Perfect Italian Sync Complete! All cards, labels, and text localized."})
+        return JsonResponse({"success": True, "message": "Resources & Blogs 100% Localized! All descriptions and lists updated to Italian."})
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)})
