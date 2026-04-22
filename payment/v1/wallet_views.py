@@ -4,7 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 import stripe
 from django.conf import settings
-from orr_backend.common.response import CustomJSONRenderer
+from common.response import CustomJSONRenderer
 from client.models import Wallet, Transaction, Project
 from client.v1.serializers.dashboard import WalletSerializer, TransactionSerializer
 from payment.models import PricingPlan, Subscription
