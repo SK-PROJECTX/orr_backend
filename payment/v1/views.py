@@ -1,6 +1,8 @@
 from datetime import datetime
+from decimal import Decimal
 import stripe
 from django.conf import settings
+from django.db import transaction
 from django.http import HttpResponse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
@@ -123,6 +125,7 @@ class CreateCheckoutSession(APIView):
                             }, status=400)
                     else:
                         # One-time payment fallback
+                        logger.info(f"Creating direct one-time payment for user: {request.user.id}")
                         payment_intent = stripe.PaymentIntent.create(
                             amount=plan.amount,
                             currency="usd",
@@ -136,11 +139,49 @@ class CreateCheckoutSession(APIView):
                                 "billing_type": "one_time_fallback",
                             }
                         )
-                        return Response({
-                            "status": "success",
-                            "message": "One-time payment successful",
-                            "payment_intent_id": payment_intent.id
-                        })
+
+                        if payment_intent.status == 'succeeded':
+                            # --- IMMEDIATE FULFILLMENT ---
+                            # This ensures the user sees the update without waiting for webhooks
+                            with transaction.atomic():
+                                # 1. Create Invoice record
+                                Invoice.objects.get_or_create(
+                                    stripe_invoice_id=payment_intent.id,
+                                    defaults={
+                                        "user": request.user,
+                                        "billing_title": f"Payment for {plan.name}",
+                                        "status": "paid",
+                                        "billing_date": timezone.now().date(),
+                                        "amount": Decimal(payment_intent.amount) / Decimal(100),
+                                        "currency": payment_intent.currency.upper(),
+                                        "plan": plan.name,
+                                        "users": 1
+                                    }
+                                )
+
+                                # 2. Update Subscription status
+                                Subscription.objects.update_or_create(
+                                    user=request.user,
+                                    defaults={
+                                        "stripe_customer_id": customer_id,
+                                        "plan": plan,
+                                        "plan_name": plan.name,
+                                        "is_active": True,
+                                        "current_period_end": timezone.now() + timezone.timedelta(days=30),
+                                        "used_hours": 0 if plan.billing_type == "metered" else None,
+                                    }
+                                )
+                            
+                            return Response({
+                                "status": "success",
+                                "message": "One-time payment successful",
+                                "payment_intent_id": payment_intent.id
+                            })
+                        else:
+                            return Response({
+                                "status": "error",
+                                "error": f"Payment requires secondary confirmation or failed: {payment_intent.status}"
+                            }, status=400)
 
                 # Fallback to Checkout Session
                 logger.info(f"Creating Stripe checkout session for user: {request.user.id}")
