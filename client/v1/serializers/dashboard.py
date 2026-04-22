@@ -9,7 +9,7 @@ class ProjectSerializer(serializers.ModelSerializer):
 class TransactionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Transaction
-        fields = ['id', 'amount', 'transaction_type', 'date', 'description']
+        fields = ['id', 'amount', 'transaction_type', 'date', 'description', 'reference_id']
 
 class WalletSerializer(serializers.ModelSerializer):
     transactions = TransactionSerializer(many=True, read_only=True)

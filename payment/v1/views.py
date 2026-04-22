@@ -69,12 +69,15 @@ class CreateCheckoutSession(APIView):
         if plan.billing_type in ["monthly", "metered"]:
             try:
                 # Determine mode based on recurring vs one-time (safety check)
+                is_recurring = plan.billing_type in ["monthly", "metered"]
                 try:
                     stripe_price = stripe.Price.retrieve(price_id)
                     is_recurring = stripe_price.recurring is not None
+                except stripe.error.InvalidRequestError as e:
+                    # Catch mode mismatch (e.g. Test price in Live mode or vice versa)
+                    logger.warning(f"Stripe Price ID mismatch or error for {price_id}: {str(e)}. Falling back to plan amount.")
                 except Exception as e:
-                    logger.warning(f"Error retrieving Stripe price {price_id}: {str(e)}")
-                    is_recurring = plan.billing_type in ["monthly", "metered"]
+                    logger.warning(f"General error retrieving price {price_id}: {str(e)}")
 
                 # If a payment method is provided, try to create the subscription (or payment) directly
                 if payment_method_id:

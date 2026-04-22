@@ -74,7 +74,7 @@ class TopUpView(APIView):
                     Transaction.objects.create(
                         wallet=stripe_customer.user.wallet,
                         amount=Decimal(amount),
-                        transaction_type='payment',
+                        transaction_type='top_up',
                         description="Wallet Top-up via Saved Card",
                         reference_id=intent.id
                     )
@@ -141,7 +141,7 @@ class PayWithWalletView(APIView):
             Transaction.objects.create(
                 wallet=wallet,
                 amount=plan_amount,
-                transaction_type='withdrawal',
+                transaction_type='deduction',
                 description=f"Payment for {plan.name} plan"
             )
             
