@@ -79,16 +79,20 @@ def handle_stripe_event(self, event: dict):
                 
                 # Check if it's a Wallet Top-up
                 if metadata.get('type') == 'top_up':
+                    # Use session_id as reference_id for idempotency
+                    if Transaction.objects.filter(reference_id=session_id).exists():
+                        logger.info("Top-up transaction already processed for session: %s", session_id)
+                        return
+                        
                     amount = Decimal(metadata.get('amount', 0))
                     wallet, created = Wallet.objects.get_or_create(owner=user)
-                    wallet.balance += amount
-                    wallet.save()
-
+                    
                     Transaction.objects.create(
                         wallet=wallet,
                         amount=amount,
                         transaction_type='payment',
-                        description="Wallet Top-up via Stripe"
+                        description="Wallet Top-up via Stripe Checkout",
+                        reference_id=session_id
                     )
                     logger.info("Wallet credited for user %s: %s", user.id, amount)
                     return
@@ -151,6 +155,38 @@ def handle_stripe_event(self, event: dict):
                         "Subscription %s not found yet, retrying", subscription_id
                     )
                     raise self.retry(countdown=10)
+                return
+
+            # -------------------------------
+            # PAYMENT INTENT SUCCEEDED (Direct Top-ups)
+            # -------------------------------
+            if event_type == "payment_intent.succeeded":
+                metadata = data.get("metadata") or {}
+                if metadata.get('type') == 'top_up':
+                    payment_intent_id = data.get("id")
+                    user_id = metadata.get("user_id")
+                    amount = Decimal(metadata.get("amount", 0))
+                    
+                    if not payment_intent_id or not user_id:
+                        logger.error("payment_intent.succeeded top_up missing identifiers")
+                        return
+
+                    # Idempotency check
+                    if Transaction.objects.filter(reference_id=payment_intent_id).exists():
+                        logger.info("Top-up transaction already processed for intent: %s", payment_intent_id)
+                        return
+
+                    user = User.objects.get(id=int(user_id))
+                    wallet, created = Wallet.objects.get_or_create(owner=user)
+                    
+                    Transaction.objects.create(
+                        wallet=wallet,
+                        amount=amount,
+                        transaction_type='payment',
+                        description="Wallet Top-up via Saved Card",
+                        reference_id=payment_intent_id
+                    )
+                    logger.info("Wallet credited via Direct Payment for user %s: %s", user.id, amount)
                 return
 
             # -------------------------------
