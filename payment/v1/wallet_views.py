@@ -40,6 +40,8 @@ class TopUpView(APIView):
     def post(self, request):
         amount = request.data.get('amount')
         payment_method_id = request.data.get('payment_method_id')
+        success_url = request.data.get('success_url', settings.STRIPE_SUCCESS_URL)
+        cancel_url = request.data.get('cancel_url', settings.STRIPE_CANCEL_URL)
         
         if not amount:
             return Response({"error": "Amount is required"}, status=400)
@@ -59,6 +61,7 @@ class TopUpView(APIView):
                     payment_method=payment_method_id,
                     confirm=True,
                     off_session=False, # User is present to handle potential 3D Secure
+                    return_url=success_url,
                     metadata={
                         'user_id': request.user.id,
                         'type': 'top_up',
@@ -91,9 +94,6 @@ class TopUpView(APIView):
                     }, status=400)
                     
             # If no saved card, use Stripe Checkout
-            success_url = request.data.get('success_url', settings.STRIPE_SUCCESS_URL)
-            cancel_url = request.data.get('cancel_url', settings.STRIPE_CANCEL_URL)
-
             session = stripe.checkout.Session.create(
                 payment_method_types=['card'],
                 line_items=[{
