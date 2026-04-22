@@ -9,7 +9,7 @@ def api_response(
         "success": success,
         "status": status_code,
         "message": message,
-        "data": data or {},
+        "data": data if data is not None else {},
     }
 
 
