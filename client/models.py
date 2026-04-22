@@ -255,9 +255,11 @@ class Transaction(Audit):
     Linked to a Project or Meeting to know where money came from.
     """
     TRANSACTION_TYPES = [
+        ('top_up', 'Wallet Top-up'),
         ('payment', 'Payment Received'),
-        ('withdrawal', 'Withdrawal'),    
-        ('refund', 'Refund'),           
+        ('withdrawal', 'Withdrawal'),
+        ('refund', 'Refund'),
+        ('deduction', 'Deduction'),
     ]
 
     wallet = models.ForeignKey(Wallet, on_delete=models.CASCADE, related_name='transactions')
@@ -270,11 +272,11 @@ class Transaction(Audit):
     reference_id = models.CharField(max_length=255, unique=True, null=True, blank=True)
 
     def save(self, *args, **kwargs):
-        # Auto-update wallet balance on save (simple logic)
+        # Auto-update wallet balance on save
         if not self.pk: # Only on create
-            if self.transaction_type == 'payment':
+            if self.transaction_type in ['top_up', 'payment', 'refund']:
                 self.wallet.balance += self.amount
-            elif self.transaction_type in ['withdrawal', 'refund']:
+            elif self.transaction_type in ['withdrawal', 'deduction']:
                 self.wallet.balance -= self.amount
             self.wallet.save()
         super().save(*args, **kwargs)

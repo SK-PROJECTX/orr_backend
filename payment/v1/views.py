@@ -16,6 +16,7 @@ from common.permissions import IsAdminUser
 from ..tasks import handle_stripe_event
 from django.utils.timezone import make_aware
 from ..models import Invoice, PricingPlan, Subscription, CheckoutSessionLog, StripeCustomer
+from client.models import Wallet, Transaction
 from .serializers import (
     BillingPortalSerializer,
     SetupIntentResponseSerializer,
@@ -172,9 +173,20 @@ class CreateCheckoutSession(APIView):
                                     }
                                 )
                             
+                                # 3. Create Transaction record in Wallet History
+                                # Note: This will automatically reduce the wallet balance via the Transaction.save() signal
+                                wallet, _ = Wallet.objects.get_or_create(owner=request.user)
+                                Transaction.objects.create(
+                                    wallet=wallet,
+                                    amount=Decimal(payment_intent.amount) / Decimal(100),
+                                    transaction_type='deduction',
+                                    description=f"Payment for {plan.name} (via Card)",
+                                    reference_id=payment_intent.id
+                                )
+                            
                             return Response({
                                 "status": "success",
-                                "message": "One-time payment successful",
+                                "message": f"{plan.billing_type.capitalize()} payment successful",
                                 "payment_intent_id": payment_intent.id
                             })
                         else:

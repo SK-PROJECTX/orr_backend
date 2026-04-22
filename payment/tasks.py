@@ -184,7 +184,7 @@ def handle_stripe_event(self, event: dict):
                     Transaction.objects.create(
                         wallet=wallet,
                         amount=amount,
-                        transaction_type='payment',
+                        transaction_type='top_up',
                         description="Wallet Top-up via Saved Card",
                         reference_id=payment_intent_id
                     )
