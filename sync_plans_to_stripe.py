@@ -36,13 +36,23 @@ def sync_plans():
             print(f"Created Stripe Product: {product.id}")
             
             # Create a real Price in Stripe
-            price = stripe.Price.create(
-                product=product.id,
-                unit_amount=int(plan.amount),
-                currency="usd",
-                recurring={"interval": "month"} if plan.billing_type == 'monthly' else None,
-            )
-            print(f"Created Stripe Price: {price.id}")
+            price_params = {
+                "product": product.id,
+                "unit_amount": int(plan.amount),
+                "currency": "usd",
+            }
+            
+            if plan.billing_type == 'monthly':
+                price_params["recurring"] = {"interval": "month"}
+            elif plan.billing_type == 'metered':
+                # Metered billing for hourly plans
+                price_params["recurring"] = {
+                    "interval": "month",
+                    "usage_type": "metered",
+                }
+            
+            price = stripe.Price.create(**price_params)
+            print(f"Created Stripe Price: {price.id} (Type: {plan.billing_type})")
             
             # Update database
             old_id = plan.stripe_price_id

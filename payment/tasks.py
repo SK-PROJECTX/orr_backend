@@ -158,27 +158,29 @@ def handle_stripe_event(self, event: dict):
                 return
 
             # -------------------------------
-            # PAYMENT INTENT SUCCEEDED (Direct Top-ups)
+            # PAYMENT INTENT SUCCEEDED (Direct Top-ups or Plan Purchases)
             # -------------------------------
             if event_type == "payment_intent.succeeded":
                 metadata = data.get("metadata") or {}
+                payment_intent_id = data.get("id")
+                user_id = metadata.get("user_id")
+                
+                if not payment_intent_id or not user_id:
+                    logger.error("payment_intent.succeeded missing identifiers")
+                    return
+
+                # Idempotency check
+                if Transaction.objects.filter(reference_id=payment_intent_id).exists() or \
+                   Invoice.objects.filter(stripe_invoice_id=payment_intent_id).exists():
+                    logger.info("Transaction already processed for intent: %s", payment_intent_id)
+                    return
+
+                user = User.objects.get(id=int(user_id))
+                
+                # Case 1: Wallet Top-up
                 if metadata.get('type') == 'top_up':
-                    payment_intent_id = data.get("id")
-                    user_id = metadata.get("user_id")
                     amount = Decimal(metadata.get("amount", 0))
-                    
-                    if not payment_intent_id or not user_id:
-                        logger.error("payment_intent.succeeded top_up missing identifiers")
-                        return
-
-                    # Idempotency check
-                    if Transaction.objects.filter(reference_id=payment_intent_id).exists():
-                        logger.info("Top-up transaction already processed for intent: %s", payment_intent_id)
-                        return
-
-                    user = User.objects.get(id=int(user_id))
                     wallet, created = Wallet.objects.get_or_create(owner=user)
-                    
                     Transaction.objects.create(
                         wallet=wallet,
                         amount=amount,
@@ -187,6 +189,39 @@ def handle_stripe_event(self, event: dict):
                         reference_id=payment_intent_id
                     )
                     logger.info("Wallet credited via Direct Payment for user %s: %s", user.id, amount)
+                
+                # Case 2: Plan Purchase (Fallback/One-click)
+                elif metadata.get('plan_id'):
+                    plan_id = metadata.get('plan_id')
+                    plan = PricingPlan.objects.get(id=int(plan_id))
+                    amount = Decimal(data.get("amount", 0)) / Decimal(100)
+                    
+                    # Create Invoice record for billing history
+                    Invoice.objects.create(
+                        user=user,
+                        stripe_invoice_id=payment_intent_id,
+                        billing_title=f"Payment for {plan.name}",
+                        status="paid",
+                        billing_date=timezone.now().date(),
+                        amount=amount,
+                        currency=(data.get("currency") or "USD").upper(),
+                        plan=plan.name,
+                        users=1
+                    )
+                    
+                    # Activate/Update Subscription
+                    Subscription.objects.update_or_create(
+                        user=user,
+                        defaults={
+                            "stripe_customer_id": data.get("customer", ""),
+                            "plan": plan,
+                            "plan_name": plan.name,
+                            "is_active": True,
+                            "current_period_end": timezone.now() + timezone.timedelta(days=30), # Default for one-time
+                            "used_hours": 0 if plan.billing_type == "metered" else None,
+                        },
+                    )
+                    logger.info("Subscription/Invoice recorded for plan %s via Direct Payment", plan_id)
                 return
 
             # -------------------------------
