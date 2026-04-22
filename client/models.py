@@ -277,3 +277,11 @@ class Transaction(Audit):
                 self.wallet.balance -= self.amount
             self.wallet.save()
         super().save(*args, **kwargs)
+# Signals for Wallet Creation
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
+@receiver(post_save, sender=User)
+def create_user_wallet(sender, instance, created, **kwargs):
+    if created:
+        Wallet.objects.get_or_create(owner=instance)

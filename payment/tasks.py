@@ -16,6 +16,7 @@ from .models import (
     StripeEvent,
     StripeCustomer,
 )
+from client.models import Wallet, Transaction
 from admin_portal.payment_ticket_service import PaymentTicketService
 from django.db import IntegrityError
 
@@ -75,6 +76,23 @@ def handle_stripe_event(self, event: dict):
                     raise ValueError("Missing metadata")
 
                 user = User.objects.get(id=int(user_id))
+                
+                # Check if it's a Wallet Top-up
+                if metadata.get('type') == 'top_up':
+                    amount = Decimal(metadata.get('amount', 0))
+                    wallet, created = Wallet.objects.get_or_create(owner=user)
+                    wallet.balance += amount
+                    wallet.save()
+
+                    Transaction.objects.create(
+                        wallet=wallet,
+                        amount=amount,
+                        transaction_type='payment',
+                        description="Wallet Top-up via Stripe"
+                    )
+                    logger.info("Wallet credited for user %s: %s", user.id, amount)
+                    return
+
                 plan = PricingPlan.objects.filter(id=int(plan_id)).first()
 
                 sub = stripe.Subscription.retrieve(subscription_id)

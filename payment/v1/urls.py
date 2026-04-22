@@ -15,7 +15,14 @@ from .views import (
     CreateStripeCustomerView,
     ListPaymentMethodsView,
     GetStripeCustomerView,
-    SubscriptionStatusAPIView
+    SubscriptionStatusAPIView,
+)
+
+from .wallet_views import (
+    WalletBalanceView,
+    TransactionListView,
+    TopUpView,
+    PayWithWalletView,
 )
 
 router = DefaultRouter()
@@ -60,6 +67,12 @@ urlpatterns = [
         name="delete-payment-method",
     ),
      path("subscription/status/", SubscriptionStatusAPIView.as_view()),
+     
+    # Wallet Endpoints
+    path("wallet/balance/", WalletBalanceView.as_view(), name="wallet-balance"),
+    path("wallet/transactions/", TransactionListView.as_view(), name="wallet-transactions"),
+    path("wallet/topup/", TopUpView.as_view(), name="wallet-topup"),
+    path("wallet/pay-invoice/", PayWithWalletView.as_view(), name="wallet-pay"), # Matches frontend settleInvoiceWithWallet
 ]
 
 urlpatterns += router.urls
