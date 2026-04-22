@@ -598,7 +598,10 @@ class SubscriptionStatusAPIView(APIView):
         subscription = getattr(request.user, "subscription", None)
 
         if not subscription:
-            return Response({"is_subscribed": False})
+            return Response({
+                "is_subscribed": False,
+                "plan_name": None
+            })
 
         is_active = (
             subscription.is_active
@@ -606,4 +609,9 @@ class SubscriptionStatusAPIView(APIView):
             and subscription.current_period_end > timezone.now()
         )
 
-        return Response({"is_subscribed": is_active})
+        return Response({
+            "is_subscribed": is_active,
+            "plan_id": subscription.plan.id if subscription.plan else None,
+            "plan_name": subscription.plan_name,
+            "current_period_end": subscription.current_period_end
+        })
