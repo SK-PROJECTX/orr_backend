@@ -41,6 +41,7 @@ class CreateCheckoutSession(APIView):
 
     def post(self, request):
         price_id = request.data.get("price_id")
+        payment_method_id = request.data.get("payment_method_id")
 
         if not price_id:
             logger.error("price_id is missing in request data")
@@ -57,15 +58,68 @@ class CreateCheckoutSession(APIView):
                 {"error": "You already have an active subscription for this plan."},
                 status=400
             )
+
+        stripe_profile = get_or_create_stripe_customer(request.user)
+        customer_id = stripe_profile.stripe_customer_id
+
         if plan.billing_type == "monthly":
             try:
-                logger.info(f"Creating Stripe session for user: {request.user.id} with plan: {plan.id}")
-                stripe_profile = get_or_create_stripe_customer(request.user)
+                # If a payment method is provided, try to create the subscription directly
+                if payment_method_id:
+                    logger.info(f"Creating direct subscription for user: {request.user.id} with payment_method: {payment_method_id}")
+                    
+                    # Ensure the payment method is attached to the customer
+                    try:
+                        stripe.PaymentMethod.attach(payment_method_id, customer=customer_id)
+                        stripe.Customer.modify(
+                            customer_id,
+                            invoice_settings={"default_payment_method": payment_method_id}
+                        )
+                    except Exception as e:
+                        logger.warning(f"Note: Payment method attachment issue (might already be attached): {str(e)}")
+
+                    subscription = stripe.Subscription.create(
+                        customer=customer_id,
+                        items=[{"price": price_id, "quantity": 1}],
+                        default_payment_method=payment_method_id,
+                        payment_behavior="default_incomplete",
+                        expand=["latest_invoice.payment_intent"],
+                        metadata={
+                            "user_id": request.user.id,
+                            "plan_id": plan.id,
+                            "billing_type": plan.billing_type,
+                        }
+                    )
+                    
+                    payment_intent = subscription.latest_invoice.payment_intent
+                    
+                    if payment_intent.status == 'succeeded':
+                        # Subscription handles the model update via webhook, 
+                        # but we can return success now
+                        return Response({
+                            "status": "success",
+                            "message": "Subscription created successfully",
+                            "subscription_id": subscription.id
+                        })
+                    elif payment_intent.status == 'requires_action':
+                        return Response({
+                            "status": "requires_action",
+                            "client_secret": payment_intent.client_secret,
+                            "subscription_id": subscription.id
+                        })
+                    else:
+                         return Response({
+                            "status": "error",
+                            "error": f"Payment failed with status: {payment_intent.status}"
+                        }, status=400)
+
+                # Fallback to Checkout Session
+                logger.info(f"Creating Stripe checkout session for user: {request.user.id}")
                 session = stripe.checkout.Session.create(
                     mode="subscription",
+                    customer=customer_id,
                     payment_method_types=["card"],
                     line_items=[{"price": price_id, "quantity": 1}],
-                    customer_email=request.user.email,
                     metadata={
                         "user_id": request.user.id,
                         "plan_id": plan.id,
@@ -82,25 +136,14 @@ class CreateCheckoutSession(APIView):
                     stripe_session_id=session.id,
                     status="initiated" 
                 )
-                logger.info(f"Stripe session created successfully, session_id: {session.id}")
                 return Response({"checkout_url": session.url})
 
             except Exception as e:
-                logger.error(f"Error creating Stripe session: {str(e)}")
+                logger.error(f"Error creating Stripe session/subscription: {str(e)}")
                 return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
         elif plan.billing_type == "metered":
             try:
-                stripe_profile = getattr(request.user, "stripe_profile", None)
-
-                if not stripe_profile or not stripe_profile.has_valid_payment_method:
-                    return Response(
-                        {"error": "Add a valid payment method before subscribing"},
-                        status=403,
-                    )
-
-                stripe_profile = get_or_create_stripe_customer(request.user)
-                customer_id = stripe_profile.stripe_customer_id
-
                 subscription = stripe.Subscription.create(
                     customer=customer_id,
                     items=[{"price": price_id, "quantity": 1}],

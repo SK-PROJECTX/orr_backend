@@ -39,15 +39,61 @@ class TopUpView(APIView):
 
     def post(self, request):
         amount = request.data.get('amount')
+        payment_method_id = request.data.get('payment_method_id')
+        
         if not amount:
             return Response({"error": "Amount is required"}, status=400)
         
         try:
             amount_cents = int(float(amount) * 100)
+            
+            if payment_method_id:
+                from ..utils import get_or_create_stripe_customer
+                stripe_customer = get_or_create_stripe_customer(request.user)
+                
+                # Create a direct PaymentIntent using the saved card
+                intent = stripe.PaymentIntent.create(
+                    amount=amount_cents,
+                    currency='usd',
+                    customer=stripe_customer.stripe_customer_id,
+                    payment_method=payment_method_id,
+                    confirm=True,
+                    off_session=False, # User is present to handle potential 3D Secure
+                    metadata={
+                        'user_id': request.user.id,
+                        'type': 'top_up',
+                        'amount': amount
+                    }
+                )
+                
+                if intent.status == 'succeeded':
+                    # Create transaction which also updates wallet balance
+                    Transaction.objects.create(
+                        wallet=stripe_customer.user.wallet,
+                        amount=Decimal(amount),
+                        transaction_type='payment',
+                        description="Wallet Top-up via Saved Card",
+                        reference_id=intent.id
+                    )
+                    return Response({
+                        "status": "success",
+                        "message": "Top-up completed successfully"
+                    })
+                elif intent.status == 'requires_action':
+                    return Response({
+                        "status": "requires_action",
+                        "client_secret": intent.client_secret
+                    })
+                else:
+                    return Response({
+                        "status": "error",
+                        "error": f"Payment failed with status: {intent.status}"
+                    }, status=400)
+                    
+            # If no saved card, use Stripe Checkout
             success_url = request.data.get('success_url', settings.STRIPE_SUCCESS_URL)
             cancel_url = request.data.get('cancel_url', settings.STRIPE_CANCEL_URL)
 
-            # Create a Stripe Checkout Session for Top-up
             session = stripe.checkout.Session.create(
                 payment_method_types=['card'],
                 line_items=[{
@@ -91,10 +137,7 @@ class PayWithWalletView(APIView):
             if wallet.balance < plan_amount:
                 return Response({"error": "Insufficient wallet balance"}, status=400)
             
-            # Deduct and create transaction
-            wallet.balance -= plan_amount
-            wallet.save()
-            
+            # Transaction.objects.create will automatically deduct balance in its save() method
             Transaction.objects.create(
                 wallet=wallet,
                 amount=plan_amount,

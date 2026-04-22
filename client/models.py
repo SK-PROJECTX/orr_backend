@@ -267,6 +267,7 @@ class Transaction(Audit):
     transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPES)
     date = models.DateTimeField(default=timezone.now)
     description = models.CharField(max_length=255, blank=True)
+    reference_id = models.CharField(max_length=255, unique=True, null=True, blank=True)
 
     def save(self, *args, **kwargs):
         # Auto-update wallet balance on save (simple logic)
