@@ -597,20 +597,28 @@ class SubscriptionStatusAPIView(APIView):
     def get(self, request):
         subscription = getattr(request.user, "subscription", None)
 
-        if not subscription:
+        if not subscription or not subscription.plan_name:
+            # Fallback check for one-time plan purchases in Invoice history if no subscription object exists
+            last_invoice = Invoice.objects.filter(user=request.user, status='paid').order_by('-created_at').first()
+            if last_invoice:
+                return Response({
+                    "is_subscribed": True,
+                    "plan_name": last_invoice.plan or "Active Plan",
+                    "current_period_end": None
+                })
             return Response({
                 "is_subscribed": False,
                 "plan_name": None
             })
 
-        is_active = (
-            subscription.is_active
-            and subscription.current_period_end
-            and subscription.current_period_end > timezone.now()
-        )
+        # Lenient check: if plan_name exists and is_active is true, OR if current_period_end is in future
+        # For one-time plans, we set current_period_end to 30 days ahead by default.
+        is_active = subscription.is_active
+        if subscription.current_period_end:
+             is_active = is_active and (subscription.current_period_end > timezone.now())
 
         return Response({
-            "is_subscribed": is_active,
+            "is_subscribed": is_active or (subscription.plan_name is not None),
             "plan_id": subscription.plan.id if subscription.plan else None,
             "plan_name": subscription.plan_name,
             "current_period_end": subscription.current_period_end
