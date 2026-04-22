@@ -62,11 +62,20 @@ class CreateCheckoutSession(APIView):
         stripe_profile = get_or_create_stripe_customer(request.user)
         customer_id = stripe_profile.stripe_customer_id
 
-        if plan.billing_type == "monthly":
+        # Handle subscriptions (Monthly or Metered)
+        if plan.billing_type in ["monthly", "metered"]:
             try:
-                # If a payment method is provided, try to create the subscription directly
+                # Determine mode based on recurring vs one-time (safety check)
+                try:
+                    stripe_price = stripe.Price.retrieve(price_id)
+                    is_recurring = stripe_price.recurring is not None
+                except Exception as e:
+                    logger.warning(f"Error retrieving Stripe price {price_id}: {str(e)}")
+                    is_recurring = plan.billing_type in ["monthly", "metered"]
+
+                # If a payment method is provided, try to create the subscription (or payment) directly
                 if payment_method_id:
-                    logger.info(f"Creating direct subscription for user: {request.user.id} with payment_method: {payment_method_id}")
+                    logger.info(f"Creating direct {plan.billing_type} charge for user: {request.user.id} with payment_method: {payment_method_id}")
                     
                     # Ensure the payment method is attached to the customer
                     try:
@@ -78,58 +87,81 @@ class CreateCheckoutSession(APIView):
                     except Exception as e:
                         logger.warning(f"Note: Payment method attachment issue (might already be attached): {str(e)}")
 
-                    subscription = stripe.Subscription.create(
-                        customer=customer_id,
-                        items=[{"price": price_id, "quantity": 1}],
-                        default_payment_method=payment_method_id,
-                        payment_behavior="default_incomplete",
-                        expand=["latest_invoice.payment_intent"],
-                        metadata={
-                            "user_id": request.user.id,
-                            "plan_id": plan.id,
-                            "billing_type": plan.billing_type,
-                        }
-                    )
-                    
-                    payment_intent = subscription.latest_invoice.payment_intent
-                    
-                    if payment_intent.status == 'succeeded':
-                        # Subscription handles the model update via webhook, 
-                        # but we can return success now
+                    if is_recurring:
+                        # Create Subscription
+                        subscription = stripe.Subscription.create(
+                            customer=customer_id,
+                            items=[{"price": price_id, "quantity": 1}],
+                            default_payment_method=payment_method_id,
+                            payment_behavior="default_incomplete",
+                            expand=["latest_invoice.payment_intent"],
+                            metadata={
+                                "user_id": request.user.id,
+                                "plan_id": plan.id,
+                                "billing_type": plan.billing_type,
+                            }
+                        )
+                        
+                        payment_intent = subscription.latest_invoice.payment_intent
+                        
+                        if payment_intent.status == 'succeeded':
+                            return Response({
+                                "status": "success",
+                                "message": f"{plan.billing_type.capitalize()} subscription created successfully",
+                                "subscription_id": subscription.id
+                            })
+                        elif payment_intent.status == 'requires_action':
+                            return Response({
+                                "status": "requires_action",
+                                "client_secret": payment_intent.client_secret,
+                                "subscription_id": subscription.id
+                            })
+                        else:
+                             return Response({
+                                "status": "error",
+                                "error": f"Payment failed with status: {payment_intent.status}"
+                            }, status=400)
+                    else:
+                        # One-time payment fallback
+                        payment_intent = stripe.PaymentIntent.create(
+                            amount=plan.amount,
+                            currency="usd",
+                            customer=customer_id,
+                            payment_method=payment_method_id,
+                            off_session=True,
+                            confirm=True,
+                            metadata={
+                                "user_id": request.user.id,
+                                "plan_id": plan.id,
+                                "billing_type": "one_time_fallback",
+                            }
+                        )
                         return Response({
                             "status": "success",
-                            "message": "Subscription created successfully",
-                            "subscription_id": subscription.id
+                            "message": "One-time payment successful",
+                            "payment_intent_id": payment_intent.id
                         })
-                    elif payment_intent.status == 'requires_action':
-                        return Response({
-                            "status": "requires_action",
-                            "client_secret": payment_intent.client_secret,
-                            "subscription_id": subscription.id
-                        })
-                    else:
-                         return Response({
-                            "status": "error",
-                            "error": f"Payment failed with status: {payment_intent.status}"
-                        }, status=400)
 
                 # Fallback to Checkout Session
                 logger.info(f"Creating Stripe checkout session for user: {request.user.id}")
-                session = stripe.checkout.Session.create(
-                    mode="subscription",
-                    customer=customer_id,
-                    payment_method_types=["card"],
-                    line_items=[{"price": price_id, "quantity": 1}],
-                    metadata={
+                
+                checkout_params = {
+                    "mode": "subscription" if is_recurring else "payment",
+                    "customer": customer_id,
+                    "payment_method_types": ["card"],
+                    "line_items": [{"price": price_id, "quantity": 1}],
+                    "metadata": {
                         "user_id": request.user.id,
                         "plan_id": plan.id,
                         "billing_type": plan.billing_type,
                         "email": request.user.email,
                     },
-                    success_url=settings.STRIPE_SUCCESS_URL
-                    + "?session_id={CHECKOUT_SESSION_ID}",
-                    cancel_url=settings.STRIPE_CANCEL_URL,
-                )
+                    "success_url": settings.STRIPE_SUCCESS_URL + "?session_id={CHECKOUT_SESSION_ID}",
+                    "cancel_url": settings.STRIPE_CANCEL_URL,
+                }
+                
+                session = stripe.checkout.Session.create(**checkout_params)
+                
                 CheckoutSessionLog.objects.create(
                     user=request.user,
                     plan=plan,
@@ -141,47 +173,8 @@ class CreateCheckoutSession(APIView):
             except Exception as e:
                 logger.error(f"Error creating Stripe session/subscription: {str(e)}")
                 return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-        elif plan.billing_type == "metered":
-            try:
-                subscription = stripe.Subscription.create(
-                    customer=customer_id,
-                    items=[{"price": price_id, "quantity": 1}],
-                    expand=["latest_invoice.payment_intent"],
-                    metadata={
-                        "user_id": request.user.id,
-                        "plan_id": plan.id,
-                        "billing_type": plan.billing_type,
-                    }
-                )
-                
-                stripe_item_id = subscription["items"]["data"][0]["id"]
-
-                Subscription.objects.update_or_create(
-                    stripe_subscription_id=subscription.id,
-                    defaults={
-                        "user": request.user,
-                        "stripe_customer_id": customer_id,
-                        "plan": plan,
-                        "plan_name": plan.name,
-                        "stripe_subscription_item_id": stripe_item_id,
-                        "is_active": True,
-                        "used_hours": 0,
-                    },
-                )
-
-                return Response(
-                    {
-                        "message": "Metered subscription created",
-                        "subscription_id": subscription.id,
-                    },
-                    status=201,
-                )
-              
-            except Exception as e:
-                return Response({"error": str(e)}, status=400)
         else:
-           return Response({"error": "Invalid billing type"}, status=400)
+            return Response({"error": "Invalid billing type"}, status=400)
 
 
 @csrf_exempt
