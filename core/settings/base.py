@@ -136,7 +136,11 @@ LANGUAGE_CODE = "en-us"
 LANGUAGES = [
     ('en', 'English'),
     ('it', 'Italian'),
+    ('ar', 'Arabic'),
 ]
+
+MODELTRANSLATION_FALLBACK_LANGUAGES = ('en',)
+
 
 TIME_ZONE = "UTC"
 

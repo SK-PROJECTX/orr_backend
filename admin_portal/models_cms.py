@@ -55,7 +55,8 @@ class HomePage(Audit):
         verbose_name_plural = "Homepage Content"
     
     def __str__(self):
-        return f"Homepage - {self.hero_title}"
+        title = self.hero_title.get('content', '') if isinstance(self.hero_title, dict) else str(self.hero_title)
+        return f"Homepage - {title}"
 
 
 class ServiceCard(Audit):
@@ -79,7 +80,8 @@ class ServiceCard(Audit):
         ordering = ['order', 'title']
     
     def __str__(self):
-        return self.title
+        title_text = self.title.get('content', '') if isinstance(self.title, dict) else str(self.title)
+        return title_text
 
 
 class Testimonial(Audit):
@@ -125,7 +127,9 @@ class FAQ(Audit):
         verbose_name_plural = "FAQs"
     
     def __str__(self):
-        return self.question
+        if isinstance(self.question, dict):
+            return self.question.get('content', '')
+        return str(self.question)
 
 
 class BlogPost(Audit):
@@ -209,7 +213,9 @@ class ApproachSection(Audit):
         verbose_name_plural = "Approach Section"
     
     def __str__(self):
-        return self.title
+        if isinstance(self.title, dict):
+            return self.title.get('content', '')
+        return str(self.title)
 
 
 class BusinessSystemCard(Audit):
@@ -227,7 +233,9 @@ class BusinessSystemCard(Audit):
         verbose_name_plural = "Business System Cards"
     
     def __str__(self):
-        return self.title
+        if isinstance(self.title, dict):
+            return self.title.get('content', '')
+        return str(self.title)
 
 
 class BusinessSystemSection(Audit):
@@ -251,7 +259,9 @@ class BusinessSystemSection(Audit):
         verbose_name_plural = "Business System Section"
     
     def __str__(self):
-        return self.title
+        if isinstance(self.title, dict):
+            return self.title.get('content', '')
+        return str(self.title)
 
 
 class ORRRoleSection(Audit):
@@ -266,7 +276,9 @@ class ORRRoleSection(Audit):
         verbose_name_plural = "ORR Role Section"
     
     def __str__(self):
-        return self.title
+        if isinstance(self.title, dict):
+            return self.title.get('content', '')
+        return str(self.title)
 
 
 class MessageStrip(Audit):
@@ -285,7 +297,9 @@ class MessageStrip(Audit):
         verbose_name_plural = "Message Strip"
     
     def __str__(self):
-        return self.title
+        if isinstance(self.title, dict):
+            return self.title.get('content', '')
+        return str(self.title)
 
 
 class ProcessStage(Audit):
@@ -302,7 +316,9 @@ class ProcessStage(Audit):
         verbose_name_plural = "Process Stages"
     
     def __str__(self):
-        return self.title
+        if isinstance(self.title, dict):
+            return self.title.get('content', '')
+        return str(self.title)
 
 
 class ProcessSection(Audit):
@@ -327,7 +343,9 @@ class ProcessSection(Audit):
         verbose_name_plural = "Process Section"
     
     def __str__(self):
-        return self.title
+        if isinstance(self.title, dict):
+            return self.title.get('content', '')
+        return str(self.title)
 
 
 class ORRReportSection(Audit):
@@ -351,7 +369,9 @@ class ORRReportSection(Audit):
         verbose_name_plural = "ORR Report Section"
     
     def __str__(self):
-        return self.title
+        if isinstance(self.title, dict):
+            return self.title.get('content', '')
+        return str(self.title)
 
 
 class ServicesPage(Audit):
@@ -981,7 +1001,8 @@ class OperationalSystemsPageContent(Audit):
         verbose_name_plural = "Operational Systems Page Content"
     
     def __str__(self):
-        return f"Operational Systems - {self.hero_title}"
+        title_text = self.hero_title.get('content', '') if isinstance(self.hero_title, dict) else str(self.hero_title)
+        return f"Operational Systems - {title_text}"
 
 
 class LivingSystemsPageContent(Audit):
@@ -1029,4 +1050,5 @@ class LivingSystemsPageContent(Audit):
         verbose_name_plural = "Living Systems Page Content"
     
     def __str__(self):
-        return f"Living Systems - {self.hero_title}"
+        title_text = self.hero_title.get('content', '') if isinstance(self.hero_title, dict) else str(self.hero_title)
+        return f"Living Systems - {title_text}"
