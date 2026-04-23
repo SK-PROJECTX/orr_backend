@@ -595,11 +595,17 @@ class SubscriptionStatusAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        subscription = getattr(request.user, "subscription", None)
+        # Correctly check for subscriptions using the related_name 'subscriptions'
+        subscription = request.user.subscriptions.filter(is_active=True).first()
+        
+        # If no active subscription, try to find the most recent one (even if inactive)
+        if not subscription:
+            subscription = request.user.subscriptions.order_by('-created_at').first()
 
         if not subscription or not subscription.plan_name:
             # Fallback check for one-time plan purchases in Invoice history if no subscription object exists
-            last_invoice = Invoice.objects.filter(user=request.user, status='paid').order_by('-created_at').first()
+            # Use __iexact for case-insensitive matching
+            last_invoice = Invoice.objects.filter(user=request.user, status__iexact='paid').order_by('-created_at').first()
             if last_invoice:
                 return Response({
                     "is_subscribed": True,
@@ -611,14 +617,17 @@ class SubscriptionStatusAPIView(APIView):
                 "plan_name": None
             })
 
-        # Lenient check: if plan_name exists and is_active is true, OR if current_period_end is in future
-        # For one-time plans, we set current_period_end to 30 days ahead by default.
+        # Check if subscription is truly active based on current_period_end
         is_active = subscription.is_active
         if subscription.current_period_end:
              is_active = is_active and (subscription.current_period_end > timezone.now())
+        
+        # For one-time plans (like 'meeting'), they might not have a current_period_end
+        # but are considered 'subscribed' if the record exists and is_active is true
+        is_subscribed = is_active or (subscription.plan_name is not None and subscription.is_active)
 
         return Response({
-            "is_subscribed": is_active or (subscription.plan_name is not None),
+            "is_subscribed": is_subscribed,
             "plan_id": subscription.plan.id if subscription.plan else None,
             "plan_name": subscription.plan_name,
             "current_period_end": subscription.current_period_end

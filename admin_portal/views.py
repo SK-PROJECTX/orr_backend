@@ -80,11 +80,40 @@ def sync_cms_it_view(request):
             card.button1_text_it = {"format": "html", "content": "Leggi Articolo"}
             card.save()
 
-        # --- 3. OTHER PAGES (RE-SYNC) ---
+        # --- 3. FAQs (NEW) ---
+        faqs = FAQ.objects.all()
+        for faq in faqs:
+            q_en = str(faq.question).upper()
+            
+            if "WHAT DOES IT MEAN" in q_en or "BUSINESS GP" in q_en:
+                faq.question_it = {"format": "html", "content": "Cosa significa che ORR è un Medico di Medicina Generale (GP) aziendale?"}
+                faq.answer_it = {"format": "html", "content": "Lavoriamo come un medico di base per la vostra organizzazione. Iniziamo ascoltando, comprendiamo il vostro contesto e i vostri vincoli, quindi introduciamo il giusto mix di competenze in ambito di consulenza, sistemi, IA e natura per trattare le cause profonde — sempre ancorati a ciò che conta di più per voi e per i vostri clienti."}
+            elif "FIRST MEETING" in q_en:
+                faq.question_it = {"format": "html", "content": "Cosa succede nel primo incontro?"}
+                faq.answer_it = {"format": "html", "content": "Nel nostro primo incontro, ci concentriamo sulla comprensione della vostra situazione attuale, delle sfide e degli obiettivi. Discuteremo il vostro contesto aziendale, identificheremo i principali punti critici ed esploreremo come appare il successo per voi. Questo ci aiuta a creare un rapporto ORR su misura con raccomandazioni attuabili."}
+            elif "ORR REPORT" in q_en:
+                faq.question_it = {"format": "html", "content": "Cos'è il rapporto ORR?"}
+                faq.answer_it = {"format": "html", "content": "Il rapporto ORR è un'analisi completa che forniamo dopo il nostro primo incontro. Delinea i problemi chiave che interessano il vostro business, propone soluzioni rapide e miglioramenti a lungo termine, e mostra dove il nostro lavoro di consulenza, sui sistemi digitali o sui sistemi viventi avrà il maggior impatto sulla vostra organizzazione."}
+            elif "COST" in q_en or "HOW MUCH" in q_en:
+                faq.question_it = {"format": "html", "content": "Quanto costano gli incontri e il rapporto?"}
+                faq.answer_it = {"format": "html", "content": "I nostri incontri sono fatturati a €45/ora su base pro-rata, progettati per essere brevi, mirati e densi di valore. Il costo del rapporto ORR parte da €220, sebbene il costo finale dipenda dalla complessità della vostra situazione e dei vostri requisiti."}
+            elif "KEEP WORKING" in q_en or "AFTER THE REPORT" in q_en:
+                faq.question_it = {"format": "html", "content": "Devo continuare a lavorare con ORR dopo il rapporto?"}
+                faq.answer_it = {"format": "html", "content": "Niente affatto. Il rapporto ORR è progettato per fornire valore sia che continuiate a lavorare con noi o meno. Include raccomandazioni attuabili che potete implementare in autonomia. Tuttavia, siamo disponibili a supportare l'implementazione se sceglierete di continuare la nostra collaborazione."}
+            faq.save()
+
+        # --- 4. OTHER PAGES (RE-SYNC) ---
         how_page = HowWeOperatePageContent.objects.first()
         if how_page:
             how_page.hero_title_it = {"format": "html", "content": "Come Operiamo"}
             how_page.save()
+
+        # ORR Role Section
+        orr_role = ORRRoleSection.objects.first()
+        if orr_role:
+            orr_role.title_it = {"format": "html", "content": "Il Ruolo di ORR"}
+            orr_role.description_it = {"format": "html", "content": "Agiamo come medici specialisti per la fisiologia della vostra azienda, ma partiamo dai vostri sintomi e dalle vostre priorità. Controlliamo la salute del vostro sistema, diagnostichiamo i problemi e co-progettiamo soluzioni che le vostre persone possano effettivamente utilizzare, mantenendo tutto funzionante nel tempo."}
+            orr_role.save()
 
         return JsonResponse({"success": True, "message": "Global Perfect Italian Sync Complete! No errors."})
     except Exception as e:

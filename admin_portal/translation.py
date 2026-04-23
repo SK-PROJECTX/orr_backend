@@ -216,6 +216,7 @@ class StrategicAdvisoryPageContentTranslationOptions(TranslationOptions):
         'process_step_4', 'process_step_4_title',
         'network_title', 'network_description',
         'digital_title', 'digital_subtitle', 'digital_description', 'digital_image_alt',
+        'case_challenge', 'case_solution', 'case_result', 'case_image_alt',
         'cta_title', 'cta_description', 'cta_button_text',
         'meta_title', 'meta_description',
     )
@@ -231,6 +232,7 @@ class OperationalSystemsPageContentTranslationOptions(TranslationOptions):
         'process_step_2_title', 'process_step_2',
         'process_step_3_title', 'process_step_3',
         'process_step_4_title', 'process_step_4',
+        'case_challenge', 'case_solution', 'case_result', 'case_image_alt',
         'cta_title', 'cta_description', 'cta_button_text',
         'meta_title', 'meta_description',
     )
@@ -243,6 +245,7 @@ class LivingSystemsPageContentTranslationOptions(TranslationOptions):
         'service_2_title', 'service_2_description', 'service_3_title', 'service_3_description',
         'process_title', 'process_description',
         'process_step_1', 'process_step_2', 'process_step_3', 'process_step_4',
+        'case_challenge', 'case_solution', 'case_result', 'case_image_alt',
         'cta_title', 'cta_description', 'cta_button_text',
         'meta_title', 'meta_description',
     )

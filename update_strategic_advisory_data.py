@@ -56,6 +56,10 @@ def update_strategic_advisory_content():
         strategic_advisory.process_step_3_title = 'Optimize (For Clients Who Continue)'
     strategic_advisory.process_step_3 = 'For clients who choose ongoing partnership, we move into implementation and optimization.'
     
+    if hasattr(strategic_advisory, 'process_step_4_title'):
+        strategic_advisory.process_step_4_title = 'Grow'
+    strategic_advisory.process_step_4 = 'With systems live, we provide continuous monitoring, regular reviews, and proactive adjustments to ensure your compliance strategies evolve with changing regulations and business needs.'
+    
     # Network section
     if hasattr(strategic_advisory, 'network_title'):
         strategic_advisory.network_title = 'The ORR Network Advantage'
