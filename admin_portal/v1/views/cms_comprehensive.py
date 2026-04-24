@@ -14,6 +14,14 @@ from admin_portal.models_cms import (
 from admin_portal.cms_utils import (
     CMSErrorHandler, CMSFieldValidator, validate_and_clean_cms_data, CMSValidationError
 )
+from admin_portal.v1.serializers.cms_comprehensive import (
+    HowWeOperatePageContentSerializer, ProcessStepSerializer,
+    ServicesPageContentSerializer, ServiceStageSerializer, ServicePillarSerializer,
+    ResourcesBlogsPageContentSerializer, ContentCardSerializer,
+    LegalPolicyPageContentSerializer, PolicyItemSerializer,
+    ContactPageContentSerializer, StrategicAdvisoryPageContentSerializer,
+    OperationalSystemsPageContentSerializer, LivingSystemsPageContentSerializer
+)
 
 
 @extend_schema(
@@ -33,40 +41,8 @@ class HowWeOperatePageView(APIView):
         steps = ProcessStep.objects.filter(is_active=True).order_by('order')
         
         data = {
-            'page': {
-                'id': page.id,
-                'hero_title': page.hero_title,
-                'meta_title': page.meta_title,
-                'meta_description': page.meta_description,
-                'is_active': page.is_active,
-            },
-            'steps': [{
-                'id': step.id,
-                'step_number': step.step_number,
-                'title': step.title,
-                'subtitle': step.subtitle,
-                'description': step.description,
-                'bullet1': step.bullet1,
-                'bullet2': step.bullet2,
-                'bullet3': step.bullet3,
-                'bullet4': step.bullet4,
-                'bullet5': step.bullet5,
-                'bullet6': step.bullet6,
-                'bullet7': step.bullet7,
-                'bullet8': step.bullet8,
-                'bullet9': step.bullet9,
-                'wordbreak': step.wordbreak,
-                'description1': step.description1,
-                'description2': step.description2,
-                'description3': step.description3,
-                'description4': step.description4,
-                'image_url': step.image_url,
-                'button_text': step.button_text,
-                'button_text2': step.button_text2,
-                'button_text3': step.button_text3,
-                'order': step.order,
-                'is_active': step.is_active,
-            } for step in steps]
+            'page': HowWeOperatePageContentSerializer(page).data,
+            'steps': ProcessStepSerializer(steps, many=True).data
         }
         
         return Response({
@@ -126,39 +102,9 @@ class ServicesPageContentView(APIView):
         pillars = ServicePillar.objects.filter(is_active=True).order_by('order')
         
         data = {
-            'page': {
-                'id': page.id,
-                'hero_title': page.hero_title,
-                'hero_subtitle': page.hero_subtitle,
-                'pillars_title': page.pillars_title,
-                'business_gp_title': page.business_gp_title,
-                'business_gp_subtitle': page.business_gp_subtitle,
-                'business_gp_description': page.business_gp_description,
-                'business_gp_button_text': page.business_gp_button_text,
-                'business_gp_image': page.business_gp_image,
-                'meta_title': page.meta_title,
-                'meta_description': page.meta_description,
-                'is_active': page.is_active,
-            },
-            'stages': [{
-                'id': stage.id,
-                'stage_number': stage.stage_number,
-                'title': stage.title,
-                'subtitle': stage.subtitle,
-                'description': stage.description,
-                'focus_content': stage.focus_content,
-                'button_text': stage.button_text,
-                'order': stage.order,
-                'is_active': stage.is_active,
-            } for stage in stages],
-            'pillars': [{
-                'id': pillar.id,
-                'title': pillar.title,
-                'description': pillar.description,
-                'button_text': pillar.button_text,
-                'order': pillar.order,
-                'is_active': pillar.is_active,
-            } for pillar in pillars]
+            'page': ServicesPageContentSerializer(page).data,
+            'stages': ServiceStageSerializer(stages, many=True).data,
+            'pillars': ServicePillarSerializer(pillars, many=True).data
         }
         
         return Response({
@@ -203,29 +149,8 @@ class ResourcesBlogsPageContentView(APIView):
         cards = ContentCard.objects.filter(is_active=True).order_by('order')
         
         data = {
-            'page': {
-                'id': page.id,
-                'hero_title': page.hero_title,
-                'hero_description1': page.hero_description1,
-                'hero_description2': page.hero_description2,
-                'hero_description3': page.hero_description3,
-                'hero_button1_text': page.hero_button1_text,
-                'hero_button2_text': page.hero_button2_text,
-                'meta_title': page.meta_title,
-                'meta_description': page.meta_description,
-                'is_active': page.is_active,
-            },
-            'cards': [{
-                'id': card.id,
-                'badge': card.badge,
-                'title': card.title,
-                'content': card.content,
-                'image_url': card.image_url,
-                'button1_text': card.button1_text,
-                'button2_text': card.button2_text,
-                'order': card.order,
-                'is_active': card.is_active,
-            } for card in cards]
+            'page': ResourcesBlogsPageContentSerializer(page).data,
+            'cards': ContentCardSerializer(cards, many=True).data
         }
         
         return Response({
@@ -270,21 +195,8 @@ class LegalPolicyPageContentView(APIView):
         items = PolicyItem.objects.filter(is_active=True).order_by('order')
         
         data = {
-            'page': {
-                'id': page.id,
-                'hero_title': page.hero_title,
-                'hero_description': page.hero_description,
-                'meta_title': page.meta_title,
-                'meta_description': page.meta_description,
-                'is_active': page.is_active,
-            },
-            'items': [{
-                'id': item.id,
-                'number': item.number,
-                'description': item.description,
-                'order': item.order,
-                'is_active': item.is_active,
-            } for item in items]
+            'page': LegalPolicyPageContentSerializer(page).data,
+            'items': PolicyItemSerializer(items, many=True).data
         }
         
         return Response({
@@ -343,40 +255,13 @@ class ContactPageContentView(APIView):
         if not page:
             page = ContactPageContent.objects.create(is_active=True)
         
-        data = {
-            'id': page.id,
-            'hero_title': page.hero_title,
-            'contact_info_title': page.contact_info_title,
-            'contact_info_subtitle': page.contact_info_subtitle,
-            'phone_number': page.phone_number,
-            'email_address': page.email_address,
-            'address': page.address,
-            'first_name_label': page.first_name_label,
-            'last_name_label': page.last_name_label,
-            'email_label': page.email_label,
-            'phone_label': page.phone_label,
-            'subject_label': page.subject_label,
-            'message_label': page.message_label,
-            'first_name_placeholder': page.first_name_placeholder,
-            'last_name_placeholder': page.last_name_placeholder,
-            'email_placeholder': page.email_placeholder,
-            'phone_placeholder': page.phone_placeholder,
-            'message_placeholder': page.message_placeholder,
-            'subject_option_1': page.subject_option_1,
-            'subject_option_2': page.subject_option_2,
-            'subject_option_3': page.subject_option_3,
-            'subject_option_4': page.subject_option_4,
-            'submit_button_text': page.submit_button_text,
-            'meta_title': page.meta_title,
-            'meta_description': page.meta_description,
-            'is_active': page.is_active,
-        }
+        serializer = ContactPageContentSerializer(page)
         
         return Response({
             'success': True,
             'status': 200,
             'message': 'Request successful',
-            'data': data
+            'data': serializer.data
         })
     
     def put(self, request):
@@ -750,52 +635,13 @@ class StrategicAdvisoryPageView(APIView):
                 # Create default content if none exists
                 page_content = StrategicAdvisoryPageContent.objects.create()
             
+            serializer = StrategicAdvisoryPageContentSerializer(page_content)
+            
             return Response({
                 'success': True,
                 'status': 200,
                 'message': 'Strategic Advisory page content retrieved successfully',
-                'data': {
-                    'id': page_content.id,
-                    'hero_title': page_content.hero_title,
-                    'hero_subtitle': page_content.hero_subtitle,
-                    'hero_description': page_content.hero_description,
-                    'hero_image': page_content.hero_image,
-                    'services_title': page_content.services_title,
-                    'service_1_title': page_content.service_1_title,
-                    'service_1_description': page_content.service_1_description,
-                    'service_2_title': page_content.service_2_title,
-                    'service_2_description': page_content.service_2_description,
-                    'service_3_title': page_content.service_3_title,
-                    'service_3_description': page_content.service_3_description,
-                    'process_title': page_content.process_title,
-                    'process_subtitle': page_content.process_subtitle,
-                    'process_description': page_content.process_description,
-                    'process_step_1_title': page_content.process_step_1_title,
-                    'process_step_1_subtitle': page_content.process_step_1_subtitle,
-                    'process_step_1': page_content.process_step_1,
-                    'process_step_2_title': page_content.process_step_2_title,
-                    'process_step_2': page_content.process_step_2,
-                    'process_step_3_title': page_content.process_step_3_title,
-                    'process_step_3': page_content.process_step_3,
-                    'network_title': page_content.network_title,
-                    'network_description': page_content.network_description,
-                    'network_cards': page_content.network_cards,
-                    'digital_title': page_content.digital_title,
-                    'digital_subtitle': page_content.digital_subtitle,
-                    'digital_description': page_content.digital_description,
-                    'digital_image_alt': page_content.digital_image_alt,
-                    'digital_who_is_this_for': page_content.digital_who_is_this_for,
-                    'digital_features': page_content.digital_features,
-                    'case_challenge': page_content.case_challenge,
-                    'case_solution': page_content.case_solution,
-                    'case_result': page_content.case_result,
-                    'case_image_alt': page_content.case_image_alt,
-                    'cta_title': page_content.cta_title,
-                    'cta_description': page_content.cta_description,
-                    'cta_button_text': page_content.cta_button_text,
-                    'meta_title': page_content.meta_title,
-                    'meta_description': page_content.meta_description,
-                }
+                'data': serializer.data
             })
         except Exception as e:
             return Response({
@@ -861,41 +707,13 @@ class OperationalSystemsPageView(APIView):
             if not page_content:
                 page_content = OperationalSystemsPageContent.objects.create()
             
+            serializer = OperationalSystemsPageContentSerializer(page_content)
+            
             return Response({
                 'success': True,
                 'status': 200,
                 'message': 'Operational Systems page content retrieved successfully',
-                'data': {
-                    'id': page_content.id,
-                    'hero_title': page_content.hero_title,
-                    'hero_subtitle': page_content.hero_subtitle,
-                    'hero_description': page_content.hero_description,
-                    'hero_image': page_content.hero_image,
-                    'services_title': page_content.services_title,
-                    'service_1_title': page_content.service_1_title,
-                    'service_1_description': page_content.service_1_description,
-                    'service_2_title': page_content.service_2_title,
-                    'service_2_description': page_content.service_2_description,
-                    'service_3_title': page_content.service_3_title,
-                    'service_3_description': page_content.service_3_description,
-                    'process_title': page_content.process_title,
-                    'process_description': page_content.process_description,
-                    'process_step_1_title': page_content.process_step_1_title,
-                    'process_step_1': page_content.process_step_1,
-                    'process_step_2_title': page_content.process_step_2_title,
-                    'process_step_2': page_content.process_step_2,
-                    'process_step_3_title': page_content.process_step_3_title,
-                    'process_step_3': page_content.process_step_3,
-                    'case_challenge': page_content.case_challenge,
-                    'case_solution': page_content.case_solution,
-                    'case_result': page_content.case_result,
-                    'case_image_alt': page_content.case_image_alt,
-                    'cta_title': page_content.cta_title,
-                    'cta_description': page_content.cta_description,
-                    'cta_button_text': page_content.cta_button_text,
-                    'meta_title': page_content.meta_title,
-                    'meta_description': page_content.meta_description,
-                }
+                'data': serializer.data
             })
         except Exception as e:
             return Response({
@@ -959,39 +777,13 @@ class LivingSystemsPageView(APIView):
             if not page_content:
                 page_content = LivingSystemsPageContent.objects.create()
             
+            serializer = LivingSystemsPageContentSerializer(page_content)
+            
             return Response({
                 'success': True,
                 'status': 200,
                 'message': 'Living Systems page content retrieved successfully',
-                'data': {
-                    'id': page_content.id,
-                    'hero_title': page_content.hero_title,
-                    'hero_subtitle': page_content.hero_subtitle,
-                    'hero_description': page_content.hero_description,
-                    'hero_image': page_content.hero_image,
-                    'services_title': page_content.services_title,
-                    'service_1_title': page_content.service_1_title,
-                    'service_1_description': page_content.service_1_description,
-                    'service_2_title': page_content.service_2_title,
-                    'service_2_description': page_content.service_2_description,
-                    'service_3_title': page_content.service_3_title,
-                    'service_3_description': page_content.service_3_description,
-                    'process_title': page_content.process_title,
-                    'process_description': page_content.process_description,
-                    'process_step_1': page_content.process_step_1,
-                    'process_step_2': page_content.process_step_2,
-                    'process_step_3': page_content.process_step_3,
-                    'process_step_4': page_content.process_step_4,
-                    'case_challenge': page_content.case_challenge,
-                    'case_solution': page_content.case_solution,
-                    'case_result': page_content.case_result,
-                    'case_image_alt': page_content.case_image_alt,
-                    'cta_title': page_content.cta_title,
-                    'cta_description': page_content.cta_description,
-                    'cta_button_text': page_content.cta_button_text,
-                    'meta_title': page_content.meta_title,
-                    'meta_description': page_content.meta_description,
-                }
+                'data': serializer.data
             })
         except Exception as e:
             return Response({
