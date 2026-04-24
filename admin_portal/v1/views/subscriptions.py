@@ -86,8 +86,20 @@ class SubscriptionManagementView(ListAPIView):
             "activation_rate": round((active_subscriptions / total_subscriptions) * 100, 2) if total_subscriptions > 0 else 0,
             "monthly_growth_rate": self._calculate_subscription_growth_rate(),
             "churn_rate": self._calculate_churn_rate(),
-            "average_subscription_length": self._calculate_avg_subscription_length()
+            "average_subscription_length": self._calculate_avg_subscription_length(),
+            "total_mrr": self._calculate_total_mrr()
         }
+
+    def _calculate_total_mrr(self):
+        """Calculate total Monthly Recurring Revenue"""
+        plan_distribution = Subscription.objects.values('plan_name').annotate(count=Count('id'))
+        total_mrr = 0
+        for item in plan_distribution:
+            plan_name = item['plan_name']
+            count = item['count']
+            plan_price = 99.99 if plan_name == "Premium" else 49.99
+            total_mrr += count * plan_price
+        return round(total_mrr, 2)
     
     def _get_plan_distribution(self):
         """Get distribution of subscription plans"""

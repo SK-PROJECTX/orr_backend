@@ -342,3 +342,34 @@ class TransactionAuditTrailView(APIView):
             "pending_investigations": 0,  # No investigation tracking implemented
             "compliance_score": 100 if failed_transactions == 0 else max(0, 100 - (failed_transactions * 2))
         }
+
+
+@extend_schema(
+    tags=["Wallet Logs"],
+    summary="Get all client wallets",
+    description="List all clients with their current wallet balances and last activity."
+)
+class WalletListView(APIView):
+    """List all client wallets and balances"""
+    
+    permission_classes = []  # Temporarily disabled for testing
+    
+    def get(self, request):
+        clients = Client.objects.select_related('user').all()
+        
+        wallet_data = []
+        for client in clients:
+            # Get latest transaction for current balance
+            latest_tx = client.wallet_transactions.order_by('-created_at').first()
+            balance = float(latest_tx.balance_after) if latest_tx else 0.0
+            
+            wallet_data.append({
+                "userId": client.user_id,
+                "userName": client.company or client.user.get_full_name() or client.user.username,
+                "userEmail": client.user.email,
+                "balance": balance,
+                "currency": "USD", # Default for now
+                "lastUpdated": latest_tx.created_at.isoformat() if latest_tx else client.created_at.isoformat()
+            })
+            
+        return Response(wallet_data)

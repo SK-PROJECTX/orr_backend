@@ -408,6 +408,11 @@ billing_overview_patterns = [
 # Wallet Logs URLs
 wallet_logs_patterns = [
     path(
+        "wallets/",
+        wallet_logs.WalletListView.as_view(),
+        name="wallet-list",
+    ),
+    path(
         "transactions/",
         wallet_logs.WalletTransactionLogsView.as_view(),
         name="wallet-transaction-logs",
