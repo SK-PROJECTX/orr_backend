@@ -8,7 +8,7 @@ from rest_framework.views import APIView
 from rest_framework import status
 
 from payment.models import Invoice, Subscription
-from admin_portal.models import Client
+from admin_portal.models import Client, PaymentDispute
 from common.permissions import IsAdminUser
 
 
@@ -47,79 +47,70 @@ class PaymentDisputesOverviewView(APIView):
         })
     
     def _get_active_disputes(self):
-        """Get currently active payment disputes"""
-        # In a real implementation, this would come from a PaymentDispute model
-        # For now, we'll simulate based on failed/disputed invoices
+        """Get currently active payment disputes from database"""
+        active_disputes = PaymentDispute.objects.filter(
+            status__in=['open', 'under_review']
+        ).select_related('client__user', 'invoice')
         
-        return [
-            {
-                "dispute_id": "DP-001",
-                "invoice_id": "in_1234567890",
-                "client_name": "John Doe",
-                "client_email": "john@example.com",
-                "amount": 99.99,
+        results = []
+        for d in active_disputes:
+            # Calculate days remaining (simulated logic for now based on evidence_due_date)
+            days_remaining = 0
+            if d.evidence_due_date:
+                delta = d.evidence_due_date - timezone.now()
+                days_remaining = max(0, delta.days)
+
+            results.append({
+                "dispute_id": f"DP-{d.id:03d}",
+                "invoice_id": d.invoice.stripe_invoice_id if d.invoice else "N/A",
+                "client_name": d.client.user.get_full_name() if d.client and d.client.user else "Unknown",
+                "client_email": d.client.user.email if d.client and d.client.user else "N/A",
+                "amount": float(d.dispute_amount),
                 "currency": "USD",
-                "dispute_type": "chargeback",
-                "reason": "Product not received",
-                "status": "under_review",
-                "created_date": "2024-01-15T10:30:00Z",
-                "due_date": "2024-01-29T23:59:59Z",
-                "priority": "high",
+                "dispute_type": d.dispute_type,
+                "reason": d.dispute_reason,
+                "status": d.status,
+                "created_date": d.created_at.isoformat(),
+                "due_date": d.evidence_due_date.isoformat() if d.evidence_due_date else None,
+                "priority": "high" if d.dispute_amount > 100 else "medium",
                 "assigned_to": "Support Team",
-                "evidence_required": True,
-                "days_remaining": 14
-            },
-            {
-                "dispute_id": "DP-002",
-                "invoice_id": "in_0987654321",
-                "client_name": "Jane Smith",
-                "client_email": "jane@example.com",
-                "amount": 149.99,
-                "currency": "USD",
-                "dispute_type": "inquiry",
-                "reason": "Billing question",
-                "status": "awaiting_response",
-                "created_date": "2024-01-18T14:20:00Z",
-                "due_date": "2024-02-01T23:59:59Z",
-                "priority": "medium",
-                "assigned_to": "Billing Team",
-                "evidence_required": False,
-                "days_remaining": 18
-            },
-            {
-                "dispute_id": "DP-003",
-                "invoice_id": "in_1122334455",
-                "client_name": "Tech Corp Ltd",
-                "client_email": "billing@techcorp.com",
-                "amount": 299.99,
-                "currency": "USD",
-                "dispute_type": "chargeback",
-                "reason": "Fraudulent transaction",
-                "status": "evidence_submitted",
-                "created_date": "2024-01-12T09:15:00Z",
-                "due_date": "2024-01-26T23:59:59Z",
-                "priority": "high",
-                "assigned_to": "Legal Team",
-                "evidence_required": True,
-                "days_remaining": 11
-            }
-        ]
+                "evidence_required": d.status == 'open',
+                "days_remaining": days_remaining
+            })
+        
+        return results
     
     def _get_dispute_statistics(self):
-        """Get dispute statistics and metrics"""
+        """Get real dispute statistics and metrics from database"""
+        total_qs = PaymentDispute.objects.all()
+        active_qs = total_qs.filter(status__in=['open', 'under_review'])
+        resolved_qs = total_qs.filter(status__in=['resolved', 'closed'])
+        won_qs = total_qs.filter(status='resolved')
+        lost_qs = total_qs.filter(status='closed')
+
+        total_disputes = total_qs.count()
+        active_count = active_qs.count()
+        resolved_count = resolved_qs.count()
+        won_count = won_qs.count()
+
+        win_rate = (won_count / resolved_count * 100) if resolved_count > 0 else 0
+        
+        total_disputed_amount = total_qs.aggregate(total=Sum('dispute_amount'))['total'] or 0
+        recovered_amount = won_qs.aggregate(total=Sum('dispute_amount'))['total'] or 0
+
         return {
-            "total_disputes": 25,
-            "active_disputes": 3,
-            "resolved_disputes": 22,
-            "won_disputes": 18,
-            "lost_disputes": 4,
-            "dispute_rate": 2.1,  # Percentage of total transactions
-            "win_rate": 81.8,     # Percentage of disputes won
-            "average_resolution_time": 12.5,  # Days
-            "total_disputed_amount": 1250.75,
-            "recovered_amount": 1050.50,
-            "chargeback_count": 15,
-            "inquiry_count": 10
+            "total_disputes": total_disputes,
+            "active_disputes": active_count,
+            "resolved_disputes": resolved_count,
+            "won_disputes": won_count,
+            "lost_disputes": lost_qs.count(),
+            "dispute_rate": 0,  # Would need total invoice count to calculate
+            "win_rate": round(win_rate, 1),
+            "average_resolution_time": 0,
+            "total_disputed_amount": float(total_disputed_amount),
+            "recovered_amount": float(recovered_amount),
+            "chargeback_count": total_qs.filter(dispute_type='chargeback').count(),
+            "inquiry_count": total_qs.filter(dispute_type='inquiry').count()
         }
     
     def _get_recent_dispute_activity(self):
