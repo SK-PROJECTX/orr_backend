@@ -11,6 +11,60 @@ from payment.models import Invoice, Subscription, PricingPlan
 from admin_portal.models import Client
 from common.permissions import IsAdminUser
 from payment.v1.serializers import InvoiceHistorySerializer
+from client.models import Wallet, Transaction as ClientTransaction
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
+
+@extend_schema(
+    tags=["Wallet Logs"],
+    summary="Adjust wallet balance",
+    description="Manually adjust a client's wallet balance (credit or debit)."
+)
+class WalletBalanceAdjustmentView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def post(self, request):
+        user_id = request.data.get('user_id')
+        amount = request.data.get('amount')
+        adjustment_type = request.data.get('type')  # 'credit' or 'debit'
+        description = request.data.get('description', 'Manual adjustment')
+
+        if not user_id or amount is None or not adjustment_type:
+            return Response({"error": "Missing required fields"}, status=400)
+
+        try:
+            user = User.objects.get(id=user_id)
+            wallet, created = Wallet.objects.get_or_create(owner=user)
+            
+            amount_decimal = float(amount)
+            
+            # Create transaction record
+            # Transaction model auto-updates wallet balance in its save() method
+            transaction_type = 'top_up' if adjustment_type == 'credit' else 'deduction'
+            
+            tx = ClientTransaction.objects.create(
+                wallet=wallet,
+                amount=amount_decimal,
+                transaction_type=transaction_type,
+                description=description
+            )
+            
+            # Explicitly save wallet if not auto-updated correctly or to ensure sync
+            wallet.refresh_from_db()
+
+            return Response({
+                "message": f"Successfully processed {adjustment_type} of ${amount_decimal}",
+                "new_balance": float(wallet.balance),
+                "transaction_id": tx.id
+            })
+
+        except User.DoesNotExist:
+            return Response({"error": "User not found"}, status=404)
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)
+
 
 
 @extend_schema(

@@ -427,6 +427,11 @@ wallet_logs_patterns = [
         wallet_logs.TransactionAuditTrailView.as_view(),
         name="transaction-audit-trail",
     ),
+    path(
+        "adjust-balance/",
+        wallet_logs.WalletBalanceAdjustmentView.as_view(),
+        name="wallet-adjust-balance",
+    ),
 ]
 
 # Pro-rata Approvals URLs
