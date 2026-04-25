@@ -8,7 +8,7 @@ from rest_framework.views import APIView
 from rest_framework import status
 
 from payment.models import Invoice, Subscription
-from admin_portal.models import Client
+from admin_portal.models import Client, ProRataApproval
 from common.permissions import IsAdminUser
 
 
@@ -43,92 +43,65 @@ class ProRataBillingRequestsView(APIView):
         })
     
     def _get_pending_prorata_requests(self):
-        """Get pending pro-rata adjustment requests"""
-        # This would come from a dedicated ProRataRequest model in a real implementation
-        # For now, we'll simulate based on subscription changes
+        """Get pending pro-rata adjustment requests from database"""
+        pending = ProRataApproval.objects.filter(status='pending').select_related('client__user')
         
-        return [
-            {
-                "request_id": "PR-001",
-                "client_name": "John Doe",
-                "client_email": "john@example.com",
-                "subscription_id": "sub_123",
-                "request_type": "Plan Upgrade",
-                "current_plan": "Basic",
-                "new_plan": "Premium",
-                "prorata_amount": 45.50,
-                "effective_date": "2024-01-15",
-                "requested_date": "2024-01-10",
-                "reason": "Client upgraded mid-cycle",
-                "status": "pending",
+        results = []
+        for p in pending:
+            results.append({
+                "id": str(p.id),
+                "request_id": f"PR-{p.id:03d}",
+                "client_name": p.client.user.get_full_name() if p.client and p.client.user else "Unknown",
+                "client_email": p.client.user.email if p.client and p.client.user else "N/A",
+                "subscription_id": p.subscription_id,
+                "request_type": p.get_adjustment_type_display(),
+                "current_plan": p.old_plan_name,
+                "new_plan": p.new_plan_name,
+                "amount": float(p.prorated_amount),
+                "effective_date": p.change_date.isoformat(),
+                "requested_date": p.created_at.isoformat(),
+                "reason": p.notes,
+                "status": p.status,
                 "priority": "normal"
-            },
-            {
-                "request_id": "PR-002",
-                "client_name": "Jane Smith",
-                "client_email": "jane@example.com",
-                "subscription_id": "sub_456",
-                "request_type": "Plan Downgrade",
-                "current_plan": "Premium",
-                "new_plan": "Basic",
-                "prorata_amount": -25.00,
-                "effective_date": "2024-01-20",
-                "requested_date": "2024-01-18",
-                "reason": "Client requested downgrade",
-                "status": "pending",
-                "priority": "low"
-            },
-            {
-                "request_id": "PR-003",
-                "client_name": "Tech Corp Ltd",
-                "client_email": "billing@techcorp.com",
-                "subscription_id": "sub_789",
-                "request_type": "Billing Adjustment",
-                "current_plan": "Enterprise",
-                "new_plan": "Enterprise",
-                "prorata_amount": -150.00,
-                "effective_date": "2024-01-12",
-                "requested_date": "2024-01-11",
-                "reason": "Service outage compensation",
-                "status": "pending",
-                "priority": "high"
-            }
-        ]
+            })
+        return results
     
     def _get_recent_decisions(self):
-        """Get recent approval/rejection decisions"""
-        return [
-            {
-                "request_id": "PR-004",
-                "client_name": "ABC Company",
-                "decision": "approved",
-                "decided_by": "Admin User",
-                "decided_date": "2024-01-09",
-                "prorata_amount": 75.25,
-                "reason": "Valid plan upgrade request"
-            },
-            {
-                "request_id": "PR-005",
-                "client_name": "XYZ Services",
-                "decision": "rejected",
-                "decided_by": "Admin User",
-                "decided_date": "2024-01-08",
-                "prorata_amount": -200.00,
-                "reason": "Insufficient documentation"
-            }
-        ]
+        """Get recent approval/rejection decisions from database"""
+        recent = ProRataApproval.objects.filter(status__in=['approved', 'rejected']).select_related('client__user', 'approved_by')[:10]
+        
+        results = []
+        for r in recent:
+            results.append({
+                "request_id": f"PR-{r.id:03d}",
+                "client_name": r.client.user.get_full_name() if r.client and r.client.user else "Unknown",
+                "decision": r.status,
+                "decided_by": r.approved_by.get_full_name() if r.approved_by else "System",
+                "decided_date": r.approved_at.isoformat() if r.approved_at else r.updated_at.isoformat(),
+                "prorata_amount": float(r.prorated_amount),
+                "reason": r.rejection_reason or r.notes
+            })
+        return results
     
     def _get_prorata_statistics(self):
-        """Get pro-rata billing statistics"""
+        """Get real pro-rata billing statistics from database"""
+        qs = ProRataApproval.objects.all()
+        pending_qs = qs.filter(status='pending')
+        approved_qs = qs.filter(status='approved')
+        rejected_qs = qs.filter(status='rejected')
+
+        total_pending = pending_qs.aggregate(total=Sum('prorated_amount'))['total'] or 0
+        total_approved = approved_qs.aggregate(total=Sum('prorated_amount'))['total'] or 0
+
         return {
-            "total_requests_this_month": 15,
-            "pending_requests": 3,
-            "approved_requests": 8,
-            "rejected_requests": 4,
-            "total_prorata_amount_pending": 120.50,
-            "total_prorata_amount_approved": 450.75,
-            "average_processing_time": 2.3,  # days
-            "approval_rate": 66.7  # percentage
+            "total_requests_this_month": qs.filter(created_at__month=timezone.now().month).count(),
+            "pending_requests": pending_qs.count(),
+            "approved_requests": approved_qs.count(),
+            "rejected_requests": rejected_qs.count(),
+            "total_prorata_amount_pending": float(total_pending),
+            "total_prorata_amount_approved": float(total_approved),
+            "average_processing_time": 0,
+            "approval_rate": round(approved_qs.count() / qs.count() * 100, 1) if qs.count() > 0 else 0
         }
     
     def _get_workflow_metrics(self):
