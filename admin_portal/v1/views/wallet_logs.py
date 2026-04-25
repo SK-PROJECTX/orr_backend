@@ -355,21 +355,34 @@ class WalletListView(APIView):
     permission_classes = []  # Temporarily disabled for testing
     
     def get(self, request):
-        clients = Client.objects.select_related('user').all()
+        clients = Client.objects.select_related('user', 'user__wallet').all()
         
         wallet_data = []
         for client in clients:
-            # Get latest transaction for current balance
-            latest_tx = client.wallet_transactions.order_by('-created_at').first()
-            balance = float(latest_tx.balance_after) if latest_tx else 0.0
+            # Prioritize the Wallet model balance as source of truth
+            wallet = getattr(client.user, 'wallet', None)
+            if wallet:
+                balance = float(wallet.balance)
+            else:
+                # Fallback to transaction history if wallet object is missing
+                latest_tx = client.wallet_transactions.order_by('-created_at').first()
+                balance = float(latest_tx.balance_after) if latest_tx else 0.0
             
+            # Improve username resolution
+            full_name = client.user.get_full_name().strip()
+            display_name = client.company or full_name or client.user.username
+            
+            # If still N/A or empty, use email prefix or email
+            if not display_name or display_name.upper() == "N/A":
+                display_name = client.user.email.split('@')[0] if client.user.email else "Admin"
+
             wallet_data.append({
                 "userId": client.user_id,
-                "userName": client.company or client.user.get_full_name() or client.user.username,
+                "userName": display_name,
                 "userEmail": client.user.email,
                 "balance": balance,
-                "currency": "USD", # Default for now
-                "lastUpdated": latest_tx.created_at.isoformat() if latest_tx else client.created_at.isoformat()
+                "currency": wallet.currency if wallet else "USD",
+                "lastUpdated": wallet.updated_at.isoformat() if wallet else (client.last_activity.isoformat() if client.last_activity else client.created_at.isoformat())
             })
             
         return Response(wallet_data)
