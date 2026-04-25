@@ -2,6 +2,8 @@ from django.contrib.auth.models import User
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 from django.utils import timezone
+from django.apps import apps
+import logging
 
 from .models import (
     AdminProfile,
@@ -12,13 +14,12 @@ from .models import (
     SystemNotification,
     Ticket,
     TicketMessage,
+    WalletTransaction,
 )
-import logging
-logger = logging.getLogger(__name__)
 from .auto_reply_service import AutoReplyService
 
+logger = logging.getLogger(__name__)
 
-import logging
 
 @receiver(post_save, sender=Ticket)
 def ticket_created_notification(sender, instance, created, **kwargs):
@@ -151,3 +152,26 @@ def content_deleted_audit(sender, instance, **kwargs):
         object_id=str(instance.pk),
         description=f"Content deleted: {instance.title}",
     )
+
+
+@receiver(post_save, sender=WalletTransaction)
+def sync_wallet_balance(sender, instance, created, **kwargs):
+    """Sync balance to Wallet model whenever a transaction is recorded"""
+    if created:
+        Wallet = apps.get_model('client', 'Wallet')
+        client_user = instance.client.user
+        
+        # Get or create the wallet for the user
+        wallet, _ = Wallet.objects.get_or_create(owner=client_user)
+        
+        # Update the wallet balance with the new after-transaction balance
+        wallet.balance = instance.balance_after
+        wallet.save(update_fields=['balance'])
+
+        # Create audit log for the financial transaction
+        AuditLog.objects.create(
+            action="update",
+            model_name="Wallet",
+            object_id=str(wallet.pk),
+            description=f"Wallet balance adjusted to {wallet.balance} via {instance.transaction_type} for {client_user.email}",
+        )

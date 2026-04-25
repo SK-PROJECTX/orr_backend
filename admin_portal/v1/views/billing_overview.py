@@ -83,7 +83,9 @@ class BillingOverviewView(APIView):
     def _get_total_revenue(self):
         """Calculate total revenue from paid invoices"""
         return float(Invoice.objects.filter(
-            Q(status__icontains='paid') | Q(status__icontains='Paid')
+            Q(status__icontains='paid') | 
+            Q(status__icontains='succeeded') | 
+            Q(status__icontains='complete')
         ).aggregate(total=Sum('amount'))['total'] or 0)
     
     def _get_monthly_revenue(self):
@@ -92,7 +94,9 @@ class BillingOverviewView(APIView):
         month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         
         return float(Invoice.objects.filter(
-            Q(status__icontains='paid') | Q(status__icontains='Paid'),
+            Q(status__icontains='paid') | 
+            Q(status__icontains='succeeded') | 
+            Q(status__icontains='complete'),
             created_at__gte=month_start
         ).aggregate(total=Sum('amount'))['total'] or 0)
     
@@ -108,12 +112,16 @@ class BillingOverviewView(APIView):
             prev_month_start = current_month_start.replace(month=current_month_start.month - 1)
         
         current_revenue = float(Invoice.objects.filter(
-            Q(status__icontains='paid') | Q(status__icontains='Paid'),
+            Q(status__icontains='paid') | 
+            Q(status__icontains='succeeded') | 
+            Q(status__icontains='complete'),
             created_at__gte=current_month_start
         ).aggregate(total=Sum('amount'))['total'] or 0)
         
         prev_revenue = float(Invoice.objects.filter(
-            Q(status__icontains='paid') | Q(status__icontains='Paid'),
+            Q(status__icontains='paid') | 
+            Q(status__icontains='succeeded') | 
+            Q(status__icontains='complete'),
             created_at__gte=prev_month_start,
             created_at__lt=current_month_start
         ).aggregate(total=Sum('amount'))['total'] or 0)
@@ -140,7 +148,9 @@ class BillingOverviewView(APIView):
         month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         
         monthly_revenue = float(Invoice.objects.filter(
-            Q(status__icontains='paid') | Q(status__icontains='Paid'),
+            Q(status__icontains='paid') | 
+            Q(status__icontains='succeeded') | 
+            Q(status__icontains='complete'),
             created_at__gte=month_start
         ).aggregate(total=Sum('amount'))['total'] or 0)
         
@@ -214,7 +224,9 @@ class BillingOverviewView(APIView):
                 month_end = month_start.replace(month=month_start.month + 1) - timedelta(days=1)
             
             revenue = float(Invoice.objects.filter(
-                Q(status__icontains='paid') | Q(status__icontains='Paid'),
+                Q(status__icontains='paid') | 
+            Q(status__icontains='succeeded') | 
+            Q(status__icontains='complete'),
                 created_at__gte=month_start,
                 created_at__lte=month_end
             ).aggregate(total=Sum('amount'))['total'] or 0)
@@ -268,7 +280,9 @@ class BillingOverviewView(APIView):
             date = (now - timedelta(days=i)).date()
             
             daily_volume = float(Invoice.objects.filter(
-                Q(status__icontains='paid') | Q(status__icontains='Paid'),
+                Q(status__icontains='paid') | 
+            Q(status__icontains='succeeded') | 
+            Q(status__icontains='complete'),
                 created_at__date=date
             ).aggregate(total=Sum('amount'))['total'] or 0)
             
@@ -295,9 +309,14 @@ class BillingOverviewView(APIView):
         
         customers = []
         for customer in top_customers:
+            # Sane name resolution for top customers
+            display_name = f"{customer['user__first_name']} {customer['user__last_name']}".strip()
+            if not display_name or display_name.upper() == "N/A":
+                display_name = customer['user__email'].split('@')[0] if customer['user__email'] else "Client"
+
             customers.append({
                 "email": customer['user__email'],
-                "name": f"{customer['user__first_name']} {customer['user__last_name']}".strip() or customer['user__email'],
+                "name": display_name,
                 "total_revenue": float(customer['total_revenue']),
                 "transaction_count": customer['transaction_count']
             })
@@ -353,7 +372,9 @@ class SubscriptionAnalyticsView(APIView):
         for plan in plans:
             plan_name = plan['plan_name']
             revenue = float(Invoice.objects.filter(
-                Q(status__icontains='paid') | Q(status__icontains='Paid'),
+                Q(status__icontains='paid') | 
+            Q(status__icontains='succeeded') | 
+            Q(status__icontains='complete'),
                 plan=plan_name
             ).aggregate(total=Sum('amount'))['total'] or 0)
             

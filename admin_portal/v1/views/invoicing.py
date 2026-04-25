@@ -59,7 +59,9 @@ class InvoicingOverviewView(APIView):
         
         total_invoices = Invoice.objects.count()
         paid_invoices = Invoice.objects.filter(
-            Q(status__icontains='paid') | Q(status__icontains='Paid')
+            Q(status__icontains='paid') | 
+            Q(status__icontains='succeeded') | 
+            Q(status__icontains='complete')
         ).count()
         
         return {
@@ -79,7 +81,9 @@ class InvoicingOverviewView(APIView):
                 avg=Avg('amount')
             )['avg'] or 0),
             "total_revenue": float(Invoice.objects.filter(
-                Q(status__icontains='paid') | Q(status__icontains='Paid')
+                Q(status__icontains='paid') | 
+                Q(status__icontains='succeeded') | 
+                Q(status__icontains='complete')
             ).aggregate(total=Sum('amount'))['total'] or 0)
         }
     
@@ -89,9 +93,15 @@ class InvoicingOverviewView(APIView):
         
         invoice_data = []
         for invoice in recent:
+            # Standardized username resolution
+            full_name = invoice.user.get_full_name().strip()
+            display_name = full_name or invoice.user.username
+            if not display_name or display_name.upper() == "N/A":
+                display_name = invoice.user.email.split('@')[0] if invoice.user.email else "Client"
+
             invoice_data.append({
                 "invoice_id": invoice.stripe_invoice_id,
-                "client_name": invoice.user.get_full_name() or invoice.user.email,
+                "client_name": display_name,
                 "client_email": invoice.user.email,
                 "amount": float(invoice.amount),
                 "currency": invoice.currency,
