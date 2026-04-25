@@ -34,11 +34,12 @@ class WalletBalanceAdjustmentView(APIView):
         if not user_id or amount is None or not adjustment_type:
             return Response({"error": "Missing required fields"}, status=400)
 
+        from decimal import Decimal
         try:
             user = User.objects.get(id=user_id)
             wallet, created = Wallet.objects.get_or_create(owner=user)
             
-            amount_decimal = float(amount)
+            amount_decimal = Decimal(str(amount))
             
             # Create transaction record
             # Transaction model auto-updates wallet balance in its save() method
