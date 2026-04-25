@@ -259,15 +259,20 @@ class InvoiceGenerationView(APIView):
     permission_classes = [IsAdminUser]
     
     def post(self, request):
-        client_id = request.data.get('client_id')
+        client_id = request.data.get('client_id') or request.data.get('clientId') or request.data.get('userId')
         amount = request.data.get('amount')
         description = request.data.get('description')
         plan = request.data.get('plan', 'Custom')
-        due_date = request.data.get('due_date')
+        due_date = request.data.get('due_date') or request.data.get('dueDate')
         
-        if not all([client_id, amount, description]):
+        missing_fields = []
+        if not client_id: missing_fields.append('client_id/clientId')
+        if not amount: missing_fields.append('amount')
+        if not description: missing_fields.append('description')
+        
+        if missing_fields:
             return Response({
-                "error": "Missing required fields: client_id, amount, description"
+                "error": f"Missing required fields: {', '.join(missing_fields)}"
             }, status=status.HTTP_400_BAD_REQUEST)
         
         try:
