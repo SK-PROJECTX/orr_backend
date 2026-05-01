@@ -209,12 +209,16 @@ def handle_stripe_event(self, event: dict):
                         users=1
                     )
                     
+                    existing_sub = Subscription.objects.filter(user=user, plan=plan).first()
+                    stripe_sub_id = existing_sub.stripe_subscription_id if existing_sub and existing_sub.stripe_subscription_id else f"onetime_{payment_intent_id}"
+
                     # Activate/Update Subscription
                     Subscription.objects.update_or_create(
                         user=user,
+                        plan=plan,
                         defaults={
                             "stripe_customer_id": data.get("customer", ""),
-                            "plan": plan,
+                            "stripe_subscription_id": stripe_sub_id,
                             "plan_name": plan.name,
                             "is_active": True,
                             "current_period_end": timezone.now() + timezone.timedelta(days=30), # Default for one-time

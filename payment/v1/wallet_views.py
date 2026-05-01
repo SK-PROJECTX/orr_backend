@@ -145,15 +145,36 @@ class PayWithWalletView(APIView):
                 description=f"Payment for {plan.name} plan"
             )
             
+            import uuid
+            existing_sub = Subscription.objects.filter(user=request.user, plan=plan).first()
+            stripe_sub_id = existing_sub.stripe_subscription_id if existing_sub and existing_sub.stripe_subscription_id else f"wallet_sub_{uuid.uuid4().hex[:16]}"
+
             # Update/Create subscription
             Subscription.objects.update_or_create(
                 user=request.user,
+                plan=plan,
                 defaults={
-                    'plan': plan,
+                    'stripe_subscription_id': stripe_sub_id,
                     'plan_name': plan.name,
                     'is_active': True,
                     'current_period_end': timezone.now() + timezone.timedelta(days=30)
                 }
+            )
+
+            # Create Invoice
+            from payment.models import Invoice
+            from django.utils import timezone
+            
+            Invoice.objects.create(
+                user=request.user,
+                stripe_invoice_id=f"wallet_inv_{uuid.uuid4().hex[:16]}",
+                billing_title=f"Payment for {plan.name}",
+                status="paid",
+                billing_date=timezone.now().date(),
+                amount=plan_amount,
+                currency="USD",
+                plan=plan.name,
+                users=1
             )
             
             return Response({"message": "Payment successful, subscription activated"}, status=200)

@@ -111,6 +111,45 @@ class CreateCheckoutSession(APIView):
                         payment_intent = subscription.latest_invoice.payment_intent
                         
                         if payment_intent.status == 'succeeded':
+                            with transaction.atomic():
+                                # Immediate fulfillment
+                                invoice_id = subscription.latest_invoice.id if hasattr(subscription.latest_invoice, 'id') else f"pi_{payment_intent.id}"
+                                Invoice.objects.get_or_create(
+                                    stripe_invoice_id=invoice_id,
+                                    defaults={
+                                        "user": request.user,
+                                        "billing_title": f"Subscription for {plan.name}",
+                                        "status": "paid",
+                                        "billing_date": timezone.now().date(),
+                                        "amount": Decimal(payment_intent.amount) / Decimal(100),
+                                        "currency": payment_intent.currency.upper(),
+                                        "plan": plan.name,
+                                        "users": 1
+                                    }
+                                )
+
+                                Subscription.objects.update_or_create(
+                                    user=request.user,
+                                    plan=plan,
+                                    defaults={
+                                        "stripe_customer_id": customer_id,
+                                        "stripe_subscription_id": subscription.id,
+                                        "plan_name": plan.name,
+                                        "is_active": True,
+                                        "current_period_end": timezone.now() + timezone.timedelta(days=30),
+                                        "used_hours": 0 if plan.billing_type == "metered" else None,
+                                    }
+                                )
+
+                                wallet, _ = Wallet.objects.get_or_create(owner=request.user)
+                                Transaction.objects.create(
+                                    wallet=wallet,
+                                    amount=Decimal(payment_intent.amount) / Decimal(100),
+                                    transaction_type='deduction',
+                                    description=f"Subscription for {plan.name} (via Card)",
+                                    reference_id=payment_intent.id
+                                )
+
                             return Response({
                                 "status": "success",
                                 "message": f"{plan.billing_type.capitalize()} subscription created successfully",
@@ -163,12 +202,16 @@ class CreateCheckoutSession(APIView):
                                     }
                                 )
 
+                                existing_sub = Subscription.objects.filter(user=request.user, plan=plan).first()
+                                stripe_sub_id = existing_sub.stripe_subscription_id if existing_sub and existing_sub.stripe_subscription_id else f"onetime_{payment_intent.id}"
+
                                 # 2. Update Subscription status
                                 Subscription.objects.update_or_create(
                                     user=request.user,
+                                    plan=plan,
                                     defaults={
                                         "stripe_customer_id": customer_id,
-                                        "plan": plan,
+                                        "stripe_subscription_id": stripe_sub_id,
                                         "plan_name": plan.name,
                                         "is_active": True,
                                         "current_period_end": timezone.now() + timezone.timedelta(days=30),
