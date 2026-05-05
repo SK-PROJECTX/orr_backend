@@ -141,7 +141,9 @@ class AccountSettingsView(APIView):
     def get(self, request):
         """Retrieve the current user's account settings."""
         user = request.user
-        profile = request.user.profile
+        # Safely get or create profile to avoid RelatedObjectDoesNotExist errors (e.g. Google login users)
+        from client.models import Profile
+        profile, _ = Profile.objects.get_or_create(user=user)
 
         return Response(
             {
@@ -172,7 +174,9 @@ class AccountSettingsView(APIView):
         serializer.is_valid(raise_exception=True)
 
         user = request.user
-        profile = request.user.profile
+        # Safely get or create profile to avoid RelatedObjectDoesNotExist errors
+        from client.models import Profile
+        profile, _ = Profile.objects.get_or_create(user=user)
 
         data = serializer.validated_data
 

@@ -68,6 +68,12 @@ class LoginSerializer(serializers.Serializer):
         if not user:
             raise serializers.ValidationError("Invalid login credentials.")
 
+        # Check if this user registered via Google (has unusable password)
+        if not user.has_usable_password():
+            raise serializers.ValidationError(
+                "This account was registered using Google Sign-In. Please use the 'Continue with Google' button to log in."
+            )
+
         if not user.check_password(password):
             raise serializers.ValidationError("Invalid login credentials.")
         if not user.is_active:
