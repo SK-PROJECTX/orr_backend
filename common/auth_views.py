@@ -148,6 +148,22 @@ class GoogleLoginView(APIView):
                 if not user.is_active:
                     user.is_active = True
                     user.save()
+            
+            # Ensure Profile and Client records exist for this user (safety net in case signals failed)
+            from client.models import Profile as ClientProfile
+            ClientProfile.objects.get_or_create(user=user)
+            
+            from admin_portal.models import Client as ClientRecord
+            try:
+                user.admin_profile  # If this exists, user is an admin - skip client creation
+            except Exception:
+                ClientRecord.objects.get_or_create(
+                    user=user,
+                    defaults={
+                        'company': 'N/A',
+                        'primary_pillar': 'strategic',
+                    }
+                )
                     
             # Get role info (replicating LoginSerializer's _get_user_role_info)
             role_info = self._get_user_role_info(user)
@@ -185,34 +201,37 @@ class GoogleLoginView(APIView):
 
     def _get_user_role_info(self, user):
         """Get user role and permissions"""
-        if hasattr(user, "admin_profile") and user.admin_profile.role:
-            role = user.admin_profile.role
-            return {
-                "user_type": "admin",
-                "role_name": role.name,
-                "role_display": role.get_name_display(),
-                "permissions": {
-                    "can_manage_users": role.can_manage_users,
-                    "can_view_all_clients": role.can_view_all_clients,
-                    "can_edit_clients": role.can_edit_clients,
-                    "can_manage_tickets": role.can_manage_tickets,
-                    "can_manage_meetings": role.can_manage_meetings,
-                    "can_create_content": role.can_create_content,
-                    "can_publish_content": role.can_publish_content,
-                    "can_view_analytics": role.can_view_analytics,
-                    "can_view_billing": role.can_view_billing,
-                    "can_manage_settings": role.can_manage_settings,
-                    "can_view_ai_logs": role.can_view_ai_logs,
-                },
-            }
-        elif hasattr(user, "profile"):
-            return {
-                "user_type": "client",
-                "permissions": {
-                    "can_access_portal": True,
-                    "can_request_meetings": True,
-                    "can_create_tickets": True,
-                    "can_view_resources": True,
-                },
-            }
-        return {"user_type": "unknown", "permissions": {}}
+        try:
+            admin_profile = user.admin_profile
+            if admin_profile and admin_profile.role:
+                role = admin_profile.role
+                return {
+                    "user_type": "admin",
+                    "role_name": role.name,
+                    "role_display": role.get_name_display(),
+                    "permissions": {
+                        "can_manage_users": role.can_manage_users,
+                        "can_view_all_clients": role.can_view_all_clients,
+                        "can_edit_clients": role.can_edit_clients,
+                        "can_manage_tickets": role.can_manage_tickets,
+                        "can_manage_meetings": role.can_manage_meetings,
+                        "can_create_content": role.can_create_content,
+                        "can_publish_content": role.can_publish_content,
+                        "can_view_analytics": role.can_view_analytics,
+                        "can_view_billing": role.can_view_billing,
+                        "can_manage_settings": role.can_manage_settings,
+                        "can_view_ai_logs": role.can_view_ai_logs,
+                    },
+                }
+        except Exception:
+            pass
+        # Default to client permissions
+        return {
+            "user_type": "client",
+            "permissions": {
+                "can_access_portal": True,
+                "can_request_meetings": True,
+                "can_create_tickets": True,
+                "can_view_resources": True,
+            },
+        }
