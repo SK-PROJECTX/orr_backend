@@ -66,4 +66,153 @@ class LoginView(APIView):
                     },
                 },
             },
-            status=status.HTTP_200_OK,)
+            status=status.HTTP_200_OK,
+        )
+
+import os
+import uuid
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
+class GoogleLoginSerializer(serializers.Serializer):
+    credential = serializers.CharField()
+
+@extend_schema(
+    tags=["Authentication"],
+    summary="Login with Google",
+    description="Authenticate clients using Google credential token",
+    request=GoogleLoginSerializer,
+    responses={200: LoginResponseSerializer},
+)
+@method_decorator(csrf_exempt, name='dispatch')
+class GoogleLoginView(APIView):
+    permission_classes = [AllowAny]
+    serializer_class = GoogleLoginSerializer
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        token = serializer.validated_data["credential"]
+        client_id = os.environ.get("GOOGLE_CLIENT_ID")
+        
+        try:
+            if not client_id:
+                return Response(
+                    {"message": "Google authentication is not configured on the server."},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+            # Specify the CLIENT_ID of the app that accesses the backend:
+            idinfo = id_token.verify_oauth2_token(token, google_requests.Request(), client_id)
+            
+            # ID token is valid. Get the user's Google Account ID from the decoded token.
+            email = idinfo.get("email")
+            first_name = idinfo.get("given_name", "")
+            last_name = idinfo.get("family_name", "")
+            
+            if not email:
+                return Response(
+                    {"message": "Google authentication failed: Email not found in token."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+                
+            # Find or create user
+            user = User.objects.filter(email__iexact=email).first()
+            if not user:
+                # Create a new user
+                base_username = f"{first_name.lower()}{last_name.lower()}".replace(" ", "")
+                if not base_username:
+                    base_username = email.split('@')[0]
+                
+                # Ensure username uniqueness
+                username = base_username
+                counter = 1
+                while User.objects.filter(username=username).exists():
+                    username = f"{base_username}{counter}"
+                    counter += 1
+                
+                user = User(
+                    username=username,
+                    email=email,
+                    first_name=first_name,
+                    last_name=last_name,
+                    is_active=True,  # Google verified emails are safe to activate
+                )
+                user.set_unusable_password()
+                user.save()
+            else:
+                # If user exists but is inactive, activate them since they logged in with Google
+                if not user.is_active:
+                    user.is_active = True
+                    user.save()
+                    
+            # Get role info (replicating LoginSerializer's _get_user_role_info)
+            role_info = self._get_user_role_info(user)
+            
+            refresh = RefreshToken.for_user(user)
+
+            return Response(
+                {
+                    "status": status.HTTP_200_OK,
+                    "message": "Google login successful",
+                    "data": {
+                        "access": str(refresh.access_token),
+                        "accessToken": str(refresh.access_token),
+                        "refresh": str(refresh),
+                        "refreshToken": str(refresh),
+                        "user": {
+                            "id": user.id,
+                            "username": user.username,
+                            "email": user.email,
+                            "first_name": user.first_name,
+                            "last_name": user.last_name,
+                            **role_info,
+                        },
+                    },
+                },
+                status=status.HTTP_200_OK,
+            )
+            
+        except ValueError as e:
+            # Invalid token
+            return Response(
+                {"message": f"Invalid Google token: {str(e)}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+    def _get_user_role_info(self, user):
+        """Get user role and permissions"""
+        if hasattr(user, "admin_profile") and user.admin_profile.role:
+            role = user.admin_profile.role
+            return {
+                "user_type": "admin",
+                "role_name": role.name,
+                "role_display": role.get_name_display(),
+                "permissions": {
+                    "can_manage_users": role.can_manage_users,
+                    "can_view_all_clients": role.can_view_all_clients,
+                    "can_edit_clients": role.can_edit_clients,
+                    "can_manage_tickets": role.can_manage_tickets,
+                    "can_manage_meetings": role.can_manage_meetings,
+                    "can_create_content": role.can_create_content,
+                    "can_publish_content": role.can_publish_content,
+                    "can_view_analytics": role.can_view_analytics,
+                    "can_view_billing": role.can_view_billing,
+                    "can_manage_settings": role.can_manage_settings,
+                    "can_view_ai_logs": role.can_view_ai_logs,
+                },
+            }
+        elif hasattr(user, "profile"):
+            return {
+                "user_type": "client",
+                "permissions": {
+                    "can_access_portal": True,
+                    "can_request_meetings": True,
+                    "can_create_tickets": True,
+                    "can_view_resources": True,
+                },
+            }
+        return {"user_type": "unknown", "permissions": {}}
