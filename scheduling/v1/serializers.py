@@ -10,7 +10,7 @@ class MeetingPrepSerializer(serializers.Serializer):
 
 
 class MeetingRequestSerializer(serializers.ModelSerializer):
-    scheduling_url = serializers.URLField(write_only=True)
+    scheduling_url = serializers.URLField(write_only=True, required=False)
     class Meta:
         model = Meeting
         fields = [
