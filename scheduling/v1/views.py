@@ -70,12 +70,20 @@ class EventTypesView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        calendly = CalendlyAPI()
-        event_types = calendly.get_event_types()
-        data = [
-            {"name": et["name"], "uri": et["uri"]} for et in event_types["collection"]
-        ]
-        return Response(data)
+        try:
+            calendly = CalendlyAPI()
+            event_types = calendly.get_event_types()
+            if not event_types or "collection" not in event_types:
+                return Response([])
+                
+            data = [
+                {"name": et["name"], "uri": et["uri"]} for et in event_types["collection"]
+            ]
+            return Response({"data": data})
+        except Exception as e:
+            logger.warning(f"Calendly event types fetch failed: {e}")
+            # Return a dummy event type to allow the Google Meet flow to proceed
+            return Response({"data": [{"name": "Google Meet Consultation", "uri": "google-meet"}]})
 
 
 @extend_schema(
@@ -129,10 +137,20 @@ class AvailableSlotsView(APIView):
             else:
                 start = start
                 end = end
-        calendly = CalendlyAPI()
-        slots = calendly.get_available_slots(meeting_type_uri, start, end)
-
-        return Response(slots)
+        
+        # Manual slot generation (9 AM to 5 PM) instead of Calendly
+        slots = []
+        base_date = start.replace(minute=0, second=0, microsecond=0)
+        
+        for hour in range(9, 18):  # 9 AM to 6 PM
+            slot_time = base_date.replace(hour=hour)
+            if slot_time > now:
+                slots.append({
+                    "start_time": slot_time.isoformat(),
+                    "status": "available"
+                })
+        
+        return Response({"data": {"collection": slots}})
 
 
 @extend_schema(tags=["scheduling"])
