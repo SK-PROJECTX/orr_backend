@@ -44,6 +44,10 @@ class MeetingListSerializer(serializers.ModelSerializer):
             "duration_minutes",
             "host_name",
             "created_at",
+            "meeting_link",
+            "agenda",
+            "meeting_notes",
+            "internal_notes",
         ]
 
 
