@@ -159,6 +159,7 @@ class CreateMeetingView(APIView):
     serializer_class = MeetingRequestSerializer
 
     def post(self, request):
+        from admin_portal.services import CalendarService
         user = request.user
         client = Client.objects.get(user=user)
 
@@ -168,10 +169,20 @@ class CreateMeetingView(APIView):
         serializer.is_valid(raise_exception=True)
         meeting = serializer.save()
 
+        # Generate a REAL Google Meet link immediately
+        try:
+            event_id = CalendarService.create_calendar_event(meeting)
+            if event_id:
+                # Refresh meeting from DB to get the newly generated link
+                meeting.refresh_from_db()
+                logger.info(f"Generated live Google Meet link for meeting {meeting.id}: {meeting.meeting_link}")
+        except Exception as e:
+            logger.error(f"Failed to generate instant Google Meet link: {e}")
+
         return Response(
             {
                 "success": True,
-                "message": "Meeting created. Redirect user to Calendly.",
+                "message": "Meeting created and Google Meet link generated.",
                 "meeting_id": meeting.id,
                 "redirect_url": meeting.meeting_link,
             }
