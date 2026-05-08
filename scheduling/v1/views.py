@@ -83,7 +83,7 @@ class EventTypesView(APIView):
         except Exception as e:
             logger.warning(f"Calendly event types fetch failed: {e}")
             # Return a dummy event type to allow the Google Meet flow to proceed
-            return Response({"data": [{"name": "Google Meet Consultation", "uri": "google-meet"}]})
+            return Response({"data": [{"name": "Google Meet Consultation", "uri": "https://meet.google.com/google-meet"}]})
 
 
 @extend_schema(
