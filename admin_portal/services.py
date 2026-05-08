@@ -4,6 +4,9 @@ Provides business logic and external integrations for the admin portal
 """
 
 import logging
+import os
+import uuid
+import json
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
@@ -13,15 +16,8 @@ from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.utils import timezone
 
-from .models import (
-    AIConversation,
-    AuditLog,
-    Client,
-    Content,
-    Meeting,
-    SystemNotification,
-    Ticket,
-)
+from googleapiclient.discovery import build
+from google.oauth2 import service_account
 
 logger = logging.getLogger(__name__)
 
@@ -31,9 +27,10 @@ class NotificationService:
 
     @staticmethod
     def send_ticket_notification(
-        ticket: Ticket, notification_type: str, recipient: User
+        ticket, notification_type: str, recipient: User
     ):
         """Send ticket-related notifications"""
+        from .models import SystemNotification
         try:
             notif_type = "ticket_created"
             if notification_type == "assigned":
@@ -80,9 +77,10 @@ class NotificationService:
 
     @staticmethod
     def send_meeting_notification(
-        meeting: Meeting, notification_type: str, recipient: User
+        meeting, notification_type: str, recipient: User
     ):
         """Send meeting-related notifications"""
+        from .models import SystemNotification
         try:
             # Create in-app notification
             SystemNotification.objects.create(
@@ -127,6 +125,7 @@ class AnalyticsService:
     def calculate_ticket_resolution_time() -> float:
         """Calculate average ticket resolution time in hours"""
         from django.db.models import Avg, F
+        from .models import Ticket
 
         resolved_tickets = Ticket.objects.filter(
             status="resolved", updated_at__isnull=False
@@ -144,6 +143,7 @@ class AnalyticsService:
     def calculate_meeting_confirmation_time() -> float:
         """Calculate average meeting confirmation time in hours"""
         from django.db.models import Avg, F
+        from .models import Meeting
 
         confirmed_meetings = Meeting.objects.filter(
             status__in=["confirmed", "completed"], confirmed_datetime__isnull=False
@@ -160,6 +160,7 @@ class AnalyticsService:
     @staticmethod
     def get_client_activity_trends(days: int = 30) -> Dict:
         """Get client activity trends over specified days"""
+        from .models import Client, AuditLog
         end_date = timezone.now()
         start_date = end_date - timedelta(days=days)
 
@@ -185,18 +186,12 @@ class AnalyticsService:
         }
 
 
-import os
-import uuid
-from googleapiclient.discovery import build
-from google.oauth2 import service_account
-
 class CalendarService:
     """Calendar integration service using Google Meet API"""
 
     @staticmethod
     def _get_calendar_service():
         """Initialize Google Calendar API service from file path or JSON string"""
-        import json
         
         # 1. Try to get credentials from direct JSON string (useful for Cloud Run/Heroku)
         json_info = os.environ.get("GOOGLE_CREDENTIALS_JSON")
@@ -232,7 +227,7 @@ class CalendarService:
             return None
 
     @staticmethod
-    def create_calendar_event(meeting: Meeting) -> Optional[str]:
+    def create_calendar_event(meeting) -> Optional[str]:
         """Create calendar event for meeting and generate Google Meet link"""
         service = CalendarService._get_calendar_service()
         if not service:
@@ -303,7 +298,7 @@ class CalendarService:
             return None
 
     @staticmethod
-    def update_calendar_event(meeting: Meeting, event_id: str) -> bool:
+    def update_calendar_event(meeting, event_id: str) -> bool:
         """Update existing calendar event"""
         service = CalendarService._get_calendar_service()
         if not service or not event_id or event_id.startswith("mock_"):
@@ -383,6 +378,7 @@ class SystemHealthService:
     @staticmethod
     def _check_database_health() -> Dict:
         """Check database connectivity and basic metrics"""
+        from .models import Client, Ticket
         try:
             # Test database connection
             total_clients = Client.objects.count()
@@ -419,8 +415,9 @@ class ContentService:
     """Content management business logic"""
 
     @staticmethod
-    def publish_content(content: Content, user: User) -> bool:
+    def publish_content(content, user: User) -> bool:
         """Publish content with proper validation and logging"""
+        from .models import AuditLog
         try:
             if content.status == "published":
                 return False
@@ -445,8 +442,9 @@ class ContentService:
             return False
 
     @staticmethod
-    def archive_content(content: Content, user: User) -> bool:
+    def archive_content(content, user: User) -> bool:
         """Archive content with proper logging"""
+        from .models import AuditLog
         try:
             content.status = "archived"
             content.save()
