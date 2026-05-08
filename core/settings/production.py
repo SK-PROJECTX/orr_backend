@@ -45,6 +45,9 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "https://localhost:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3001",
+    "https://localhost:3001",
     "http://localhost:5173",
     "https://www.orr.solutions",
     "https://orr.solutions",
@@ -56,6 +59,8 @@ CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3001",
     "https://orr-backend-105825824472.asia-southeast2.run.app",
     "https://orr-backend.orr.solutions",
     "https://orr.solutions",

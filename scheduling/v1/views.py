@@ -176,8 +176,13 @@ class CreateMeetingView(APIView):
                 # Refresh meeting from DB to get the newly generated link
                 meeting.refresh_from_db()
                 logger.info(f"Generated live Google Meet link for meeting {meeting.id}: {meeting.meeting_link}")
+            else:
+                meeting.meeting_link = "pending-google-workspace"
+                meeting.save()
         except Exception as e:
             logger.error(f"Failed to generate instant Google Meet link: {e}")
+            meeting.meeting_link = "pending-google-workspace"
+            meeting.save()
 
         return Response(
             {
