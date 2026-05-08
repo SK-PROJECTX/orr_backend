@@ -289,7 +289,8 @@ class MeetingDetailView(APIView):
         meeting = get_object_or_404(Meeting, pk=pk, client=client)
 
         # AUTO-FIX: Generate a real link if it's currently dummy or missing
-        if not meeting.calendar_event_id or meeting.meeting_link in ["google-meet", "", None]:
+        is_dummy = meeting.meeting_link and "google-meet" in meeting.meeting_link
+        if not meeting.calendar_event_id or is_dummy or meeting.meeting_link in ["", None]:
             try:
                 CalendarService.create_calendar_event(meeting)
                 meeting.refresh_from_db()
