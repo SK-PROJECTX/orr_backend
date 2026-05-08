@@ -283,9 +283,19 @@ class MeetingDetailView(APIView):
     serializer_class = MeetingSerializer
 
     def get(self, request, pk):
+        from admin_portal.services import CalendarService
         user = request.user
         client = Client.objects.get(user=user)
         meeting = get_object_or_404(Meeting, pk=pk, client=client)
+
+        # AUTO-FIX: Generate a real link if it's currently dummy or missing
+        if not meeting.calendar_event_id or meeting.meeting_link in ["google-meet", "", None]:
+            try:
+                CalendarService.create_calendar_event(meeting)
+                meeting.refresh_from_db()
+            except Exception as e:
+                logger.error(f"Failed to auto-generate link for meeting {pk}: {e}")
+
         serializer = MeetingSerializer(meeting)
         return Response(serializer.data)
 

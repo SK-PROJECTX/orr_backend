@@ -22,6 +22,93 @@ from google.oauth2 import service_account
 logger = logging.getLogger(__name__)
 
 
+class CalendarService:
+    """Handles Google Calendar and Meet integrations"""
+
+    @staticmethod
+    def _get_calendar_service():
+        """Authenticate and return the Google Calendar service object"""
+        try:
+            creds_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
+            if not creds_json:
+                # Fallback to file if env var is missing
+                creds_path = os.path.join(settings.BASE_DIR, "google-meet-credentials.json")
+                if os.path.exists(creds_path):
+                    with open(creds_path, "r") as f:
+                        creds_json = f.read()
+
+            if not creds_json:
+                logger.error("Google credentials missing (both env and file)")
+                return None
+
+            creds_dict = json.loads(creds_json)
+            scopes = ["https://www.googleapis.com/auth/calendar"]
+            credentials = service_account.Credentials.from_service_account_info(
+                creds_dict, scopes=scopes
+            )
+            return build("calendar", "v3", credentials=credentials)
+        except Exception as e:
+            logger.error(f"Failed to initialize Google Calendar service: {e}")
+            return None
+
+    @staticmethod
+    def create_calendar_event(meeting):
+        """Create a Google Calendar event with a Google Meet link"""
+        service = CalendarService._get_calendar_service()
+        if not service:
+            return None
+
+        try:
+            start_time = meeting.requested_datetime
+            end_time = start_time + timedelta(minutes=meeting.duration_minutes)
+
+            event = {
+                "summary": f"ORR Consultation: {meeting.meeting_type.title()}",
+                "location": "Google Meet",
+                "description": f"Consultation session for {meeting.client.user.get_full_name()}.\n\nAgenda:\n{meeting.agenda}",
+                "start": {
+                    "dateTime": start_time.isoformat(),
+                    "timeZone": settings.TIME_ZONE,
+                },
+                "end": {
+                    "dateTime": end_time.isoformat(),
+                    "timeZone": settings.TIME_ZONE,
+                },
+                "attendees": [
+                    {"email": meeting.client.user.email},
+                    {"email": settings.DEFAULT_FROM_EMAIL},  # Host/Admin email
+                ],
+                "conferenceData": {
+                    "createRequest": {
+                        "requestId": str(uuid.uuid4()),
+                        "conferenceSolutionKey": {"type": "hangoutsMeet"},
+                    }
+                },
+            }
+
+            created_event = (
+                service.events()
+                .insert(
+                    calendarId="primary",
+                    body=event,
+                    conferenceDataVersion=1,
+                    sendUpdates="all",
+                )
+                .execute()
+            )
+
+            # Update meeting with link and ID
+            meeting.calendar_event_id = created_event.get("id")
+            meeting.meeting_link = created_event.get("hangoutLink")
+            meeting.save()
+
+            return meeting.calendar_event_id
+
+        except Exception as e:
+            logger.error(f"Failed to create Google Calendar event: {e}")
+            return None
+
+
 class NotificationService:
     """Handle email and in-app notifications"""
 
