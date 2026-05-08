@@ -275,6 +275,23 @@ class MyMeetingsView(APIView):
 
 @extend_schema(
     tags=["scheduling"],
+    description="Get details for a specific meeting.",
+    responses=MeetingSerializer(),
+)
+class MeetingDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = MeetingSerializer
+
+    def get(self, request, pk):
+        user = request.user
+        client = Client.objects.get(user=user)
+        meeting = get_object_or_404(Meeting, pk=pk, client=client)
+        serializer = MeetingSerializer(meeting)
+        return Response(serializer.data)
+
+
+@extend_schema(
+    tags=["scheduling"],
     parameters=[
         OpenApiParameter(
             name="month",

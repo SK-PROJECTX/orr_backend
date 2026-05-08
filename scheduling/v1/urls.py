@@ -10,10 +10,12 @@ from .views import (
     MyMeetingsView,
     UpdateMeetingPrepView,
     CreateCalendlyWebhook,
+    MeetingDetailView,
 )
 
 urlpatterns = [
     path("mymeetings", MyMeetingsView.as_view(), name="my-meeting"),
+    path("meetings/<int:pk>/", MeetingDetailView.as_view(), name="meeting-detail"),
     path(
         "meetings/<int:pk>/change-status/",
         MeetingChangeStatusView.as_view(),
