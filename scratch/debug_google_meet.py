@@ -24,8 +24,8 @@ def test_google_meet():
     print(f"Testing with Meeting ID: {meeting.id}")
     print(f"Current link: {meeting.meeting_link}")
     
-    # Try to generate a link
     try:
+        print("Testing Google Meet API Connection...")
         event_id = CalendarService.create_calendar_event(meeting)
         if event_id:
             meeting.refresh_from_db()
@@ -33,7 +33,7 @@ def test_google_meet():
             print(f"New Real Link: {meeting.meeting_link}")
             print(f"Calendar Event ID: {meeting.calendar_event_id}")
         else:
-            print("FAILED: create_calendar_event returned None. Check credentials or API permissions.")
+            print("FAILED: create_calendar_event returned None.")
     except Exception as e:
         print(f"CRASHED: {str(e)}")
 
