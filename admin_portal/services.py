@@ -185,49 +185,166 @@ class AnalyticsService:
         }
 
 
+import os
+import uuid
+from googleapiclient.discovery import build
+from google.oauth2 import service_account
+
 class CalendarService:
-    """Calendar integration service"""
+    """Calendar integration service using Google Meet API"""
+
+    @staticmethod
+    def _get_calendar_service():
+        """Initialize Google Calendar API service from file path or JSON string"""
+        import json
+        
+        # 1. Try to get credentials from direct JSON string (useful for Cloud Run/Heroku)
+        json_info = os.environ.get("GOOGLE_CREDENTIALS_JSON")
+        if json_info:
+            try:
+                info = json.loads(json_info)
+                creds = service_account.Credentials.from_service_account_info(
+                    info, scopes=['https://www.googleapis.com/auth/calendar']
+                )
+                return build('calendar', 'v3', credentials=creds)
+            except Exception as e:
+                logger.error(f"Failed to initialize Calendar service from GOOGLE_CREDENTIALS_JSON: {e}")
+                # Continue to check file path fallback
+
+        # 2. Try to get credentials from file path
+        creds_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+        if not creds_path:
+            if not json_info:
+                logger.error("Neither GOOGLE_CREDENTIALS_JSON nor GOOGLE_APPLICATION_CREDENTIALS is set.")
+            return None
+        
+        if not os.path.exists(creds_path):
+            logger.error(f"Google credentials file not found at: {creds_path}")
+            return None
+
+        try:
+            creds = service_account.Credentials.from_service_account_file(
+                creds_path, scopes=['https://www.googleapis.com/auth/calendar']
+            )
+            return build('calendar', 'v3', credentials=creds)
+        except Exception as e:
+            logger.error(f"Failed to initialize Calendar service from file: {e}")
+            return None
 
     @staticmethod
     def create_calendar_event(meeting: Meeting) -> Optional[str]:
-        """Create calendar event for meeting"""
-        # Placeholder for calendar integration
-        # In a real implementation, this would integrate with Google Calendar, Outlook, etc.
+        """Create calendar event for meeting and generate Google Meet link"""
+        service = CalendarService._get_calendar_service()
+        if not service:
+            # Fallback to mock ID if integration is disabled
+            return f"mock_meeting_{meeting.id}_{int(timezone.now().timestamp())}"
+            
         try:
-            # Generate a mock event ID
-            event_id = f"orr_meeting_{meeting.id}_{timezone.now().timestamp()}"
+            # Create conference data to generate Google Meet link
+            conference_data = {
+                'createRequest': {
+                    'requestId': str(uuid.uuid4()),
+                    'conferenceSolutionKey': {'type': 'hangoutsMeet'}
+                }
+            }
+            
+            # Use requested_datetime as start time
+            start_time = meeting.requested_datetime
+            if meeting.status == 'confirmed' and meeting.confirmed_datetime:
+                start_time = meeting.confirmed_datetime
+                
+            end_time = start_time + timedelta(minutes=meeting.duration_minutes)
+            
+            event = {
+                'summary': f"ORR Consultation: {meeting.client.user.get_full_name()}",
+                'description': f"Agenda: {meeting.agenda}\n\nMeeting requested via ORR Solutions Portal.",
+                'start': {
+                    'dateTime': start_time.isoformat(),
+                    'timeZone': 'UTC',
+                },
+                'end': {
+                    'dateTime': end_time.isoformat(),
+                    'timeZone': 'UTC',
+                },
+                'attendees': [
+                    {'email': meeting.client.user.email},
+                ],
+                'conferenceData': conference_data,
+                'reminders': {
+                    'useDefault': False,
+                    'overrides': [
+                        {'method': 'email', 'minutes': 24 * 60},
+                        {'method': 'popup', 'minutes': 30},
+                    ],
+                },
+            }
+            
+            # Add host if available
+            if meeting.host and meeting.host.email:
+                event['attendees'].append({'email': meeting.host.email})
 
-            # Log the calendar event creation
-            logger.info(f"Calendar event created for meeting {meeting.id}: {event_id}")
-
-            return event_id
+            created_event = service.events().insert(
+                calendarId='primary', 
+                body=event, 
+                conferenceDataVersion=1,
+                sendUpdates='all'
+            ).execute()
+            
+            # Save meeting link and ID
+            meeting.meeting_link = created_event.get('hangoutLink')
+            meeting.calendar_event_id = created_event.get('id')
+            meeting.save()
+            
+            logger.info(f"Google Meet event created for meeting {meeting.id}: {meeting.calendar_event_id}")
+            return meeting.calendar_event_id
 
         except Exception as e:
-            logger.error(f"Failed to create calendar event: {e}")
+            logger.error(f"Google Calendar integration error: {e}")
             return None
 
     @staticmethod
     def update_calendar_event(meeting: Meeting, event_id: str) -> bool:
         """Update existing calendar event"""
+        service = CalendarService._get_calendar_service()
+        if not service or not event_id or event_id.startswith("mock_"):
+            return False
+            
         try:
-            # Placeholder for calendar update logic
-            logger.info(f"Calendar event updated for meeting {meeting.id}: {event_id}")
+            start_time = meeting.confirmed_datetime or meeting.requested_datetime
+            end_time = start_time + timedelta(minutes=meeting.duration_minutes)
+            
+            event = service.events().get(calendarId='primary', eventId=event_id).execute()
+            
+            event['start']['dateTime'] = start_time.isoformat()
+            event['end']['dateTime'] = end_time.isoformat()
+            event['description'] = f"Agenda: {meeting.agenda}\n\nStatus: {meeting.status}"
+            
+            service.events().update(
+                calendarId='primary', 
+                eventId=event_id, 
+                body=event,
+                sendUpdates='all'
+            ).execute()
+            
             return True
 
         except Exception as e:
-            logger.error(f"Failed to update calendar event: {e}")
+            logger.error(f"Failed to update Google Calendar event: {e}")
             return False
 
     @staticmethod
     def delete_calendar_event(event_id: str) -> bool:
         """Delete calendar event"""
+        service = CalendarService._get_calendar_service()
+        if not service or not event_id or event_id.startswith("mock_"):
+            return False
+            
         try:
-            # Placeholder for calendar deletion logic
-            logger.info(f"Calendar event deleted: {event_id}")
+            service.events().delete(calendarId='primary', eventId=event_id, sendUpdates='all').execute()
             return True
 
         except Exception as e:
-            logger.error(f"Failed to delete calendar event: {e}")
+            logger.error(f"Failed to delete Google Calendar event: {e}")
             return False
 
 
