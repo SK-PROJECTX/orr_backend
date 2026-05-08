@@ -62,21 +62,26 @@ class CalendarService:
             start_time = meeting.requested_datetime
             end_time = start_time + timedelta(minutes=meeting.duration_minutes)
 
+            # Ensure we have a valid admin email for Google
+            admin_email = getattr(settings, "DEFAULT_FROM_EMAIL", "admin@orr.solutions")
+            if "localhost" in admin_email or not admin_email:
+                admin_email = "admin@orr.solutions"
+
             event = {
                 "summary": f"ORR Consultation: {meeting.meeting_type.title()}",
                 "location": "Google Meet",
                 "description": f"Consultation session for {meeting.client.user.get_full_name()}.\n\nAgenda:\n{meeting.agenda}",
                 "start": {
                     "dateTime": start_time.isoformat(),
-                    "timeZone": settings.TIME_ZONE,
+                    "timeZone": getattr(settings, "TIME_ZONE", "UTC"),
                 },
                 "end": {
                     "dateTime": end_time.isoformat(),
-                    "timeZone": settings.TIME_ZONE,
+                    "timeZone": getattr(settings, "TIME_ZONE", "UTC"),
                 },
                 "attendees": [
                     {"email": meeting.client.user.email},
-                    {"email": settings.DEFAULT_FROM_EMAIL},  # Host/Admin email
+                    {"email": admin_email},
                 ],
                 "conferenceData": {
                     "createRequest": {
@@ -86,6 +91,7 @@ class CalendarService:
                 },
             }
 
+            logger.info(f"Creating Google Meet event for meeting {meeting.id}")
             created_event = (
                 service.events()
                 .insert(
@@ -100,6 +106,7 @@ class CalendarService:
             # Update meeting with link and ID
             meeting.calendar_event_id = created_event.get("id")
             meeting.meeting_link = created_event.get("hangoutLink")
+            logger.info(f"Successfully created Google Meet: {meeting.meeting_link}")
             meeting.save()
 
             return meeting.calendar_event_id
