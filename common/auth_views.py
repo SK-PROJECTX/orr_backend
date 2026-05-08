@@ -144,9 +144,21 @@ class GoogleLoginView(APIView):
                 user.set_unusable_password()
                 user.save()
             else:
+                # Sync names if missing
+                save_user = False
+                if not user.first_name and first_name:
+                    user.first_name = first_name
+                    save_user = True
+                if not user.last_name and last_name:
+                    user.last_name = last_name
+                    save_user = True
+                
                 # If user exists but is inactive, activate them since they logged in with Google
                 if not user.is_active:
                     user.is_active = True
+                    save_user = True
+                
+                if save_user:
                     user.save()
             
             # Ensure Profile and Client records exist for this user (safety net in case signals failed)
@@ -173,7 +185,7 @@ class GoogleLoginView(APIView):
             return Response(
                 {
                     "status": status.HTTP_200_OK,
-                    "message": "Google login successful",
+                    "message": "Login successful",
                     "data": {
                         "access": str(refresh.access_token),
                         "accessToken": str(refresh.access_token),

@@ -52,7 +52,42 @@ class OnboardingQuestionnaireViewSet(viewsets.GenericViewSet):
 
         serializer = self.get_serializer(obj, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        serializer.save(is_completed=True)
+        onboarding = serializer.save(is_completed=True)
+
+        # Sync relevant data to Client record (admin portal)
+        from admin_portal.models import Client
+        client, _ = Client.objects.get_or_create(user=request.user)
+        
+        # Update client company if it's still default or empty
+        if client.company in ["N/A", "", None]:
+            if onboarding.jurisdiction == 'malta':
+                client.company = f"Malta Business ({request.user.username})"
+            elif onboarding.jurisdiction_other:
+                client.company = f"{onboarding.jurisdiction_other} Business ({request.user.username})"
+            else:
+                client.company = f"Project {request.user.username}"
+        
+        # Sync pillars
+        if onboarding.orr_pillars:
+            pillars = onboarding.orr_pillars
+            if isinstance(pillars, str):
+                pillars = [p.strip().lower() for p in pillars.split(',') if p.strip()]
+            
+            if pillars:
+                # Map first pillar to primary_pillar if it matches choices
+                pillar_map = {
+                    'strategic': 'strategic',
+                    'operational': 'operational',
+                    'financial': 'financial',
+                    'cultural': 'cultural'
+                }
+                
+                valid_pillars = [pillar_map.get(p.lower()) for p in pillars if p.lower() in pillar_map]
+                if valid_pillars:
+                    client.primary_pillar = valid_pillars[0]
+                    client.secondary_pillars = valid_pillars[1:]
+        
+        client.save()
 
         return Response(serializer.data)
     
