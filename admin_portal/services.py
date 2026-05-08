@@ -22,100 +22,6 @@ from google.oauth2 import service_account
 logger = logging.getLogger(__name__)
 
 
-class CalendarService:
-    """Handles Google Calendar and Meet integrations"""
-
-    @staticmethod
-    def _get_calendar_service():
-        """Authenticate and return the Google Calendar service object"""
-        try:
-            creds_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
-            if not creds_json:
-                # Fallback to file if env var is missing
-                creds_path = os.path.join(settings.BASE_DIR, "google-meet-credentials.json")
-                if os.path.exists(creds_path):
-                    with open(creds_path, "r") as f:
-                        creds_json = f.read()
-
-            if not creds_json:
-                logger.error("Google credentials missing (both env and file)")
-                return None
-
-            creds_dict = json.loads(creds_json)
-            scopes = ["https://www.googleapis.com/auth/calendar"]
-            credentials = service_account.Credentials.from_service_account_info(
-                creds_dict, scopes=scopes
-            )
-            return build("calendar", "v3", credentials=credentials)
-        except Exception as e:
-            logger.error(f"Failed to initialize Google Calendar service: {e}")
-            return None
-
-    @staticmethod
-    def create_calendar_event(meeting):
-        """Create a Google Calendar event with a Google Meet link"""
-        service = CalendarService._get_calendar_service()
-        if not service:
-            return None
-
-        try:
-            start_time = meeting.requested_datetime
-            end_time = start_time + timedelta(minutes=meeting.duration_minutes)
-
-            # Ensure we have a valid admin email for Google
-            admin_email = getattr(settings, "DEFAULT_FROM_EMAIL", "admin@orr.solutions")
-            if "localhost" in admin_email or not admin_email:
-                admin_email = "admin@orr.solutions"
-
-            event = {
-                "summary": f"ORR Consultation: {meeting.meeting_type.title()}",
-                "location": "Google Meet",
-                "description": f"Consultation session for {meeting.client.user.get_full_name()}.\n\nAgenda:\n{meeting.agenda}",
-                "start": {
-                    "dateTime": start_time.isoformat(),
-                    "timeZone": getattr(settings, "TIME_ZONE", "UTC"),
-                },
-                "end": {
-                    "dateTime": end_time.isoformat(),
-                    "timeZone": getattr(settings, "TIME_ZONE", "UTC"),
-                },
-                "attendees": [
-                    {"email": meeting.client.user.email},
-                    {"email": admin_email},
-                ],
-                "conferenceData": {
-                    "createRequest": {
-                        "requestId": str(uuid.uuid4()),
-                        "conferenceSolutionKey": {"type": "hangoutsMeet"},
-                    }
-                },
-            }
-
-            logger.info(f"Creating Google Meet event for meeting {meeting.id}")
-            created_event = (
-                service.events()
-                .insert(
-                    calendarId="primary",
-                    body=event,
-                    conferenceDataVersion=1,
-                    sendUpdates="all",
-                )
-                .execute()
-            )
-
-            # Update meeting with link and ID
-            meeting.calendar_event_id = created_event.get("id")
-            meeting.meeting_link = created_event.get("hangoutLink")
-            logger.info(f"Successfully created Google Meet: {meeting.meeting_link}")
-            meeting.save()
-
-            return meeting.calendar_event_id
-
-        except Exception as e:
-            logger.error(f"Failed to create Google Calendar event: {e}")
-            return None
-
-
 class NotificationService:
     """Handle email and in-app notifications"""
 
@@ -302,9 +208,16 @@ class CalendarService:
 
         # 2. Try to get credentials from file path
         creds_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+        
+        # 3. Fallback to local file if no environment variables are set
+        if not json_info and not creds_path:
+            local_path = os.path.join(settings.BASE_DIR, "google-meet-credentials.json")
+            if os.path.exists(local_path):
+                creds_path = local_path
+
         if not creds_path:
             if not json_info:
-                logger.error("Neither GOOGLE_CREDENTIALS_JSON nor GOOGLE_APPLICATION_CREDENTIALS is set.")
+                logger.error("Neither GOOGLE_CREDENTIALS_JSON, GOOGLE_APPLICATION_CREDENTIALS nor local file is set.")
             return None
         
         if not os.path.exists(creds_path):
@@ -329,7 +242,6 @@ class CalendarService:
             return f"mock_meeting_{meeting.id}_{int(timezone.now().timestamp())}"
             
         try:
-            # Create conference data to generate Google Meet link
             conference_data = {
                 'createRequest': {
                     'requestId': str(uuid.uuid4()),
@@ -355,9 +267,6 @@ class CalendarService:
                     'dateTime': end_time.isoformat(),
                     'timeZone': 'UTC',
                 },
-                'attendees': [
-                    {'email': meeting.client.user.email},
-                ],
                 'conferenceData': conference_data,
                 'reminders': {
                     'useDefault': False,
@@ -367,20 +276,23 @@ class CalendarService:
                     ],
                 },
             }
+
+            # Determine which calendar to insert the event into
+            admin_email = os.environ.get("GOOGLE_CALENDAR_ID")
+            if not admin_email:
+                admin_email = getattr(settings, "DEFAULT_FROM_EMAIL", "admin@orr.solutions")
             
-            # Add host if available
-            if meeting.host and meeting.host.email:
-                event['attendees'].append({'email': meeting.host.email})
+            if "localhost" in admin_email or not admin_email:
+                admin_email = "primary"
 
             created_event = service.events().insert(
-                calendarId='primary', 
+                calendarId=admin_email, 
                 body=event, 
-                conferenceDataVersion=1,
-                sendUpdates='all'
+                conferenceDataVersion=1
             ).execute()
             
             # Save meeting link and ID
-            meeting.meeting_link = created_event.get('hangoutLink')
+            meeting.meeting_link = created_event.get('hangoutLink') or "pending-calendar-share"
             meeting.calendar_event_id = created_event.get('id')
             meeting.save()
             
