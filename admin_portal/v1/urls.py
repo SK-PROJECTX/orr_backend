@@ -33,6 +33,7 @@ from .views import (
     wallet_logs,
     workspace_usage,
 )
+from .. import views_google
 
 # Authentication URLs
 auth_patterns = [
@@ -571,7 +572,14 @@ cms_patterns = [
     path("living-systems/", cms_comprehensive.LivingSystemsPageView.as_view(), name="cms-living-systems"),
 ]
 
+# Document Vault (Google Integration) URLs
+vault_patterns = [
+    path("documents/", views_google.list_vault_documents, name="vault-documents-list"),
+    path("documents/create-google-doc/", views_google.create_google_doc, name="vault-create-google-doc"),
+]
+
 urlpatterns = [
+    path("vault/", include(vault_patterns)),
     path("auth/", include(auth_patterns)),
     path("dashboard/", include(dashboard_patterns)),
     path("clients/", include(client_patterns)),

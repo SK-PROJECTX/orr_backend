@@ -1,0 +1,105 @@
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework import status
+from .models import Client, ClientDocument
+from services.google_service import GoogleService
+from django.shortcuts import get_object_or_404
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_google_doc(request):
+    title = request.data.get('title', 'Untitled Document')
+    client_id = request.data.get('client_id')
+    doc_type = request.data.get('type', 'google_doc') # google_doc or google_sheet
+    
+    client = get_object_or_404(Client, id=client_id)
+    
+    try:
+        # 1. Create the Doc/Sheet/Slide
+        if doc_type == 'google_sheet':
+            gs = GoogleService(service_type='sheets')
+            doc = gs.create_sheet(title)
+            file_id = doc.get('spreadsheetId')
+            base_url = "https://docs.google.com/spreadsheets/d/"
+        elif doc_type == 'google_slide':
+            # Create slides using drive API mimeType (simplest way)
+            drive_gs = GoogleService(service_type='drive')
+            doc_metadata = {'name': title, 'mimeType': 'application/vnd.google-apps.presentation'}
+            doc = drive_gs.service.files().create(body=doc_metadata, fields='id').execute()
+            file_id = doc.get('id')
+            base_url = "https://docs.google.com/presentation/d/"
+        else: # Default to google_doc
+            gs = GoogleService(service_type='docs')
+            doc = gs.create_doc(title)
+            file_id = doc.get('documentId')
+            base_url = "https://docs.google.com/document/d/"
+
+        # 2. Share with the client email (if exists)
+        if client.user.email:
+            try:
+                drive_gs = GoogleService(service_type='drive')
+                drive_gs.share_file(file_id, client.user.email, role='writer')
+            except Exception as e:
+                print(f"Error sharing file: {e}")
+
+        # 3. Save to database
+        client_doc = ClientDocument.objects.create(
+            client=client,
+            title=title,
+            document_source=doc_type,
+            google_drive_id=file_id,
+            uploaded_by=request.user,
+            is_visible_to_client=True
+        )
+
+        return Response({
+            'id': client_doc.id,
+            'title': client_doc.title,
+            'google_drive_id': client_doc.google_drive_id,
+            'webViewLink': f"{base_url}{file_id}/edit"
+        }, status=status.HTTP_201_CREATED)
+
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def list_vault_documents(request):
+    user = request.user
+    # If client_id is passed as query param (for admins)
+    client_id = request.query_params.get('client_id')
+    
+    if client_id:
+        docs = ClientDocument.objects.filter(client_id=client_id)
+    else:
+        client = getattr(user, 'client_profile', None)
+        if client:
+            docs = ClientDocument.objects.filter(client=client, is_visible_to_client=True)
+        else:
+            # For Admin (all docs)
+            docs = ClientDocument.objects.all()
+        
+    data = []
+    for doc in docs:
+        link = ""
+        if doc.google_drive_id:
+            if doc.document_source == 'google_sheet':
+                link = f"https://docs.google.com/spreadsheets/d/{doc.google_drive_id}/edit"
+            elif doc.document_source == 'google_slide':
+                link = f"https://docs.google.com/presentation/d/{doc.google_drive_id}/edit"
+            else:
+                link = f"https://docs.google.com/document/d/{doc.google_drive_id}/edit"
+        elif doc.document:
+            link = doc.document.url
+            
+        data.append({
+            'id': doc.id,
+            'name': doc.title,
+            'type': 'sheet' if doc.document_source == 'google_sheet' else 'slide' if doc.document_source == 'google_slide' else 'doc' if doc.document_source == 'google_doc' else 'file',
+            'size': 'N/A', 
+            'lastModified': doc.updated_at.strftime('%Y-%m-%d'),
+            'link': link,
+            'google_drive_id': doc.google_drive_id
+        })
+    return Response(data)

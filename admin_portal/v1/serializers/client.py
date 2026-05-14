@@ -210,6 +210,8 @@ class ClientDocumentSerializer(serializers.ModelSerializer):
             "description",
             "document",
             "document_type",
+            "document_source",
+            "google_drive_id",
             "is_visible_to_client",
             "uploaded_by_name",
             "download_count",
@@ -219,8 +221,11 @@ class ClientDocumentSerializer(serializers.ModelSerializer):
         ]
 
     def get_file_size(self, obj):
-        if obj.document:
-            return obj.document.size
+        try:
+            if obj.document:
+                return obj.document.size
+        except Exception:
+            pass
         return 0
     
     def get_uploaded_by_name(self, obj):

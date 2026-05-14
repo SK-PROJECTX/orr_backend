@@ -530,6 +530,12 @@ class ClientDocument(Audit):
 
     # Access control
     is_visible_to_client = models.BooleanField(default=True)
+    document_source = models.CharField(
+        max_length=20, 
+        choices=[('file', 'File'), ('google_doc', 'Google Doc'), ('google_sheet', 'Google Sheet')],
+        default='file'
+    )
+    google_drive_id = models.CharField(max_length=255, blank=True, null=True)
     uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
 
     # Analytics
