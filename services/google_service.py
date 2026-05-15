@@ -117,6 +117,18 @@ class GoogleService:
             fields='id',
         ).execute()
 
+    def make_public(self, file_id, role='reader'):
+        drive_service = build('drive', 'v3', credentials=self.credentials)
+        permission = {
+            'type': 'anyone',
+            'role': role,
+        }
+        return drive_service.permissions().create(
+            fileId=file_id,
+            body=permission,
+            fields='id',
+        ).execute()
+
     def get_file_metadata(self, file_id):
         drive_service = build('drive', 'v3', credentials=self.credentials)
         return drive_service.files().get(fileId=file_id, fields='id, name, mimeType, webViewLink').execute()
