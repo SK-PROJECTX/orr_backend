@@ -35,13 +35,16 @@ def create_google_doc(request):
             file_id = doc.get('documentId')
             base_url = "https://docs.google.com/document/d/"
 
-        # 2. Share with the client email (if exists)
-        if client.user.email:
-            try:
-                drive_gs = GoogleService(service_type='drive')
+        # 2. Share with the client email (if exists) and make public for studio
+        drive_gs = GoogleService(service_type='drive')
+        try:
+            # Make public so it can be embedded in studio without permission issues
+            drive_gs.make_public(file_id, role='writer') 
+            
+            if client.user.email:
                 drive_gs.share_file(file_id, client.user.email, role='writer')
-            except Exception as e:
-                print(f"Error sharing file: {e}")
+        except Exception as e:
+            print(f"Error sharing file: {e}")
 
         # 3. Save to database
         client_doc = ClientDocument.objects.create(
