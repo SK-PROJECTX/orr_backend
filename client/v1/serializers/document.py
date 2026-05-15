@@ -23,7 +23,15 @@ class ClientDocumentSerializer(serializers.ModelSerializer):
 
     def get_file_url(self, obj):
         if obj.document:
-            return obj.document.url
+            try:
+                from decouple import config
+                url = obj.document.url
+                if url.startswith('/'):
+                    api_url = config('BACKEND_URL', default='https://orr-backend-105825824472.asia-southeast2.run.app')
+                    return f"{api_url.rstrip('/')}{url}"
+                return url
+            except Exception:
+                return None
         return None
 
     def get_is_favorited(self, obj):

@@ -281,7 +281,16 @@ class ClientDocumentSerializer(serializers.ModelSerializer):
             else:
                 return f"https://docs.google.com/document/d/{obj.google_drive_id}/preview"
         elif obj.document:
-            return obj.document.url
+            try:
+                # Force absolute URL even if Django tries to return relative
+                url = obj.document.url
+                if url.startswith('/'):
+                    from django.conf import settings
+                    api_url = config('BACKEND_URL', default='https://orr-backend-105825824472.asia-southeast2.run.app')
+                    return f"{api_url.rstrip('/')}{url}"
+                return url
+            except Exception:
+                return None
         return None
 
     def get_file_size(self, obj):

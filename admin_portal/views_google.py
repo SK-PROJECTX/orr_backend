@@ -105,7 +105,16 @@ def list_vault_documents(request):
             else:
                 link = f"https://docs.google.com/document/d/{doc.google_drive_id}/edit"
         elif doc.document:
-            link = doc.document.url
+            try:
+                from decouple import config
+                url = doc.document.url
+                if url.startswith('/'):
+                    api_url = config('BACKEND_URL', default='https://orr-backend-105825824472.asia-southeast2.run.app')
+                    link = f"{api_url.rstrip('/')}{url}"
+                else:
+                    link = url
+            except Exception:
+                link = ""
             
         data.append({
             'id': doc.id,
