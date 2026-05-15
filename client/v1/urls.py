@@ -2,6 +2,7 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from .views.document import ClientDocumentsView
+from admin_portal.v1.views import vault
 
 from .views.tickets import ClientTicketCreateAPIView, ClientTicketHistoryAPIView
 from .views.account import (
@@ -87,5 +88,10 @@ urlpatterns = [
         name="dashboard",
     ),
     path("performance/", PerformanceGraphView.as_view(), name="performance-graph"),
-    path("report/", MeetingReportDashboardView.as_view(), name="report")
+    path("report/", MeetingReportDashboardView.as_view(), name="report"),
+    
+    # Vault URLs
+    path("vault/folders/", vault.VaultFolderListView.as_view(), name="client-vault-folders"),
+    path("vault/documents/", vault.VaultDocumentListView.as_view(), name="client-vault-documents"),
+    path("vault/activity/", vault.VaultActivityListView.as_view(), name="client-vault-activity"),
 ]
