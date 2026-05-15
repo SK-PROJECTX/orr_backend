@@ -35,7 +35,12 @@ def create_google_doc(request):
             file_id = doc.get('documentId')
             base_url = "https://docs.google.com/document/d/"
 
-        # 2. Share with the client email (if exists) and make public for studio
+        # 3. Extract File ID robustly
+        file_id = doc.get('id') or doc.get('documentId') or doc.get('spreadsheetId')
+        if not file_id:
+            raise ValueError(f"Could not retrieve file ID from Google API response: {doc}")
+
+        # 4. Share with the client email (if exists) and make public for studio
         drive_gs = GoogleService(service_type='drive')
         try:
             # Make public so it can be embedded in studio without permission issues
@@ -46,7 +51,7 @@ def create_google_doc(request):
         except Exception as e:
             print(f"Error sharing file: {e}")
 
-        # 3. Save to database
+        # 5. Save to database
         client_doc = ClientDocument.objects.create(
             client=client,
             title=title,
@@ -56,7 +61,7 @@ def create_google_doc(request):
             is_visible_to_client=True
         )
 
-        # 4. Create Audit Log
+        # 6. Create Audit Log
         from .models import AuditLog
         AuditLog.objects.create(
             user=request.user,
@@ -71,7 +76,7 @@ def create_google_doc(request):
             'id': client_doc.id,
             'title': client_doc.title,
             'google_drive_id': client_doc.google_drive_id,
-            'webViewLink': f"{base_url}{file_id}/edit"
+            'webViewLink': client_doc.get_document_link(request)
         }, status=status.HTTP_201_CREATED)
 
     except Exception as e:
@@ -96,37 +101,13 @@ def list_vault_documents(request):
         
     data = []
     for doc in docs:
-        link = ""
-        if doc.google_drive_id:
-            if doc.document_source == 'google_sheet':
-                link = f"https://docs.google.com/spreadsheets/d/{doc.google_drive_id}/edit"
-            elif doc.document_source == 'google_slide':
-                link = f"https://docs.google.com/presentation/d/{doc.google_drive_id}/edit"
-            else:
-                link = f"https://docs.google.com/document/d/{doc.google_drive_id}/edit"
-        elif doc.document:
-            try:
-                link = doc.document.url
-                # Ensure the URL has the correct extension if it's missing in the DB
-                if doc.document_type and not link.lower().endswith(doc.document_type.lower().replace('.', '')):
-                     if not link.endswith('.'): link += '.'
-                     link += doc.document_type.replace('.', '')
-            except Exception:
-                link = ""
-        
-        # Ensure absolute URL for frontend
-        if link and link.startswith('/'):
-            from decouple import config
-            api_url = config('BACKEND_URL', default='https://orr-backend-105825824472.asia-southeast2.run.app')
-            link = f"{api_url.rstrip('/')}{link}"
-            
         data.append({
             'id': doc.id,
             'name': doc.title,
             'type': 'sheet' if doc.document_source == 'google_sheet' else 'slide' if doc.document_source == 'google_slide' else 'doc' if doc.document_source == 'google_doc' else 'file',
             'size': 'N/A', 
             'lastModified': doc.updated_at.strftime('%Y-%m-%d'),
-            'link': link,
+            'link': doc.get_document_link(request),
             'google_drive_id': doc.google_drive_id
         })
     return Response(data)
