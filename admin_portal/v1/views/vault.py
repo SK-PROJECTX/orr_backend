@@ -37,6 +37,10 @@ class VaultDocumentListView(generics.ListCreateAPIView):
         if is_admin and client_id:
             queryset = queryset.filter(client_id=client_id)
             
+        folder_id = self.request.query_params.get('folder_id')
+        if folder_id:
+            queryset = queryset.filter(folder_id=folder_id)
+            
         visibility = self.request.query_params.get('visibility')
         if visibility:
             queryset = queryset.filter(visibility=visibility)
@@ -61,9 +65,24 @@ class VaultDocumentListView(generics.ListCreateAPIView):
 
 class VaultFolderListView(generics.ListCreateAPIView):
     """List and create vault folders"""
-    queryset = VaultFolder.objects.all()
     serializer_class = VaultFolderSerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        queryset = VaultFolder.objects.all()
+        
+        is_admin = user.is_staff or hasattr(user, 'admin_profile')
+        if not is_admin:
+            client = getattr(user, 'client_profile', None)
+            if client:
+                # Clients only see folders explicitly assigned to them or global folders?
+                # For now, if a folder has a client field, filter by it.
+                queryset = queryset.filter(Q(client_id=client.id) | Q(client__isnull=True))
+            else:
+                return VaultFolder.objects.none()
+        
+        return queryset
 
     def perform_create(self, serializer):
         serializer.save()
