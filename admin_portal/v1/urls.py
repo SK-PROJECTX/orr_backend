@@ -576,6 +576,7 @@ cms_patterns = [
 # Document Vault (Google Integration) URLs
 vault_patterns = [
     path("documents/", vault.VaultDocumentListView.as_view(), name="vault-documents-list"),
+    path("documents/<int:pk>/", vault.VaultDocumentDetailView.as_view(), name="vault-document-detail"),
     path("documents/create-google-doc/", views_google.create_google_doc, name="vault-create-google-doc"),
     path("documents/batch-update/", vault.batch_update_documents, name="vault-documents-batch-update"),
     path("folders/", vault.VaultFolderListView.as_view(), name="vault-folders-list"),
