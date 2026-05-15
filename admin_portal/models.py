@@ -517,19 +517,52 @@ class AuditLog(models.Model):
         return f"{self.user} - {self.action} - {self.timestamp}"
 
 
+class VaultFolder(Audit):
+    """Logical folder structure for the vault"""
+    name = models.CharField(max_length=200)
+    parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='children')
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, null=True, blank=True, related_name='folders')
+    project = models.CharField(max_length=200, blank=True)
+
+    def __str__(self):
+        return f"{self.client.company if self.client else 'Global'} - {self.name}"
+
 class ClientDocument(Audit):
     """Documents specific to clients"""
+
+    SCAN_STATUS_CHOICES = [
+        ('scanning', 'Scanning'),
+        ('passed', 'Passed'),
+        ('failed', 'Failed'),
+        ('skipped', 'Skipped'),
+    ]
+
+    VISIBILITY_CHOICES = [
+        ('client', 'Client-Facing'),
+        ('internal', 'Internal Only'),
+    ]
+
+    ACCESS_RULE_CHOICES = [
+        ('immediate', 'Immediate'),
+        ('payment_linked', 'Payment Linked'),
+        ('invoice_linked', 'Invoice Linked'),
+        ('date_linked', 'Date Linked'),
+    ]
 
     client = models.ForeignKey(
         Client, on_delete=models.CASCADE, related_name="documents"
     )
+    folder = models.ForeignKey(VaultFolder, on_delete=models.SET_NULL, null=True, blank=True, related_name='documents')
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
-    document = models.FileField(upload_to="client_documents/")
+    category = models.CharField(max_length=100, blank=True)
+    document = models.FileField(upload_to="client_documents/", null=True, blank=True)
     document_type = models.CharField(max_length=50, blank=True)
 
     # Access control
     is_visible_to_client = models.BooleanField(default=True)
+    visibility = models.CharField(max_length=20, choices=VISIBILITY_CHOICES, default='client')
+    
     document_source = models.CharField(
         max_length=20, 
         choices=[('file', 'File'), ('google_doc', 'Google Doc'), ('google_sheet', 'Google Sheet')],
@@ -538,12 +571,36 @@ class ClientDocument(Audit):
     google_drive_id = models.CharField(max_length=255, blank=True, null=True)
     uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
 
+    # Security & Health
+    scan_status = models.CharField(max_length=20, choices=SCAN_STATUS_CHOICES, default='passed')
+    
+    # Unlock Rules
+    access_rule_type = models.CharField(max_length=20, choices=ACCESS_RULE_CHOICES, default='immediate')
+    access_rule_linked_id = models.CharField(max_length=100, blank=True)
+    access_rule_description = models.TextField(blank=True)
+
     # Analytics
     download_count = models.PositiveIntegerField(default=0)
     last_accessed = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.client.user.get_full_name()} - {self.title}"
+
+class DocumentVersion(Audit):
+    """Versions of a client document"""
+    document = models.ForeignKey(ClientDocument, on_delete=models.CASCADE, related_name='versions')
+    version_number = models.PositiveIntegerField()
+    file = models.FileField(upload_to="client_documents/versions/")
+    file_name = models.CharField(max_length=255)
+    file_size = models.PositiveIntegerField()
+    uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    hash = models.CharField(max_length=64, blank=True)
+
+    class Meta:
+        ordering = ['-version_number']
+
+    def __str__(self):
+        return f"{self.document.title} - v{self.version_number}"
 
 
 class ProRataApproval(Audit):

@@ -97,6 +97,12 @@ class GoogleService:
         doc = self.service.documents().create(body={'title': title}).execute()
         return doc
 
+    def create_sheet(self, title):
+        if self.service_type != 'sheets':
+            raise ValueError("Service must be 'sheets' to create a sheet")
+        sheet = self.service.spreadsheets().create(body={'properties': {'title': title}}).execute()
+        return sheet
+
     # Drive Methods
     def share_file(self, file_id, email, role='writer'):
         drive_service = build('drive', 'v3', credentials=self.credentials)

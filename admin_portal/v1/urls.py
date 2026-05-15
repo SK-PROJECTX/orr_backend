@@ -30,6 +30,7 @@ from .views import (
     subscriptions,
     system_health,
     ticket,
+    vault,
     wallet_logs,
     workspace_usage,
 )
@@ -574,8 +575,11 @@ cms_patterns = [
 
 # Document Vault (Google Integration) URLs
 vault_patterns = [
-    path("documents/", views_google.list_vault_documents, name="vault-documents-list"),
+    path("documents/", vault.VaultDocumentListView.as_view(), name="vault-documents-list"),
     path("documents/create-google-doc/", views_google.create_google_doc, name="vault-create-google-doc"),
+    path("documents/batch-update/", vault.batch_update_documents, name="vault-documents-batch-update"),
+    path("folders/", vault.VaultFolderListView.as_view(), name="vault-folders-list"),
+    path("activity/", vault.VaultActivityListView.as_view(), name="vault-activity-list"),
 ]
 
 urlpatterns = [
