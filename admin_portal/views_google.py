@@ -108,6 +108,11 @@ def list_vault_documents(request):
             try:
                 from decouple import config
                 url = doc.document.url
+                # Ensure the URL has the correct extension if it's missing in the DB
+                if doc.document_type and not url.lower().endswith(doc.document_type.lower().replace('.', '')):
+                     if not url.endswith('.'): url += '.'
+                     url += doc.document_type.replace('.', '')
+
                 if url.startswith('/'):
                     api_url = config('BACKEND_URL', default='https://orr-backend-105825824472.asia-southeast2.run.app')
                     link = f"{api_url.rstrip('/')}{url}"

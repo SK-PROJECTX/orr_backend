@@ -284,6 +284,12 @@ class ClientDocumentSerializer(serializers.ModelSerializer):
             try:
                 # Force absolute URL even if Django tries to return relative
                 url = obj.document.url
+                
+                # Ensure extension is present
+                if obj.document_type and not url.lower().endswith(obj.document_type.lower().replace('.', '')):
+                     if not url.endswith('.'): url += '.'
+                     url += obj.document_type.replace('.', '')
+
                 if url.startswith('/'):
                     from django.conf import settings
                     api_url = config('BACKEND_URL', default='https://orr-backend-105825824472.asia-southeast2.run.app')
