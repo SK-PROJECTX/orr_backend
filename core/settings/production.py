@@ -68,12 +68,16 @@ CSRF_TRUSTED_ORIGINS = [
     "https://admin.orr.solutions",
 ]
 
-# Static files for production
-STATIC_ROOT = "/app/staticfiles"
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+# Storage settings for Django 4.2+
+STORAGES = {
+    "default": {
+        "BACKEND": "storages.backends.gcloud.GoogleCloudStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
-# Cloud Storage settings for media
-DEFAULT_FILE_STORAGE = 'storages.backends.gcloud.GoogleCloudStorage'
 GS_BUCKET_NAME = config('GS_BUCKET_NAME', default='orr-solutions-media')
 GS_PROJECT_ID = config('GS_PROJECT_ID', default='orr-core-platform')
 GS_DEFAULT_ACL = 'publicRead'
