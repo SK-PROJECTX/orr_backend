@@ -25,10 +25,17 @@ class VaultDocumentListView(generics.ListCreateAPIView):
         # Security: Filter by client if not staff/admin
         is_admin = user.is_staff or hasattr(user, 'admin_profile')
         if not is_admin:
-            client = getattr(user, 'client_profile', None)
+            # Try to get client from either client_profile or profile attribute
+            client = getattr(user, 'client_profile', None) or getattr(user, 'profile', None)
+            
+            # If the profile doesn't have a direct Client relation (e.g. it's the client.models.Profile),
+            # we might need to find the Client record.
+            if not isinstance(client, Client) and client:
+                 client = Client.objects.filter(user=user).first()
+
             if client:
-                # Clients only see visible documents assigned to them
-                queryset = queryset.filter(client=client, visibility='visible')
+                # Clients only see documents explicitly marked as client-facing
+                queryset = queryset.filter(client=client, visibility='client')
             else:
                 return ClientDocument.objects.none()
 
@@ -74,11 +81,14 @@ class VaultFolderListView(generics.ListCreateAPIView):
         
         is_admin = user.is_staff or hasattr(user, 'admin_profile')
         if not is_admin:
-            client = getattr(user, 'client_profile', None)
+            client = getattr(user, 'client_profile', None) or getattr(user, 'profile', None)
+            
+            if not isinstance(client, Client) and client:
+                 client = Client.objects.filter(user=user).first()
+
             if client:
-                # Clients only see folders explicitly assigned to them or global folders?
-                # For now, if a folder has a client field, filter by it.
-                queryset = queryset.filter(Q(client_id=client.id) | Q(client__isnull=True))
+                # Clients only see folders explicitly assigned to them or global folders
+                queryset = queryset.filter(Q(client=client) | Q(client__isnull=True))
             else:
                 return VaultFolder.objects.none()
         
@@ -89,13 +99,30 @@ class VaultFolderListView(generics.ListCreateAPIView):
 
 class VaultActivityListView(APIView):
     """List vault-related activity logs"""
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        user = request.user
+        is_admin = user.is_staff or hasattr(user, 'admin_profile')
+        
         # Filter AuditLog for vault-related models
-        logs = AuditLog.objects.filter(
+        queryset = AuditLog.objects.filter(
             Q(model_name='ClientDocument') | Q(model_name='VaultFolder')
-        ).order_by('-timestamp')[:100]
+        )
+        
+        if not is_admin:
+            # Try to get client
+            client = getattr(user, 'client_profile', None) or getattr(user, 'profile', None)
+            if not isinstance(client, Client) and client:
+                 client = Client.objects.filter(user=user).first()
+            
+            if client:
+                # Filter by logs where the user is the client
+                queryset = queryset.filter(user=user)
+            else:
+                return Response({"status": 200, "message": "Success", "data": []})
+
+        logs = queryset.order_by('-timestamp')[:100]
         
         data = []
         for log in logs:
