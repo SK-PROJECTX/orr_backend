@@ -273,36 +273,8 @@ class ClientDocumentSerializer(serializers.ModelSerializer):
         ]
 
     def get_link(self, obj):
-        if obj.google_drive_id:
-            # Use /edit?rm=minimal for a better integrated experience in the studio
-            if obj.document_source == 'google_sheet':
-                return f"https://docs.google.com/spreadsheets/d/{obj.google_drive_id}/edit?rm=minimal"
-            elif obj.document_source == 'google_slide':
-                return f"https://docs.google.com/presentation/d/{obj.google_drive_id}/edit?rm=minimal"
-            else:
-                return f"https://docs.google.com/document/d/{obj.google_drive_id}/edit?rm=minimal"
-        elif obj.document:
-            try:
-                url = obj.document.url
-                
-                # Ensure extension is present for local files
-                if obj.document_type and not url.lower().endswith(obj.document_type.lower().replace('.', '')):
-                     if not url.endswith('.'): url += '.'
-                     url += obj.document_type.replace('.', '')
-
-                if url.startswith('/'):
-                    # Try to use request context to build absolute URI
-                    request = self.context.get('request')
-                    if request:
-                        return request.build_absolute_uri(url)
-                        
-                    from decouple import config
-                    api_url = config('BACKEND_URL', default='https://orr-backend-105825824472.asia-southeast2.run.app')
-                    return f"{api_url.rstrip('/')}{url}"
-                return url
-            except Exception:
-                return None
-        return None
+        request = self.context.get('request')
+        return obj.get_document_link(request)
 
     def get_file_size(self, obj):
         try:

@@ -565,7 +565,12 @@ class ClientDocument(Audit):
     
     document_source = models.CharField(
         max_length=20, 
-        choices=[('file', 'File'), ('google_doc', 'Google Doc'), ('google_sheet', 'Google Sheet')],
+        choices=[
+            ('file', 'File'), 
+            ('google_doc', 'Google Doc'), 
+            ('google_sheet', 'Google Sheet'),
+            ('google_slide', 'Google Slide')
+        ],
         default='file'
     )
     google_drive_id = models.CharField(max_length=255, blank=True, null=True)
@@ -582,6 +587,37 @@ class ClientDocument(Audit):
     # Analytics
     download_count = models.PositiveIntegerField(default=0)
     last_accessed = models.DateTimeField(null=True, blank=True)
+
+    def get_document_link(self, request=None):
+        if self.google_drive_id:
+            base_urls = {
+                'google_sheet': "https://docs.google.com/spreadsheets/d/",
+                'google_slide': "https://docs.google.com/presentation/d/",
+                'google_doc': "https://docs.google.com/document/d/"
+            }
+            # Default to doc if source not recognized but id exists
+            base_url = base_urls.get(self.document_source, base_urls['google_doc'])
+            return f"{base_url}{self.google_drive_id}/edit?rm=minimal"
+        
+        if self.document:
+            try:
+                url = self.document.url
+                # Ensure extension is present for local files
+                if self.document_type and not url.lower().endswith(self.document_type.lower().replace('.', '')):
+                     if not url.endswith('.'): url += '.'
+                     url += self.document_type.replace('.', '')
+
+                if url.startswith('/'):
+                    if request:
+                        return request.build_absolute_uri(url)
+                    
+                    from decouple import config
+                    api_url = config('BACKEND_URL', default='https://orr-backend-105825824472.asia-southeast2.run.app')
+                    return f"{api_url.rstrip('/')}{url}"
+                return url
+            except Exception:
+                return None
+        return None
 
     def __str__(self):
         return f"{self.client.user.get_full_name()} - {self.title}"
