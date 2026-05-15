@@ -53,6 +53,17 @@ def create_google_doc(request):
             is_visible_to_client=True
         )
 
+        # 4. Create Audit Log
+        from .models import AuditLog
+        AuditLog.objects.create(
+            user=request.user,
+            action='create',
+            model_name='ClientDocument',
+            object_id=str(client_doc.id),
+            description=f"Created {doc_type.replace('_', ' ')}: {title} for client {client.company}",
+            ip_address=request.META.get('REMOTE_ADDR')
+        )
+
         return Response({
             'id': client_doc.id,
             'title': client_doc.title,
@@ -101,5 +112,25 @@ def list_vault_documents(request):
             'lastModified': doc.updated_at.strftime('%Y-%m-%d'),
             'link': link,
             'google_drive_id': doc.google_drive_id
+        })
+    return Response(data)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def list_client_activity(request):
+    from .models import AuditLog
+    logs = AuditLog.objects.filter(user=request.user).order_by('-timestamp')[:50]
+    
+    data = []
+    for log in logs:
+        data.append({
+            'id': log.id,
+            'user': 'You',
+            'action': log.get_action_display(),
+            'item': log.description.split(': ')[-1] if ': ' in log.description else log.description,
+            'description': log.description,
+            'timestamp': log.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+            'time': log.timestamp.strftime('%b %d, %H:%M'),
+            'model': log.model_name
         })
     return Response(data)

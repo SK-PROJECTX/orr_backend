@@ -2,7 +2,7 @@ import time
 from django.contrib.auth.models import User
 from rest_framework import serializers
 
-from admin_portal.models import Client, ClientDocument, Meeting, Ticket
+from admin_portal.models import Client, ClientDocument, Meeting, Ticket, VaultFolder, DocumentVersion
 
 
 class ClientListSerializer(serializers.ModelSerializer):
@@ -196,11 +196,49 @@ class ClientUpdateSerializer(serializers.ModelSerializer):
         ]
 
 
+class VaultFolderSerializer(serializers.ModelSerializer):
+    """Vault folder serializer"""
+    doc_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = VaultFolder
+        fields = ["id", "name", "parent", "client", "project", "doc_count", "created_at", "updated_at"]
+
+    def get_doc_count(self, obj):
+        return obj.documents.count()
+
+
+class DocumentVersionSerializer(serializers.ModelSerializer):
+    """Document version serializer"""
+    uploaded_by_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = DocumentVersion
+        fields = [
+            "id",
+            "version_number",
+            "file",
+            "file_name",
+            "file_size",
+            "uploaded_by_name",
+            "hash",
+            "created_at",
+        ]
+
+    def get_uploaded_by_name(self, obj):
+        if not obj.uploaded_by:
+            return "Unknown Admin"
+        return obj.uploaded_by.get_full_name() or obj.uploaded_by.username
+
+
 class ClientDocumentSerializer(serializers.ModelSerializer):
-    """Client document serializer"""
+    """Client document serializer enhanced for Vault"""
 
     uploaded_by_name = serializers.SerializerMethodField()
     file_size = serializers.SerializerMethodField()
+    client_name = serializers.CharField(source="client.company", read_only=True)
+    versions = DocumentVersionSerializer(many=True, read_only=True)
+    access_rule = serializers.SerializerMethodField()
 
     class Meta:
         model = ClientDocument
@@ -208,15 +246,24 @@ class ClientDocumentSerializer(serializers.ModelSerializer):
             "id",
             "title",
             "description",
+            "category",
+            "client",
+            "client_name",
+            "folder",
             "document",
             "document_type",
             "document_source",
             "google_drive_id",
+            "visibility",
             "is_visible_to_client",
+            "scan_status",
             "uploaded_by_name",
+            "access_rule",
+            "versions",
             "download_count",
             "last_accessed",
             "created_at",
+            "updated_at",
             "file_size",
         ]
 
@@ -235,6 +282,13 @@ class ClientDocumentSerializer(serializers.ModelSerializer):
         if full_name:
             return full_name
         return obj.uploaded_by.username or "Unknown User"
+
+    def get_access_rule(self, obj):
+        return {
+            "type": obj.access_rule_type,
+            "linkedId": obj.access_rule_linked_id,
+            "description": obj.access_rule_description
+        }
 
 
 class ClientEngagementHistorySerializer(serializers.Serializer):
