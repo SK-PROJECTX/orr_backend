@@ -72,9 +72,11 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 # Cloud Storage settings for media
 DEFAULT_FILE_STORAGE = 'storages.backends.gcloud.GoogleCloudStorage'
 GS_BUCKET_NAME = config('GS_BUCKET_NAME', default='orr-solutions-media')
+GS_PROJECT_ID = config('GS_PROJECT_ID', default='orr-core-platform')
 GS_DEFAULT_ACL = 'publicRead'
 GS_QUERYSTRING_AUTH = False
 GS_FILE_OVERWRITE = False
+GS_EXPIRATION = None # Ensure URLs don't expire
 GS_OBJECT_PARAMETERS = {
     'content_disposition': 'inline',
     'cache_control': 'public, max-age=3600',
