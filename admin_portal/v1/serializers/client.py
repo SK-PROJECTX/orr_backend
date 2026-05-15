@@ -205,7 +205,10 @@ class VaultFolderSerializer(serializers.ModelSerializer):
         fields = ["id", "name", "parent", "client", "project", "doc_count", "created_at", "updated_at"]
 
     def get_doc_count(self, obj):
-        return obj.documents.count()
+        try:
+            return obj.documents.count()
+        except Exception:
+            return 0
 
 
 class DocumentVersionSerializer(serializers.ModelSerializer):
@@ -239,6 +242,7 @@ class ClientDocumentSerializer(serializers.ModelSerializer):
     client_name = serializers.CharField(source="client.company", read_only=True)
     versions = DocumentVersionSerializer(many=True, read_only=True)
     access_rule = serializers.SerializerMethodField()
+    link = serializers.SerializerMethodField()
 
     class Meta:
         model = ClientDocument
@@ -265,7 +269,20 @@ class ClientDocumentSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
             "file_size",
+            "link",
         ]
+
+    def get_link(self, obj):
+        if obj.google_drive_id:
+            if obj.document_source == 'google_sheet':
+                return f"https://docs.google.com/spreadsheets/d/{obj.google_drive_id}/edit"
+            elif obj.document_source == 'google_slide':
+                return f"https://docs.google.com/presentation/d/{obj.google_drive_id}/edit"
+            else:
+                return f"https://docs.google.com/document/d/{obj.google_drive_id}/edit"
+        elif obj.document:
+            return obj.document.url
+        return None
 
     def get_file_size(self, obj):
         try:
