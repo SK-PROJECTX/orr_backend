@@ -275,11 +275,11 @@ class ClientDocumentSerializer(serializers.ModelSerializer):
     def get_link(self, obj):
         if obj.google_drive_id:
             if obj.document_source == 'google_sheet':
-                return f"https://docs.google.com/spreadsheets/d/{obj.google_drive_id}/edit"
+                return f"https://docs.google.com/spreadsheets/d/{obj.google_drive_id}/preview"
             elif obj.document_source == 'google_slide':
-                return f"https://docs.google.com/presentation/d/{obj.google_drive_id}/edit"
+                return f"https://docs.google.com/presentation/d/{obj.google_drive_id}/preview"
             else:
-                return f"https://docs.google.com/document/d/{obj.google_drive_id}/edit"
+                return f"https://docs.google.com/document/d/{obj.google_drive_id}/preview"
         elif obj.document:
             return obj.document.url
         return None
