@@ -33,24 +33,18 @@ else:
 # Security settings for production
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
-X_FRAME_OPTIONS = 'DENY'
+X_FRAME_OPTIONS = 'ALLOWALL'
 
 # CORS settings for production
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = [
     "https://admin.orr.solutions",
-    "https://orr-admin-frontend.vercel.app",
-    "https://orr-solutions-admin.vercel.app",
-    "https://orr-solutions.vercel.app",
+    "https://orr.solutions",
+    "https://www.orr.solutions",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "https://localhost:3000",
     "http://localhost:3001",
     "http://127.0.0.1:3001",
-    "https://localhost:3001",
-    "http://localhost:5173",
-    "https://www.orr.solutions",
-    "https://orr.solutions",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -74,6 +68,13 @@ CSRF_TRUSTED_ORIGINS = [
 # Static files for production
 STATIC_ROOT = "/app/staticfiles"
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
+# Cloud Storage settings for media
+DEFAULT_FILE_STORAGE = 'storages.backends.gcloud.GoogleCloudStorage'
+GS_BUCKET_NAME = config('GS_BUCKET_NAME', default='orr-solutions-media')
+GS_DEFAULT_ACL = 'publicRead'
+GS_QUERYSTRING_AUTH = False
+GS_FILE_OVERWRITE = False
 
 LOGGING = {
     "version": 1,

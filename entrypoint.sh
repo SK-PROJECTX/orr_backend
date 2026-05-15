@@ -7,9 +7,11 @@ echo "Applying database migrations..."
 python manage.py migrate --noinput || echo "Migrations failed, continuing to start server..."
 
 echo "Starting Gunicorn on port ${PORT:-8080}..."
+echo "Current environment configuration active."
 exec gunicorn core.wsgi:application \
   --bind 0.0.0.0:${PORT:-8080} \
   --workers 2 \
   --threads 4 \
-  --timeout 120
+  --timeout 120 \
+  --log-level info
 
