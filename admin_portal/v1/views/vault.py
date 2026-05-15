@@ -165,3 +165,25 @@ def batch_update_documents(request):
     )
     
     return Response({'message': f'Successfully updated {count} documents'})
+
+class VaultDocumentDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """Retrieve, update or delete a vault document"""
+    serializer_class = ClientDocumentSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        queryset = ClientDocument.objects.all().select_related('client', 'folder').prefetch_related('versions')
+        
+        is_admin = user.is_staff or hasattr(user, 'admin_profile')
+        if not is_admin:
+            client = getattr(user, 'client_profile', None) or getattr(user, 'profile', None)
+            if not isinstance(client, Client) and client:
+                 client = Client.objects.filter(user=user).first()
+
+            if client:
+                queryset = queryset.filter(client=client, visibility='client')
+            else:
+                return ClientDocument.objects.none()
+        
+        return queryset
