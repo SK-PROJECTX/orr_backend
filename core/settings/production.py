@@ -3,7 +3,9 @@ from .base import *
 from urllib.parse import urlparse, parse_qs, unquote
 from decouple import config
 
-DEBUG = True
+DEBUG = config("DEBUG", default=False, cast=bool)
+
+ALLOWED_HOSTS = ["*"] # Cloud Run handles host validation, but we can be specific if needed
 
 DATABASE_URL = config("DATABASE_URL")
 DB_PASSWORD = config("DB_PASSWORD", default=None)
@@ -33,6 +35,7 @@ else:
 # Security settings for production
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 X_FRAME_OPTIONS = 'ALLOWALL'
 
 # CORS settings for production
