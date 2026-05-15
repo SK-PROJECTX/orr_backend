@@ -75,6 +75,11 @@ GS_BUCKET_NAME = config('GS_BUCKET_NAME', default='orr-solutions-media')
 GS_DEFAULT_ACL = 'publicRead'
 GS_QUERYSTRING_AUTH = False
 GS_FILE_OVERWRITE = False
+GS_OBJECT_PARAMETERS = {
+    'content_disposition': 'inline',
+    'cache_control': 'public, max-age=3600',
+}
+GS_BLOB_CHUNK_SIZE = 1024 * 1024 * 5  # 5MB chunks for better streaming
 
 LOGGING = {
     "version": 1,
