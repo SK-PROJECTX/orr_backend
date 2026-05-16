@@ -344,5 +344,6 @@ $RECYCLE.BIN/
 rough/
 ./db.sqlite3
 .idea/
-# Google Meet Secrets
+# Google Credentials
+google_credentials/
 google-meet-credentials.json
