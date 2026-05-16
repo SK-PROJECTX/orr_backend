@@ -588,6 +588,14 @@ class ClientDocument(Audit):
     download_count = models.PositiveIntegerField(default=0)
     last_accessed = models.DateTimeField(null=True, blank=True)
 
+    def save(self, *args, **kwargs):
+        if self.document and not self.document_type:
+            import os
+            ext = os.path.splitext(self.document.name)[1].lower()
+            if ext:
+                self.document_type = ext.replace('.', '')
+        super().save(*args, **kwargs)
+
     def get_document_link(self, request=None):
         if self.google_drive_id:
             base_urls = {

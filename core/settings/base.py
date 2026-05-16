@@ -70,7 +70,15 @@ MIDDLEWARE = [
     # "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+# Storage settings for Django 4.2+
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
 ROOT_URLCONF = "core.urls"
 
 TEMPLATES = [

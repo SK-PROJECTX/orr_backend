@@ -237,6 +237,7 @@ class DocumentVersionSerializer(serializers.ModelSerializer):
 class ClientDocumentSerializer(serializers.ModelSerializer):
     """Client document serializer enhanced for Vault"""
 
+    document_type = serializers.SerializerMethodField()
     uploaded_by_name = serializers.SerializerMethodField()
     file_size = serializers.SerializerMethodField()
     client_name = serializers.CharField(source="client.company", read_only=True)
@@ -271,6 +272,18 @@ class ClientDocumentSerializer(serializers.ModelSerializer):
             "file_size",
             "link",
         ]
+
+    def get_document_type(self, obj):
+        if obj.document_type:
+            return obj.document_type
+        if obj.document:
+            import os
+            ext = os.path.splitext(obj.document.name)[1].lower()
+            return ext.replace('.', '')
+        if obj.document_source == 'google_doc': return 'docx'
+        if obj.document_source == 'google_sheet': return 'xlsx'
+        if obj.document_source == 'google_slide': return 'pptx'
+        return 'pdf'
 
     def get_link(self, obj):
         request = self.context.get('request')
