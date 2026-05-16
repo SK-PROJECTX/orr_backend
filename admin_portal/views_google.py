@@ -52,8 +52,10 @@ def create_google_doc(request):
             print(f"Error sharing file: {e}")
 
         # 5. Save to database
+        folder_id = request.data.get('folder_id')
         client_doc = ClientDocument.objects.create(
             client=client,
+            folder_id=folder_id,
             title=title,
             document_source=doc_type,
             google_drive_id=file_id,
