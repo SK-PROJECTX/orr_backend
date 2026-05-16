@@ -53,6 +53,17 @@ def create_google_doc(request):
 
         # 5. Save to database
         folder_id = request.data.get('folder_id')
+        
+        # If a folder is provided, ensure the document belongs to the folder's client
+        # to prevent visibility issues.
+        if folder_id:
+            try:
+                folder = VaultFolder.objects.get(id=folder_id)
+                if folder.client:
+                    client = folder.client
+            except VaultFolder.DoesNotExist:
+                pass
+
         client_doc = ClientDocument.objects.create(
             client=client,
             folder_id=folder_id,
