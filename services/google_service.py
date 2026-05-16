@@ -31,7 +31,15 @@ class GoogleService:
                 print(f"Error loading credentials from environment: {e}")
                 self._load_from_file()
         else:
-            self._load_from_file()
+            try:
+                # Try loading from file first
+                self._load_from_file()
+            except Exception:
+                # Final fallback: Use Application Default Credentials (ADC)
+                # This is perfect for Cloud Run since the service account there
+                # already has the "Editor" role.
+                import google.auth
+                self.credentials, _ = google.auth.default(scopes=self._get_scopes())
             
         self.service = build(self._get_api_name(), self._get_api_version(), credentials=self.credentials)
 
